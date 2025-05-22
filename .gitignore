@@ -31,7 +31,10 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
+.packages
 /build/
+# If this is a package (not an app), ignore pubspec.lock
+#pubspec.lock
 
 # Symbolication related
 app.*.symbols
@@ -43,3 +46,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Flutter-generated registrant file (optional)
+lib/generated_plugin_registrant.dart
