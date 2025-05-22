@@ -12,6 +12,7 @@ class InputField extends StatefulWidget {
   final Icon? suffix;
   final bool? isBold;
   final TextEditingController? controller;
+  final Function(String)? onChanged; // Added onChanged parameter
 
   const InputField({
     Key? key,
@@ -21,8 +22,9 @@ class InputField extends StatefulWidget {
     this.inputType,
     this.onPressed,
     this.suffix,
-    this.isBold=false,
+    this.isBold = false,
     this.controller,
+    this.onChanged, // Added onChanged parameter
   }) : super(key: key);
 
   @override
@@ -46,9 +48,12 @@ class _InputFieldState extends State<InputField> {
           keyboardType: widget.inputType ?? TextInputType.text,
           controller: widget.controller,
           obscureText: widget.isPassword ? _visible : false,
+          onChanged: widget.onChanged, // Added onChanged callback
           decoration: InputDecoration(
             hintText: widget.hintText,
-            hintStyle: widget.isBold == true ? descriptionTextStyle(fontWeight: FontWeight.bold,color: primaryColor) : descriptionTextStyle(),
+            hintStyle: widget.isBold == true 
+                ? descriptionTextStyle(fontWeight: FontWeight.bold, color: primaryColor) 
+                : descriptionTextStyle(),
             border: InputBorder.none,
             suffixIcon: widget.isPassword
                 ? IconButton(
@@ -123,14 +128,17 @@ class _TagInputFieldState extends State<TagInputField> {
           child: TextField(
             controller: _tagController,
             decoration: InputDecoration(
-               hintStyle: descriptionTextStyle(),
+              hintStyle: descriptionTextStyle(),
               border: InputBorder.none,
               hintText: "Enter a tag...",
-              suffix: IconButton(onPressed:() {
-              if (_tagController.text.isNotEmpty) {
-                _addTag(_tagController.text);
-              }
-            }, icon: Icon(IconlyLight.tickSquare,color: primaryColor,))
+              suffix: IconButton(
+                onPressed: () {
+                  if (_tagController.text.isNotEmpty) {
+                    _addTag(_tagController.text);
+                  }
+                }, 
+                icon: Icon(IconlyLight.tickSquare, color: primaryColor),
+              )
             ),
             onSubmitted: _addTag,
           ),
@@ -139,4 +147,3 @@ class _TagInputFieldState extends State<TagInputField> {
     );
   }
 }
-

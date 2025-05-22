@@ -1,17 +1,18 @@
-
 import 'package:bhu/utils/constants.dart';
 import 'package:bhu/utils/style.dart';
 import 'package:bhu/view/auth/signin.dart';
 import 'package:bhu/view/chat/chat.dart';
 import 'package:bhu/view/notification/notification.dart';
 import 'package:bhu/view/home/home.dart';
-import 'package:bhu/view/patient/patient_form.dart';
 import 'package:bhu/view/profile/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_iconly/flutter_iconly.dart';
 import 'package:get/get.dart';
 import 'package:badges/badges.dart' as badges;
 
+import '../forms/opd_visit.dart';
+import '../forms/patient_registration.dart';
+import '../forms/prescription_form.dart';
 
 class NavigationScreen extends StatefulWidget {
   const NavigationScreen({super.key});
@@ -54,13 +55,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "HI, Hammad 👋🏾",
+                    "HI, Doctor 👋🏾",
                     style: descriptionTextStyle(
                         fontWeight: FontWeight.bold,
                         color: primaryColor,
                         size: 12),
                   ),
-                  Text("Love to code? Let's grow together",
+                  Text("Basic Health Unit Management",
                       style: Theme.of(context).textTheme.bodySmall),
                 ],
               )
@@ -71,13 +72,18 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   )
                 : currentPageIndex == 2
                     ? Text(
-                        "Chat",
+                        "OPD Visit",
                         style: titleTextStyle(),
                       )
-                    : Text(
-                        "Profile",
-                        style: titleTextStyle(),
-                      ),
+                    : currentPageIndex == 3
+                        ? Text(
+                            "Prescriptions",
+                            style: titleTextStyle(),
+                          )
+                        : Text(
+                            "Profile",
+                            style: titleTextStyle(),
+                          ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
@@ -87,9 +93,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
               icon: badges.Badge(
                 badgeContent: Text(
                   '',
-                  // cartController.cartItems.isNotEmpty
-                  //     ? cartController.cartItems.length.toString()
-                  //     : '',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -149,10 +152,12 @@ class _NavigationScreenState extends State<NavigationScreen> {
       case 0:
         return const HomeScreen();
       case 1:
-        return PatientForm();
+        return PatientRegistrationForm();
       case 2:
-        return const ChatScreen();
+        return OpdVisitForm();
       case 3:
+        return PrescriptionForm();
+      case 4:
         return const ProfileScreen();
       default:
         return const HomeScreen();
@@ -167,14 +172,19 @@ class _NavigationScreenState extends State<NavigationScreen> {
         activeIcon: Icon(IconlyBold.home),
       ),
       const BottomNavigationBarItem(
-        icon: Icon(IconlyLight.folder),
+        icon: Icon(IconlyLight.addUser),
         label: "",
-        activeIcon: Icon(IconlyBold.folder),
+        activeIcon: Icon(IconlyBold.addUser),
       ),
       const BottomNavigationBarItem(
-        icon: Icon(IconlyLight.chat),
+        icon: Icon(IconlyLight.document),
         label: "",
-        activeIcon: Icon(IconlyBold.chat),
+        activeIcon: Icon(IconlyBold.document),
+      ),
+      const BottomNavigationBarItem(
+        icon: Icon(IconlyLight.paper),
+        label: "",
+        activeIcon: Icon(IconlyBold.paper),
       ),
       const BottomNavigationBarItem(
         icon: Icon(IconlyLight.profile),
@@ -191,16 +201,17 @@ class _NavigationScreenState extends State<NavigationScreen> {
         padding: EdgeInsets.zero,
         children: [
           UserAccountsDrawerHeader(
-            accountName: Text('Guest'),
-            accountEmail: Text('guest@example.com'),
+            accountName: Text('Dr. Health'),
+            accountEmail: Text('doctor@bhu.com'),
             currentAccountPicture: CircleAvatar(
                 backgroundImage:
                     AssetImage('assets/default_profile.png') as ImageProvider,
                 backgroundColor: Colors.white,
                 child: Text(
-                  'G',
+                  'D',
                   style: const TextStyle(fontSize: 40.0),
                 )),
+            decoration: BoxDecoration(color: primaryColor),
           ),
           ListTile(
             leading: const Icon(
@@ -217,10 +228,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
           ),
           ListTile(
             leading: Icon(
-              Icons.group_outlined,
+              IconlyLight.addUser,
               color: Colors.green[900],
             ),
-            title: const Text('Community'),
+            title: const Text('Patient Registration'),
             onTap: () {
               setState(() {
                 currentPageIndex = 1;
@@ -230,10 +241,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
           ),
           ListTile(
             leading: const Icon(
-              IconlyLight.chat,
-              color: Colors.lime,
+              IconlyLight.document,
+              color: Colors.blue,
             ),
-            title: const Text('Chat'),
+            title: const Text('OPD Visits'),
             onTap: () {
               setState(() {
                 currentPageIndex = 2;
@@ -243,47 +254,41 @@ class _NavigationScreenState extends State<NavigationScreen> {
           ),
           ListTile(
             leading: const Icon(
-              IconlyLight.profile,
-              color: Colors.blue,
+              IconlyLight.paper,
+              color: Colors.orange,
             ),
-            title: const Text('Profile'),
+            title: const Text('Prescriptions'),
             onTap: () {
-              if ("user!.userType" == 'Guest') {
-                Get.to(() => LoginScreen());
-              } else {
-                setState(() {
-                  currentPageIndex = 3;
-                  Navigator.pop(context);
-                });
-              }
+              setState(() {
+                currentPageIndex = 3;
+                Navigator.pop(context);
+              });
             },
           ),
           ListTile(
-              leading: const Icon(Icons.add, color: Colors.orange),
-              title: const Text('Add Plant'),
+            leading: const Icon(
+              IconlyLight.profile,
+              color: Colors.lime,
             ),
-          ListTile(
-              leading: const Icon(Icons.park_outlined, color: Colors.green),
-              title: const Text('My Plants'),
-              onTap: () {
-              },
-            ),
+            title: const Text('Profile'),
+            onTap: () {
+              setState(() {
+                currentPageIndex = 4;
+                Navigator.pop(context);
+              });
+            },
+          ),
           const Divider(),
           ListTile(
             leading: Icon(
-              "firebaseUser" != null && "user?.userType" != "Guest"
-                  ? IconlyLight.logout
-                  : IconlyLight.login,
-              color: "firebaseUser" != null && "user?.userType" != "Guest"
-                  ? Colors.red
-                  : Colors.green,
+              Icons.logout,
+              color: Colors.red,
             ),
             title: Text(
-              "firebaseUser" != null &&"user?.userType" != "Guest"
-                  ? 'Logout'
-                  : 'Sign In',
+              'Logout',
             ),
             onTap: () async {
+              Get.to(() => LoginScreen());
             },
           ),
         ],

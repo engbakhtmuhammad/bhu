@@ -8,7 +8,7 @@ import '../../utils/style.dart';
 import '../../widgets/input_field.dart';
 import '../../widgets/custom_btn.dart';
 
-class PatientForm extends StatelessWidget {
+class PatientRegistrationForm extends StatelessWidget {
   final controller = Get.put(PatientController());
 
   final nameCtrl = TextEditingController();
