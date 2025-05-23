@@ -6,7 +6,6 @@ import '../models/opd_visit_model.dart';
 import '../models/patient_model.dart';
 import 'dart:convert';
 
-import '../models/prescription_model.dart';
 
 class OpdController extends GetxController {
   final db = DatabaseHelper();

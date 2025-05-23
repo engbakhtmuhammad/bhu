@@ -1,7 +1,6 @@
 import 'package:get/get.dart';
 import '../db/database_helper.dart';
 import '../models/opd_visit_model.dart';
-import '../models/prescription_model.dart';
 
 class PrescriptionController extends GetxController {
   final db = DatabaseHelper();
@@ -69,19 +68,21 @@ class PrescriptionController extends GetxController {
     }
 
     final prescription = PrescriptionModel(
-      id: 0, // Auto-increment
+      // Don't specify id - let SQLite auto-generate it
       drugName: drugName,
       dosage: dosage,
       duration: duration,
       opdTicketNo: selectedOpdTicket.value,
     );
 
-    await db.insertPrescription(prescription);
+    int newId = await db.insertPrescription(prescription);
     await loadPrescriptions(selectedOpdTicket.value);
-    Get.snackbar("Success", "Prescription added successfully");
+    Get.snackbar("Success", "Prescription added successfully (ID: $newId)");
   }
 
-  Future<void> deletePrescription(int id) async {
+  Future<void> deletePrescription(int? id) async {
+    if (id == null) return;
+    
     final dbClient = await db.database;
     await dbClient.delete('prescriptions', where: 'id = ?', whereArgs: [id]);
     await loadPrescriptions(selectedOpdTicket.value);

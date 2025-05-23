@@ -37,11 +37,6 @@ class _PrescriptionFormState extends State<PrescriptionForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: whiteColor,
-      appBar: AppBar(
-        backgroundColor: whiteColor,
-        title: Text("Prescription Management", style: titleTextStyle()),
-        centerTitle: true,
-      ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: ListView(
@@ -215,7 +210,9 @@ class _PrescriptionFormState extends State<PrescriptionForm> {
                           ),
                         ),
                         IconButton(
-                          onPressed: () => controller.deletePrescription(prescription.id),
+                          onPressed: prescription.id != null 
+                              ? () => controller.deletePrescription(prescription.id!) 
+                              : null,
                           icon: Icon(Icons.delete, color: Colors.red),
                         ),
                       ],

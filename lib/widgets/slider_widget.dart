@@ -1,6 +1,8 @@
 import 'package:bhu/utils/constants.dart';
 import 'package:bhu/utils/style.dart';
+import 'package:bhu/view/forms/opd_visit.dart';
 import 'package:bhu/view/forms/patient_registration.dart';
+import 'package:bhu/view/patient/patient_list.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -40,6 +42,7 @@ class DashboardSlider extends StatelessWidget {
                 title: "View Patient",
                 subtitle: "Records",
                 imagePath: "assets/images/view.png",
+                onPressed: () => Get.to(() =>  AllPatientsScreen()),
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -50,6 +53,7 @@ class DashboardSlider extends StatelessWidget {
                 title: "OPD",
                 subtitle: "Visit",
                 imagePath: "assets/images/doctor.png",
+                onPressed: () => Get.to(() =>  OpdVisitForm()),
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,

@@ -57,7 +57,7 @@ class OpdVisitForm extends StatelessWidget {
                       child: DropdownButton<String>(
                         value: controller.reasonForVisit.value,
                         isExpanded: true,
-                        items: ['General OPD', 'OBGYN']
+                        items: ['OBGYN','General OPD']
                             .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                             .toList(),
                         onChanged: (val) => controller.reasonForVisit.value = val!,

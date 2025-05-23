@@ -3,7 +3,6 @@ import 'package:path/path.dart';
 import '../models/disease_model.dart';
 import '../models/patient_model.dart';
 import '../models/opd_visit_model.dart';
-import '../models/prescription_model.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -275,9 +274,9 @@ class DatabaseHelper {
   }
 
   // Prescription methods
-  Future<void> insertPrescription(PrescriptionModel prescription) async {
+  Future<int> insertPrescription(PrescriptionModel prescription) async {
     final db = await database;
-    await db.insert('prescriptions', prescription.toMap());
+    return await db.insert('prescriptions', prescription.toMap());
   }
 
   Future<List<PrescriptionModel>> getPrescriptionsByTicket(String opdTicketNo) async {
