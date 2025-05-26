@@ -8,6 +8,8 @@ import 'package:get/get.dart';
 
 import '../../controller/patient_controller.dart';
 import '../../controller/opd_controller.dart';
+import '../../controller/sync_controller.dart';
+import '../../controller/auth_controller.dart';
 import '../patient/patient_details.dart';
 import '../patient/patient_list.dart';
 
@@ -24,6 +26,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController searchController = TextEditingController();
   final PatientController patientController = Get.put(PatientController());
   final OpdController opdController = Get.put(OpdController());
+  final SyncController syncController = Get.put(SyncController());
+  final AuthController authController = Get.put(AuthController());
 
   @override
   void dispose() {
@@ -99,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Expanded(
               child: _buildStatCard(
-                "Total Patients", 
+                "Total Patients",
                 Obx(() => Text(
                   patientController.patients.length.toString(),
                   style: titleTextStyle(size: 28, color: primaryColor),
@@ -111,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(width: 12),
             Expanded(
               child: _buildStatCard(
-                "OPD Visits", 
+                "OPD Visits",
                 Obx(() => Text(
                   opdController.opdVisits.length.toString(),
                   style: titleTextStyle(size: 28, color: Colors.green),
@@ -122,6 +126,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+
+        SizedBox(height: 20),
+
+        // 🔄 Sync Section
+        _buildSyncSection(),
 
         SizedBox(height: 30),
 
@@ -257,8 +266,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: patient.gender == 'Male' 
-                              ? Colors.blue.withOpacity(0.1) 
+                            color: patient.gender == 'Male'
+                              ? Colors.blue.withOpacity(0.1)
                               : Colors.pink.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
@@ -266,8 +275,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             patient.gender,
                             style: TextStyle(
                               fontSize: 12,
-                              color: patient.gender == 'Male' 
-                                ? Colors.blue 
+                              color: patient.gender == 'Male'
+                                ? Colors.blue
                                 : Colors.pink,
                               fontWeight: FontWeight.w500,
                             ),
@@ -498,5 +507,179 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       );
     });
+  }
+
+  Widget _buildSyncSection() {
+    return Obx(() {
+      return Container(
+        padding: EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.blue.withOpacity(0.1),
+              blurRadius: 20,
+              offset: Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(IconlyBold.upload, color: Colors.blue, size: 24),
+                ),
+                SizedBox(width: 15),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Data Sync',
+                        style: titleTextStyle(size: 18, fontWeight: FontWeight.w700),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        syncController.syncStatusText,
+                        style: descriptionTextStyle(size: 13),
+                      ),
+                    ],
+                  ),
+                ),
+                if (syncController.hasUnsyncedData.value)
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'Pending',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+
+            if (syncController.isSyncing.value) ...[
+              SizedBox(height: 15),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    syncController.syncStatus.value,
+                    style: descriptionTextStyle(size: 12),
+                  ),
+                  SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    value: syncController.syncProgress.value,
+                    backgroundColor: Colors.grey.shade200,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    '${(syncController.syncProgress.value * 100).toInt()}% Complete',
+                    style: descriptionTextStyle(size: 11),
+                  ),
+                ],
+              ),
+            ],
+
+            SizedBox(height: 15),
+
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: syncController.isSyncing.value
+                        ? null
+                        : () => syncController.syncData(),
+                    icon: syncController.isSyncing.value
+                        ? SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Icon(IconlyLight.upload, size: 18),
+                    label: Text(
+                      syncController.isSyncing.value ? 'Syncing...' : 'Sync Now',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+                if (!syncController.isSyncing.value) ...[
+                  SizedBox(width: 10),
+                  IconButton(
+                    onPressed: () => _showSyncInfo(),
+                    icon: Icon(IconlyLight.infoSquare, color: Colors.grey),
+                    tooltip: 'Sync Information',
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  void _showSyncInfo() {
+    Get.dialog(
+      AlertDialog(
+        title: Text('Sync Information'),
+        content: Obx(() => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Last Sync: ${syncController.syncStatusText}'),
+            SizedBox(height: 10),
+            Text('Status: ${syncController.hasUnsyncedData.value ? "Has unsynced data" : "All data synced"}'),
+            SizedBox(height: 10),
+            if (syncController.lastSyncTime.value != null) ...[
+              Text('Uploaded Patients: ${syncController.uploadedPatients.value}'),
+              Text('Uploaded OPD Visits: ${syncController.uploadedOpdVisits.value}'),
+              Text('Downloaded Data: ${syncController.downloadedData.value > 0 ? "Yes" : "No"}'),
+            ],
+          ],
+        )),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text('Close'),
+          ),
+          if (!syncController.isSyncing.value)
+            TextButton(
+              onPressed: () {
+                Get.back();
+                syncController.forceSyncData();
+              },
+              child: Text('Force Sync'),
+            ),
+        ],
+      ),
+    );
   }
 }

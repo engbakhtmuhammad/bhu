@@ -1,6 +1,6 @@
 import 'package:bhu/utils/constants.dart';
 import 'package:bhu/utils/style.dart';
-import 'package:bhu/view/auth/signin.dart';
+
 import 'package:bhu/view/chat/chat.dart';
 import 'package:bhu/view/notification/notification.dart';
 import 'package:bhu/view/home/home.dart';
@@ -13,6 +13,8 @@ import 'package:badges/badges.dart' as badges;
 import '../forms/opd_visit.dart';
 import '../forms/patient_registration.dart';
 import '../forms/prescription_form.dart';
+import '../../controller/auth_controller.dart';
+import '../../controller/app_controller.dart';
 
 class NavigationScreen extends StatefulWidget {
   const NavigationScreen({super.key});
@@ -24,6 +26,8 @@ class NavigationScreen extends StatefulWidget {
 class _NavigationScreenState extends State<NavigationScreen> {
   int currentPageIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final AuthController authController = Get.find<AuthController>();
+  final AppController appController = Get.find<AppController>();
 
   @override
   void initState() {
@@ -51,11 +55,11 @@ class _NavigationScreenState extends State<NavigationScreen> {
               : const Icon(IconlyLight.arrowLeft2),
         ),
         title: currentPageIndex == 0
-            ? Column(
+            ? Obx(() => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "HI, Doctor 👋🏾",
+                    "HI, ${authController.currentUser.value?.userName ?? 'Doctor'} 👋🏾",
                     style: descriptionTextStyle(
                         fontWeight: FontWeight.bold,
                         color: primaryColor,
@@ -64,7 +68,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                   Text("Basic Health Unit Management",
                       style: Theme.of(context).textTheme.bodySmall),
                 ],
-              )
+              ))
             : currentPageIndex == 1
                 ? Text(
                     "Patient Registration",
@@ -200,19 +204,17 @@ class _NavigationScreenState extends State<NavigationScreen> {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          UserAccountsDrawerHeader(
-            accountName: Text('Dr. Health'),
-            accountEmail: Text('doctor@bhu.com'),
+          Obx(() => UserAccountsDrawerHeader(
+            accountName: Text(authController.currentUser.value?.userName ?? 'Doctor'),
+            accountEmail: Text(authController.currentUser.value?.email ?? 'doctor@bhu.com'),
             currentAccountPicture: CircleAvatar(
-                backgroundImage:
-                    AssetImage('assets/default_profile.png') as ImageProvider,
-                backgroundColor: Colors.white,
+                backgroundColor: primaryColor,
                 child: Text(
-                  'D',
-                  style: const TextStyle(fontSize: 40.0),
+                  (authController.currentUser.value?.userName ?? 'D').substring(0, 1).toUpperCase(),
+                  style: const TextStyle(fontSize: 40.0, color: Colors.white),
                 )),
             decoration: BoxDecoration(color: primaryColor),
-          ),
+          )),
           ListTile(
             leading: const Icon(
               IconlyLight.home,
@@ -288,7 +290,28 @@ class _NavigationScreenState extends State<NavigationScreen> {
               'Logout',
             ),
             onTap: () async {
-              Get.to(() => LoginScreen());
+              // Show confirmation dialog
+              final shouldLogout = await Get.dialog<bool>(
+                AlertDialog(
+                  title: Text('Logout'),
+                  content: Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Get.back(result: false),
+                      child: Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Get.back(result: true),
+                      child: Text('Logout', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              );
+
+              if (shouldLogout == true) {
+                await authController.logout();
+                appController.onLogout();
+              }
             },
           ),
         ],

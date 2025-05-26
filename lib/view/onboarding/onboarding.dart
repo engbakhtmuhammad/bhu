@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:bhu/controller/auth_controller.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
+import '../../controller/app_controller.dart';
 import '../../utils/constants.dart';
 import '../../utils/style.dart';
 import '../../widgets/custom_btn.dart';
 import 'onboarding_content.dart';
-import '../../view/navigation/navigation.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -19,6 +16,7 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   int currentIndex = 0;
   late PageController _controller;
+  final AppController appController = Get.find<AppController>();
 
   @override
   void initState() {
@@ -33,13 +31,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> completeOnboarding() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('hasSeenOnboarding', true);
+    await appController.completeOnboarding();
   }
 
-  void skipOnboarding() async {
-    await completeOnboarding();
-    Get.off(() => const NavigationScreen());
+  void skipOnboarding() {
+    appController.completeOnboarding();
   }
 
   @override
