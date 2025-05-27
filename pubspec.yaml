@@ -48,7 +48,17 @@ dependencies:
   #Database
   sqflite: ^2.3.0
   path: ^1.8.3
-  
+
+  #API & Network
+  http: ^1.2.2
+  dio: ^5.7.0
+  connectivity_plus: ^6.1.0
+
+  #Encryption & Compression
+  crypto: ^3.0.6
+  encrypt: ^5.0.3
+  archive: ^3.6.1
+
 
 
 dev_dependencies:

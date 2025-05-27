@@ -12,7 +12,8 @@ class InputField extends StatefulWidget {
   final Icon? suffix;
   final bool? isBold;
   final TextEditingController? controller;
-  final Function(String)? onChanged; // Added onChanged parameter
+  final Function(String)? onChanged;
+  final String? Function(String?)? validator; // Added validator parameter
 
   const InputField({
     Key? key,
@@ -24,7 +25,8 @@ class InputField extends StatefulWidget {
     this.suffix,
     this.isBold = false,
     this.controller,
-    this.onChanged, // Added onChanged parameter
+    this.onChanged,
+    this.validator, // Added validator parameter
   }) : super(key: key);
 
   @override
@@ -43,18 +45,21 @@ class _InputFieldState extends State<InputField> {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
-        child: TextField(
+        child: TextFormField(
           enabled: widget.enable,
           keyboardType: widget.inputType ?? TextInputType.text,
           controller: widget.controller,
           obscureText: widget.isPassword ? _visible : false,
-          onChanged: widget.onChanged, // Added onChanged callback
+          onChanged: widget.onChanged,
+          validator: widget.validator, // Added validator support
           decoration: InputDecoration(
             hintText: widget.hintText,
-            hintStyle: widget.isBold == true 
-                ? descriptionTextStyle(fontWeight: FontWeight.bold, color: primaryColor) 
+            hintStyle: widget.isBold == true
+                ? descriptionTextStyle(fontWeight: FontWeight.bold, color: primaryColor)
                 : descriptionTextStyle(),
             border: InputBorder.none,
+            errorBorder: InputBorder.none,
+            focusedErrorBorder: InputBorder.none,
             suffixIcon: widget.isPassword
                 ? IconButton(
                     icon: Icon(
@@ -122,7 +127,7 @@ class _TagInputFieldState extends State<TagInputField> {
                   ))
               .toList(),
         ),
-        
+
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
           child: TextField(
@@ -136,7 +141,7 @@ class _TagInputFieldState extends State<TagInputField> {
                   if (_tagController.text.isNotEmpty) {
                     _addTag(_tagController.text);
                   }
-                }, 
+                },
                 icon: Icon(IconlyLight.tickSquare, color: primaryColor),
               )
             ),

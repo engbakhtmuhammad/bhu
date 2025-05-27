@@ -7,6 +7,9 @@ import 'package:bhu/view/profile/address.dart';
 import 'package:bhu/view/profile/personal_info.dart';
 import '../../models/user.dart';
 import '../../widgets/profile_widgets.dart';
+import '../../controller/auth_controller.dart';
+import '../../controller/app_controller.dart';
+import 'database_viewer.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,6 +19,8 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final AuthController authController = Get.find<AuthController>();
+  final AppController appController = Get.find<AppController>();
   UserModel? user;
 
   late int totalCoins=0;
@@ -23,15 +28,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
  @override
 void initState() {
   super.initState();
-  // Temporary dummy user
-  user = UserModel(
-    id: '123',
-    name: 'John Doe',
-    email: 'johndoe@example.com',
-    image: 'https://img.freepik.com/free-photo/bearded-doctor-glasses_23-2147896187.jpg',
-    bio: 'A passionate developer',
-    phone: '1234567890',
-  );
+  // Use real user data from auth controller
+  final currentUser = authController.currentUser.value;
+  if (currentUser != null) {
+    user = UserModel(
+      id: currentUser.id.toString(),
+      userName: currentUser.userName,
+      email: currentUser.email,
+      image: 'https://img.freepik.com/free-photo/bearded-doctor-glasses_23-2147896187.jpg',
+      bio: currentUser.designation,
+      phoneNo: currentUser.phoneNo,
+    );
+  } else {
+    // Fallback dummy user
+    user = UserModel(
+      id: '123',
+      userName: 'Doctor',
+      email: 'doctor@bhu.com',
+      image: 'https://img.freepik.com/free-photo/bearded-doctor-glasses_23-2147896187.jpg',
+      bio: 'Medical Professional',
+      phoneNo: '1234567890',
+    );
+  }
 }
 
 
@@ -57,7 +75,7 @@ void initState() {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    
+
                     const SizedBox(height: 10),
                     Text(
                       user?.name ?? 'Loading...',
@@ -77,16 +95,25 @@ void initState() {
             buildListTile(title: "Personal Info", icon: IconlyLight.profile,color: Colors.orange,onTap: () => Get.to(()=>PersonalInfoScreen(user: user!,)),),
             buildListTile(title: "Addresses",icon:  IconlyLight.location,color: Colors.purple,onTap: () => Get.to(()=>AddressScreen(user: user!)),),
           ]),
+          // buildSection([
+          //   buildListTile(title: "Cart",icon: Icons.shopping_cart_outlined,color: Colors.blue),
+          //   buildListTile(title: "Favourite",icon:  IconlyLight.heart,color: Colors.red),
+          //   buildListTile(title: "Notifications",icon:  IconlyLight.notification,color: Colors.amber),
+          //   buildListTile(title: "Payment Method",icon:  IconlyLight.wallet,color: Colors.green),
+          // ]),
+          // buildSection([
+          //   buildListTile(title: "FAQs",icon:  Icons.help_outline,color: Colors.orangeAccent),
+          //   buildListTile(title: "User Reviews",icon:  Icons.reviews_outlined,color: Colors.lightGreen),
+          //   buildListTile(title: "Settings",icon:  IconlyLight.setting,color: Colors.deepPurple),
+          // ]),
           buildSection([
-            buildListTile(title: "Cart",icon: Icons.shopping_cart_outlined,color: Colors.blue),
-            buildListTile(title: "Favourite",icon:  IconlyLight.heart,color: Colors.red),
-            buildListTile(title: "Notifications",icon:  IconlyLight.notification,color: Colors.amber),
-            buildListTile(title: "Payment Method",icon:  IconlyLight.wallet,color: Colors.green),
-          ]),
-          buildSection([
-            buildListTile(title: "FAQs",icon:  Icons.help_outline,color: Colors.orangeAccent),
-            buildListTile(title: "User Reviews",icon:  Icons.reviews_outlined,color: Colors.lightGreen),
-            buildListTile(title: "Settings",icon:  IconlyLight.setting,color: Colors.deepPurple),
+            buildListTile(title: "Settings",icon:  IconlyLight.setting,color: Colors.green),
+            buildListTile(
+              title: "Database Tables",
+              icon: IconlyLight.folder,
+              color: Colors.blue,
+              onTap: () => Get.to(() => DatabaseViewerScreen()),
+            ),
           ]),
           const SizedBox(height: 10),
           _buildLogoutButton(),
@@ -101,7 +128,30 @@ void initState() {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       leading: const Icon(Icons.logout, color: Colors.red),
       title: const Text("Log Out", style: TextStyle(color: Colors.red)),
-      onTap: () => {},
+      onTap: () async {
+        // Show confirmation dialog
+        final shouldLogout = await Get.dialog<bool>(
+          AlertDialog(
+            title: Text('Logout'),
+            content: Text('Are you sure you want to logout?'),
+            actions: [
+              TextButton(
+                onPressed: () => Get.back(result: false),
+                child: Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Get.back(result: true),
+                child: Text('Logout', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldLogout == true) {
+          await authController.logout();
+          appController.onLogout();
+        }
+      },
     );
   }
 }

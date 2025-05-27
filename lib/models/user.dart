@@ -1,51 +1,88 @@
 
-
 class UserModel {
   String? id;
-  String? name;
-  String? address;
-  String? userType;
-  bool? isActive;
+  String? userName;
   String? email;
-  String? phone;
+  String? designation;
+  String? phoneNo;
+  int? healthFacilityId;
+  int? userRoleId;
+  bool? isActive;
+  String? createdDate;
+  String? updatedDate;
+
+  // Additional fields for local storage
+  String? address;
   String? image;
   String? bio;
 
   UserModel({
     this.id,
-    this.name,
-    this.address,
-    this.userType,
+    this.userName,
+    this.email,
+    this.designation,
+    this.phoneNo,
+    this.healthFacilityId,
+    this.userRoleId,
     this.isActive,
-    this.email,this.phone,
-    this.image,this.bio
+    this.createdDate,
+    this.updatedDate,
+    this.address,
+    this.image,
+    this.bio,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json["id"],
-      name: json["name"],
-      address: json["address"],
-      userType: json["userType"],
+      id: json["id"]?.toString(),
+      userName: json["userName"] ?? json["name"],
       email: json["email"],
+      designation: json["designation"] ?? json["userType"],
+      phoneNo: json["phoneNo"] ?? json["phone"],
+      healthFacilityId: json["healthFacilityId"],
+      userRoleId: json["userRoleId"],
       isActive: json["isActive"],
-      phone: json["phone"],
+      createdDate: json["createdDate"],
+      updatedDate: json["updatedDate"],
+      address: json["address"],
       image: json["image"],
       bio: json["bio"],
     );
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = Map<String, dynamic>();
+    final Map<String, dynamic> data = <String, dynamic>{};
     data["id"] = id;
-    data["name"] = name;
-    data["address"] = address;
-    data["userType"] = userType;
+    data["userName"] = userName;
     data["email"] = email;
-    data["isActive"]=isActive;
-    data["phone"]=phone;
-    data["image"]=image;
-    data["bio"]=bio;
+    data["designation"] = designation;
+    data["phoneNo"] = phoneNo;
+    data["healthFacilityId"] = healthFacilityId;
+    data["userRoleId"] = userRoleId;
+    data["isActive"] = isActive;
+    data["createdDate"] = createdDate;
+    data["updatedDate"] = updatedDate;
+    data["address"] = address;
+    data["image"] = image;
+    data["bio"] = bio;
     return data;
   }
+
+  // For API registration request
+  Map<String, dynamic> toRegistrationJson() {
+    return {
+      "userName": userName,
+      "email": email,
+      "designation": designation,
+      "password": "", // This will be set separately
+      "phoneNo": phoneNo,
+      "healthFacilityId": healthFacilityId ?? 1,
+      "userRoleId": userRoleId ?? 2,
+    };
+  }
+
+  // Getters for backward compatibility
+  String? get name => userName;
+  String? get phone => phoneNo;
+  String? get userType => designation;
 }

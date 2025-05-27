@@ -9,11 +9,73 @@ import 'package:flutter/material.dart';
 import 'package:flutter_iconly/flutter_iconly.dart';
 import 'package:get/get.dart';
 
+import '../../controller/auth_controller.dart';
+import '../../controller/app_controller.dart';
 import '../../widgets/input_field.dart';
-import '../navigation/navigation.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final AuthController authController = Get.put(AuthController());
+  final AppController appController = Get.find<AppController>();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  bool rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final credentials = await authController.getSavedCredentials();
+    final isRememberMeEnabled = await authController.isRememberMeEnabled();
+
+    if (isRememberMeEnabled && credentials['email'] != null) {
+      setState(() {
+        emailController.text = credentials['email']!;
+        passwordController.text = credentials['password'] ?? '';
+        rememberMe = true;
+      });
+    }
+  }
+
+  Future<void> _handleLogin() async {
+    
+    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+      Get.snackbar(
+        'Error',
+        'Please enter both email and password',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    final success = await authController.loginUser(
+      email: emailController.text.trim(),
+      password: passwordController.text,
+      rememberMe: rememberMe,
+    );
+
+    if (success) {
+      appController.onLoginSuccess();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +121,8 @@ class LoginScreen extends StatelessWidget {
                 ),
                 InputField(
                   hintText: "user@example.com",
+                  controller: emailController,
+                  inputType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 10),
                 Text(
@@ -68,12 +132,17 @@ class LoginScreen extends StatelessWidget {
                 InputField(
                   hintText: "Enter your password",
                   isPassword: true,
+                  controller: passwordController,
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     CheckerBox(
+                      value: rememberMe,
                       onChecked: (bool? value) {
+                        setState(() {
+                          rememberMe = value ?? false;
+                        });
                       },
                     ),
                     Container(
@@ -94,21 +163,23 @@ class LoginScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                CustomBtn(
+                Obx(() {
+                  if (authController.isLoading.value) {
+                    return Container(
+                      height: 50,
+                      child: Center(
+                        child: SpinKitThreeInOut(
+                          color: primaryColor,
+                          size: 30,
+                        ),
+                      ),
+                    );
+                  }
+                  return CustomBtn(
                     text: 'Login',
-                    onPressed: () => Get.to(() => const NavigationScreen()),
-                  ),
-                // Obx(() {
-                //   if (false) {
-                //     return SpinKitThreeInOut(
-                //       color: primaryColor,
-                //     );
-                //   }
-                //   return CustomBtn(
-                //     text: 'Login',
-                //     onPressed: () => {},
-                //   );
-                // }),
+                    onPressed: _handleLogin,
+                  );
+                }),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 30),
                   child: Center(
@@ -152,15 +223,30 @@ class LoginScreen extends StatelessWidget {
 
 class CheckerBox extends StatefulWidget {
   final ValueChanged<bool?> onChecked;
+  final bool value;
 
-  const CheckerBox({Key? key, required this.onChecked}) : super(key: key);
+  const CheckerBox({Key? key, required this.onChecked, this.value = false}) : super(key: key);
 
   @override
   State<CheckerBox> createState() => _CheckerBoxState();
 }
 
 class _CheckerBoxState extends State<CheckerBox> {
-  bool isCheck = false;
+  late bool isCheck;
+
+  @override
+  void initState() {
+    super.initState();
+    isCheck = widget.value;
+  }
+
+  @override
+  void didUpdateWidget(CheckerBox oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) {
+      isCheck = widget.value;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
