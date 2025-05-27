@@ -518,7 +518,7 @@ class _HomeScreenState extends State<HomeScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.blue.withOpacity(0.1),
+              color: primaryLightColor,
               blurRadius: 20,
               offset: Offset(0, 5),
             ),
@@ -532,10 +532,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: primaryLightColor,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(IconlyBold.upload, color: Colors.blue, size: 24),
+                  child: Icon(IconlyBold.upload, color: primaryColor, size: 24),
                 ),
                 SizedBox(width: 15),
                 Expanded(
@@ -586,7 +586,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   LinearProgressIndicator(
                     value: syncController.syncProgress.value,
                     backgroundColor: Colors.grey.shade200,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                    valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
                   ),
                   SizedBox(height: 8),
                   Text(
@@ -615,13 +615,13 @@ class _HomeScreenState extends State<HomeScreen> {
                               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : Icon(IconlyLight.upload, size: 18),
+                        : Icon(IconlyLight.upload, size: 18,color: whiteColor,),
                     label: Text(
                       syncController.isSyncing.value ? 'Syncing...' : 'Sync Now',
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: primaryColor,
                       foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(

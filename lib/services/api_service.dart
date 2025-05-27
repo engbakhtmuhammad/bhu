@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/api_models.dart';
+import '../models/app_user_data.dart';
 import 'encryption_service.dart';
 
 class ApiService {
@@ -12,6 +13,7 @@ class ApiService {
 
   late final Dio _dio;
   final EncryptionService _encryptionService = EncryptionService();
+  AppUserData? _lastDecryptedData; // Store the last decrypted data
 
   // Replace with your actual API base URL
   static const String baseUrl = 'http://68.178.169.119:7899/';
@@ -133,6 +135,9 @@ class ApiService {
                 // Decrypt, decompress and deserialize the response
                 final appUserData = _encryptionService.decryptAndDecompressAndDeserialize(encryptedData);
 
+                // Store the decrypted data for later use
+                _lastDecryptedData = appUserData;
+
                 // Create a basic LoginResponse with the token and user info
                 // We'll store the full decrypted data separately for the sync system
                 final loginResponse = LoginResponse.fromDecryptedData(appUserData);
@@ -220,6 +225,16 @@ class ApiService {
   /// Clear authorization token
   void clearAuthToken() {
     _dio.options.headers.remove('Authorization');
+  }
+
+  /// Get the last decrypted data from login
+  AppUserData? getLastDecryptedData() {
+    return _lastDecryptedData;
+  }
+
+  /// Clear the stored decrypted data
+  void clearDecryptedData() {
+    _lastDecryptedData = null;
   }
 
   /// Get app user data (reference data like districts, diseases, etc.)

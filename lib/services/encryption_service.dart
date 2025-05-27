@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart';
 import 'package:archive/archive.dart';
@@ -16,15 +15,20 @@ class EncryptionService {
 
   late final Encrypter _encrypter;
   late final IV _iv;
+  bool _isInitialized = false;
 
   void initialize() {
+    if (_isInitialized) return; // Prevent re-initialization
+
     final key = Key.fromUtf8(_encryptionKey);
     _iv = IV.fromUtf8(_ivKey);
     _encrypter = Encrypter(AES(key, mode: AESMode.cbc));
+    _isInitialized = true;
   }
 
   /// Decrypt base64 encrypted string from API response
   String decryptBase64String(String encryptedBase64) {
+    if (!_isInitialized) initialize(); // Ensure initialization
     try {
       // Decode base64 to get encrypted bytes
       final encryptedBytes = base64.decode(encryptedBase64);
@@ -43,6 +47,7 @@ class EncryptionService {
 
   /// Encrypt string to base64 for API requests
   String encryptToBase64String(String plainText) {
+    if (!_isInitialized) initialize(); // Ensure initialization
     try {
       final encrypted = _encrypter.encrypt(plainText, iv: _iv);
       return base64.encode(encrypted.bytes);
@@ -53,6 +58,7 @@ class EncryptionService {
 
   /// Decrypt JSON response from API
   Map<String, dynamic> decryptJsonResponse(String encryptedBase64) {
+    if (!_isInitialized) initialize(); // Ensure initialization
     try {
       final decryptedString = decryptBase64String(encryptedBase64);
       return json.decode(decryptedString) as Map<String, dynamic>;

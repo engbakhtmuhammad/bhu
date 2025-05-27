@@ -5,6 +5,7 @@ import '../models/patient_model.dart';
 import '../models/opd_visit_model.dart';
 import '../models/prescription_model.dart' as prescription;
 import '../models/api_models.dart';
+import '../models/app_user_data.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -19,7 +20,7 @@ class DatabaseHelper {
 
   Future<Database> _initDatabase() async {
     final path = join(await getDatabasesPath(), 'bhu.db');
-    return await openDatabase(path, version: 2, onCreate: _onCreate, onUpgrade: _onUpgrade);
+    return await openDatabase(path, version: 3, onCreate: _onCreate, onUpgrade: _onUpgrade);
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -82,6 +83,55 @@ class DatabaseHelper {
       )
     ''');
 
+    // Reference data tables from API
+    await db.execute('''
+      CREATE TABLE api_districts(
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        version INTEGER DEFAULT 1
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE api_medicines(
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        dosage TEXT,
+        version INTEGER DEFAULT 1
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE api_blood_groups(
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE api_user_roles(
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE api_health_facilities(
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        type TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE api_diseases(
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        category TEXT,
+        version INTEGER DEFAULT 1
+      )
+    ''');
+
     // Insert default diseases and categories
     await _insertDefaultDiseases(db);
   }
@@ -129,6 +179,57 @@ class DatabaseHelper {
       ''');
 
       await _insertDefaultDiseases(db);
+    }
+
+    if (oldVersion < 3) {
+      // Add reference data tables from API
+      await db.execute('''
+        CREATE TABLE api_districts(
+          id INTEGER PRIMARY KEY,
+          name TEXT,
+          version INTEGER DEFAULT 1
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE api_medicines(
+          id INTEGER PRIMARY KEY,
+          name TEXT,
+          dosage TEXT,
+          version INTEGER DEFAULT 1
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE api_blood_groups(
+          id INTEGER PRIMARY KEY,
+          name TEXT
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE api_user_roles(
+          id INTEGER PRIMARY KEY,
+          name TEXT
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE api_health_facilities(
+          id INTEGER PRIMARY KEY,
+          name TEXT,
+          type TEXT
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE api_diseases(
+          id INTEGER PRIMARY KEY,
+          name TEXT,
+          category TEXT,
+          version INTEGER DEFAULT 1
+        )
+      ''');
     }
   }
 
@@ -285,5 +386,132 @@ class DatabaseHelper {
     final db = await database;
     final result = await db.query('prescriptions', where: 'opdTicketNo = ?', whereArgs: [opdTicketNo]);
     return result.map((e) => prescription.PrescriptionModel.fromMap(e)).toList();
+  }
+
+  // Reference data storage methods
+  Future<void> storeReferenceData(AppUserData appUserData) async {
+    final db = await database;
+
+    // Clear existing reference data
+    await db.delete('api_districts');
+    await db.delete('api_medicines');
+    await db.delete('api_blood_groups');
+    await db.delete('api_user_roles');
+    await db.delete('api_health_facilities');
+    await db.delete('api_diseases');
+
+    // Store districts
+    if (appUserData.districts != null) {
+      for (var district in appUserData.districts!) {
+        await db.insert('api_districts', {
+          'id': district.id,
+          'name': district.name,
+          'version': 1,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    }
+
+    // Store medicines
+    if (appUserData.medicines != null) {
+      for (var medicine in appUserData.medicines!) {
+        await db.insert('api_medicines', {
+          'id': medicine.id,
+          'name': medicine.name,
+          'dosage': medicine.dosage,
+          'version': 1,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    }
+
+    // Store blood groups
+    if (appUserData.bloodGroups != null) {
+      for (var bloodGroup in appUserData.bloodGroups!) {
+        await db.insert('api_blood_groups', {
+          'id': bloodGroup.id,
+          'name': bloodGroup.name,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    }
+
+    // Store user roles
+    if (appUserData.userRoles != null) {
+      for (var userRole in appUserData.userRoles!) {
+        await db.insert('api_user_roles', {
+          'id': userRole.id,
+          'name': userRole.name,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    }
+
+    // Store health facilities
+    if (appUserData.healthFacilities != null) {
+      for (var facility in appUserData.healthFacilities!) {
+        await db.insert('api_health_facilities', {
+          'id': facility.id,
+          'name': facility.name,
+          'type': facility.type,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    }
+
+    // Store diseases
+    if (appUserData.diseases != null) {
+      for (var disease in appUserData.diseases!) {
+        await db.insert('api_diseases', {
+          'id': disease.id,
+          'name': disease.name,
+          'category': disease.category,
+          'version': 1,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    }
+  }
+
+  // Methods to get table information for profile screen
+  Future<Map<String, int>> getTableCounts() async {
+    final db = await database;
+    final Map<String, int> counts = {};
+
+    final tables = [
+      'patients',
+      'opd_visits',
+      'diseases',
+      'prescriptions',
+      'api_districts',
+      'api_medicines',
+      'api_blood_groups',
+      'api_user_roles',
+      'api_health_facilities',
+      'api_diseases',
+    ];
+
+    for (String table in tables) {
+      try {
+        final result = await db.rawQuery('SELECT COUNT(*) as count FROM $table');
+        counts[table] = result.first['count'] as int;
+      } catch (e) {
+        counts[table] = 0;
+      }
+    }
+
+    return counts;
+  }
+
+  Future<List<Map<String, dynamic>>> getTableData(String tableName, {int limit = 100}) async {
+    final db = await database;
+    try {
+      final result = await db.query(tableName, limit: limit);
+      return result;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<String>> getAllTableNames() async {
+    final db = await database;
+    final result = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+    );
+    return result.map((row) => row['name'] as String).toList();
   }
 }

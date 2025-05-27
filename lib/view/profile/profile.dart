@@ -9,6 +9,7 @@ import '../../models/user.dart';
 import '../../widgets/profile_widgets.dart';
 import '../../controller/auth_controller.dart';
 import '../../controller/app_controller.dart';
+import 'database_viewer.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -94,16 +95,25 @@ void initState() {
             buildListTile(title: "Personal Info", icon: IconlyLight.profile,color: Colors.orange,onTap: () => Get.to(()=>PersonalInfoScreen(user: user!,)),),
             buildListTile(title: "Addresses",icon:  IconlyLight.location,color: Colors.purple,onTap: () => Get.to(()=>AddressScreen(user: user!)),),
           ]),
+          // buildSection([
+          //   buildListTile(title: "Cart",icon: Icons.shopping_cart_outlined,color: Colors.blue),
+          //   buildListTile(title: "Favourite",icon:  IconlyLight.heart,color: Colors.red),
+          //   buildListTile(title: "Notifications",icon:  IconlyLight.notification,color: Colors.amber),
+          //   buildListTile(title: "Payment Method",icon:  IconlyLight.wallet,color: Colors.green),
+          // ]),
+          // buildSection([
+          //   buildListTile(title: "FAQs",icon:  Icons.help_outline,color: Colors.orangeAccent),
+          //   buildListTile(title: "User Reviews",icon:  Icons.reviews_outlined,color: Colors.lightGreen),
+          //   buildListTile(title: "Settings",icon:  IconlyLight.setting,color: Colors.deepPurple),
+          // ]),
           buildSection([
-            buildListTile(title: "Cart",icon: Icons.shopping_cart_outlined,color: Colors.blue),
-            buildListTile(title: "Favourite",icon:  IconlyLight.heart,color: Colors.red),
-            buildListTile(title: "Notifications",icon:  IconlyLight.notification,color: Colors.amber),
-            buildListTile(title: "Payment Method",icon:  IconlyLight.wallet,color: Colors.green),
-          ]),
-          buildSection([
-            buildListTile(title: "FAQs",icon:  Icons.help_outline,color: Colors.orangeAccent),
-            buildListTile(title: "User Reviews",icon:  Icons.reviews_outlined,color: Colors.lightGreen),
-            buildListTile(title: "Settings",icon:  IconlyLight.setting,color: Colors.deepPurple),
+            buildListTile(title: "Settings",icon:  IconlyLight.setting,color: Colors.green),
+            buildListTile(
+              title: "Database Tables",
+              icon: IconlyLight.folder,
+              color: Colors.blue,
+              onTap: () => Get.to(() => DatabaseViewerScreen()),
+            ),
           ]),
           const SizedBox(height: 10),
           _buildLogoutButton(),

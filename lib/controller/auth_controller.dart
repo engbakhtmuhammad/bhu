@@ -4,11 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/api_models.dart';
+import '../models/app_user_data.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 
+import '../db/database_helper.dart';
+
 class AuthController extends GetxController {
   final ApiService _apiService = ApiService();
+  final DatabaseHelper _dbHelper = DatabaseHelper();
 
   // Observable variables
   var isLoading = false.obs;
@@ -28,7 +32,7 @@ class AuthController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _apiService.initialize();
+    _apiService.initialize(); // This also initializes the encryption service
     _loadStoredAuthData();
   }
 
@@ -141,6 +145,17 @@ class AuthController extends GetxController {
         // Store authentication data
         await _storeAuthData(response.data!, email);
 
+        // Store decrypted reference data in database
+        final decryptedData = _apiService.getLastDecryptedData();
+        if (decryptedData != null) {
+          try {
+            await _dbHelper.storeReferenceData(decryptedData);
+            print('Reference data stored successfully in database');
+          } catch (e) {
+            print('Error storing reference data: $e');
+          }
+        }
+
         // Handle remember me
         if (rememberMe) {
           await _saveCredentials(email, password);
@@ -197,11 +212,14 @@ class AuthController extends GetxController {
       // Set API token
       _apiService.setAuthToken(response.token);
 
-      // Create user model from response (you may need to adjust this based on your API)
+      // Create user model from decrypted data
+      final decryptedData = _apiService.getLastDecryptedData();
       final user = UserModel(
-        id: '1', // You might get this from the token or API
-        userName: 'User', // Extract from token or make another API call
-        email: email, // Store email used for login
+        id: decryptedData?.userInfo?.id?.toString() ?? '1',
+        userName: decryptedData?.userInfo?.userName ?? 'User',
+        email: decryptedData?.userInfo?.email ?? email,
+        phoneNo: decryptedData?.userInfo?.phoneNo ?? '',
+        designation: decryptedData?.userInfo?.designation ?? '',
         isActive: true,
       );
 
@@ -247,8 +265,9 @@ class AuthController extends GetxController {
       await prefs.remove(_userKey);
       await prefs.remove(_isLoggedInKey);
 
-      // Clear API token
+      // Clear API token and decrypted data
       _apiService.clearAuthToken();
+      _apiService.clearDecryptedData();
 
     } catch (e) {
       print('Error clearing auth data: $e');
