@@ -67,6 +67,7 @@ class UserInfo {
   final String? phoneNo;
   final int? healthFacilityId;
   final int? userRoleId;
+  final int? isActive;
 
   UserInfo({
     this.id,
@@ -76,6 +77,7 @@ class UserInfo {
     this.phoneNo,
     this.healthFacilityId,
     this.userRoleId,
+    this.isActive,
   });
 
   factory UserInfo.fromJson(Map<String, dynamic> json) {
@@ -87,6 +89,7 @@ class UserInfo {
       phoneNo: json['phoneNo'],
       healthFacilityId: json['healthFacilityId'],
       userRoleId: json['userRoleId'],
+      isActive: json['isActive'],
     );
   }
 
@@ -99,6 +102,7 @@ class UserInfo {
       'phoneNo': phoneNo,
       'healthFacilityId': healthFacilityId,
       'userRoleId': userRoleId,
+      'isActive': isActive,
     };
   }
 }

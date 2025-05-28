@@ -16,7 +16,7 @@ class SplashScreen extends StatelessWidget {
     Get.put(AppController());
 
     return Scaffold(
-      backgroundColor: primaryColor,
+      backgroundColor: whiteColor,
       body: Obx(() {
         final appController = Get.find<AppController>();
         
@@ -25,37 +25,20 @@ class SplashScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // App Logo
-              Container(
+              SizedBox(
                 width: 120,
                 height: 120,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.local_hospital,
-                    size: 60,
-                    color: primaryColor,
-                  ),
-                ),
+                child: Image.asset("assets/images/pphi.png",fit: BoxFit.contain,),
               ),
               
               const SizedBox(height: 30),
               
               // App Name
               Text(
-                'BHU Health',
+                'Basic Health Unit',
                 style: titleTextStyle(
-                  size: 32,
-                  color: Colors.white,
+                  size: 26,
+                  color: primaryColor,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -66,7 +49,7 @@ class SplashScreen extends StatelessWidget {
               Text(
                 'Your Health, Our Priority',
                 style: subTitleTextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: blackLightColor,
                   size: 16,
                 ),
               ),
@@ -76,14 +59,14 @@ class SplashScreen extends StatelessWidget {
               // Loading Indicator
               if (appController.isLoading.value) ...[
                 SpinKitThreeInOut(
-                  color: Colors.white,
+                  color: primaryColor,
                   size: 40,
                 ),
                 const SizedBox(height: 20),
                 Text(
                   'Initializing...',
                   style: subTitleTextStyle(
-                    color: Colors.white.withOpacity(0.7),
+                    color: blackLightColor,
                     size: 14,
                   ),
                 ),

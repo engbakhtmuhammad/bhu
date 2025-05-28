@@ -9,6 +9,7 @@ import 'package:flutter_iconly/flutter_iconly.dart';
 import 'package:get/get.dart';
 import '../../controller/auth_controller.dart';
 
+import '../../services/api_service.dart';
 import '../../widgets/input_field.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -32,24 +33,51 @@ class _SignupScreenState extends State<SignupScreen> {
 
   // Dropdown values
   int selectedHealthFacilityId = 1;
-  int selectedUserRoleId = 2;
+  final int selectedUserRoleId = 2; // Default to Medical Officer, no need for selection
 
-  // Health facility options (you can load these from API)
-  final List<Map<String, dynamic>> healthFacilities = [
-    {'id': 1, 'name': 'Primary Health Center'},
-    {'id': 2, 'name': 'District Hospital'},
-    {'id': 3, 'name': 'Tehsil Hospital'},
-    {'id': 4, 'name': 'Rural Health Center'},
-  ];
+  // Health facility options from API
+  final RxList<Map<String, dynamic>> healthFacilities = <Map<String, dynamic>>[].obs;
+  final RxBool isLoading = true.obs;
 
-  // User role options
-  final List<Map<String, dynamic>> userRoles = [
-    {'id': 1, 'name': 'Doctor'},
-    {'id': 2, 'name': 'Medical Officer'},
-    {'id': 3, 'name': 'Nurse'},
-    {'id': 4, 'name': 'Paramedic'},
-    {'id': 5, 'name': 'Administrator'},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchHealthFacilities();
+  }
+
+  Future<void> _fetchHealthFacilities() async {
+    isLoading.value = true;
+    try {
+      final ApiService apiService = ApiService();
+      final response = await apiService.getHealthFacilities();
+      
+      if (response.success && response.data != null) {
+        healthFacilities.value = response.data!.map((facility) => {
+          'id': facility['id'],
+          'name': facility['name'],
+        }).toList();
+        
+        if (healthFacilities.isNotEmpty) {
+          selectedHealthFacilityId = healthFacilities[0]['id'];
+        }
+      } else {
+        // Fallback to default if API fails
+        healthFacilities.value = [
+          {'id': 1, 'name': 'Primary Health Center'},
+          {'id': 2, 'name': 'District Hospital'},
+        ];
+      }
+    } catch (e) {
+      debugPrint('Error fetching health facilities: $e');
+      // Fallback to default if API fails
+      healthFacilities.value = [
+        {'id': 1, 'name': 'Primary Health Center'},
+        {'id': 2, 'name': 'District Hospital'},
+      ];
+    } finally {
+      isLoading.value = false;
+    }
+  }
 
   @override
   void dispose() {
@@ -85,7 +113,8 @@ class _SignupScreenState extends State<SignupScreen> {
       password: passwordController.text,
       phoneNo: phoneController.text.trim(),
       healthFacilityId: selectedHealthFacilityId,
-      userRoleId: selectedUserRoleId,
+      
+      userRoleId: selectedUserRoleId, // Fixed as 2
     );
 
     if (success) {
@@ -219,66 +248,72 @@ class _SignupScreenState extends State<SignupScreen> {
                         "HEALTH FACILITY",
                         style: subTitleTextStyle(color: blackColor, size: 15),
                       ),
-                      Container(
-                decoration: BoxDecoration(
-                  color: greyColor,
-                  borderRadius: BorderRadius.circular(containerRoundCorner),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<int>(
-                            value: selectedHealthFacilityId,
-                            hint: Text('Select Health Facility'),
-                            isExpanded: true,
-                            items: healthFacilities.map((facility) {
-                              return DropdownMenuItem<int>(
-                                value: facility['id'],
-                                child: Text(facility['name']),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                selectedHealthFacilityId = value!;
-                              });
-                            },
-                          ),
-                        ),)
-                      ),
-                      const SizedBox(height: 15),
-
-                      // User Role Dropdown
-                      Text(
-                        "USER ROLE",
-                        style: subTitleTextStyle(color: blackColor, size: 15),
-                      ),
-                      Container(
-                decoration: BoxDecoration(
-                  color: greyColor,
-                  borderRadius: BorderRadius.circular(containerRoundCorner),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<int>(
-                            value: selectedUserRoleId,
-                            hint: Text('Select User Role'),
-                            isExpanded: true,
-                            items: userRoles.map((role) {
-                              return DropdownMenuItem<int>(
-                                value: role['id'],
-                                child: Text(role['name']),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                selectedUserRoleId = value!;
-                              });
-                            },
-                          ),
+                      Obx(() => Container(
+                        decoration: BoxDecoration(
+                          color: greyColor,
+                          borderRadius: BorderRadius.circular(containerRoundCorner),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: isLoading.value
+                              ? const Center(child: CircularProgressIndicator())
+                              : DropdownButtonHideUnderline(
+                                
+                                  child: DropdownButton<int>(
+                                    dropdownColor: Colors.white,
+                        borderRadius: BorderRadius.circular(8.0),
+                                    value: selectedHealthFacilityId,
+                                    hint: Text('Select Health Facility'),
+                                    isExpanded: true,
+                                    items: healthFacilities.map((facility) {
+                                      return DropdownMenuItem<int>(
+                                        value: facility['id'],
+                                        child: Text(facility['name']),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        selectedHealthFacilityId = value!;
+                                      });
+                                    },
+                                  ),
+                                ),
                         ),
                       )),
                       const SizedBox(height: 15),
+
+                      // User Role Dropdown
+                //       Text(
+                //         "USER ROLE",
+                //         style: subTitleTextStyle(color: blackColor, size: 15),
+                //       ),
+                //       Container(
+                // decoration: BoxDecoration(
+                //   color: greyColor,
+                //   borderRadius: BorderRadius.circular(containerRoundCorner),
+                // ),
+                // child: Padding(
+                //   padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                //         child: DropdownButtonHideUnderline(
+                //           child: DropdownButton<int>(
+                //             value: selectedUserRoleId,
+                //             hint: Text('Select User Role'),
+                //             isExpanded: true,
+                //             items: userRoles.map((role) {
+                //               return DropdownMenuItem<int>(
+                //                 value: role['id'],
+                //                 child: Text(role['name']),
+                //               );
+                //             }).toList(),
+                //             onChanged: (value) {
+                //               setState(() {
+                //                 selectedUserRoleId = value!;
+                //               });
+                //             },
+                //           ),
+                //         ),
+                //       )),
+                //       const SizedBox(height: 15),
 
                       // Password Field
                       Text(

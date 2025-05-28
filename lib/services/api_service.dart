@@ -127,6 +127,7 @@ class ApiService {
         // Check if response has success and encrypted data
         if (responseData is Map<String, dynamic>) {
           final success = responseData['success'] ?? false;
+          final message = responseData['message'] ?? 'Unknown error';
 
           if (success) {
             // Get encrypted response data
@@ -164,9 +165,10 @@ class ApiService {
               );
             }
           } else {
+            // Return the exact error message from the API
             return ApiResponse<LoginResponse>(
               success: false,
-              message: 'Login failed - server returned success: false',
+              message: message,
               statusCode: response.statusCode,
             );
           }
@@ -505,6 +507,89 @@ class ApiService {
       return ApiResponse<String>(
         success: false,
         message: 'Error submitting form data: $e',
+      );
+    }
+  }
+
+  /// Submit encrypted form data to the server
+  Future<ApiResponse<String>> submitEncryptedFormData(String encryptedData) async {
+    try {
+      if (!await hasInternetConnection()) {
+        return ApiResponse<String>(
+          success: false,
+          message: 'No internet connection available',
+        );
+      }
+
+      final response = await _dio.post(
+        '/api/FormSubmission/CreateForm',
+        queryParameters: {'val': encryptedData},
+      );
+
+      if (response.statusCode == 200) {
+        return ApiResponse<String>(
+          success: true,
+          message: 'Encrypted form data submitted successfully',
+          data: response.data.toString(),
+          statusCode: response.statusCode,
+        );
+      } else {
+        return ApiResponse<String>(
+          success: false,
+          message: 'Failed to submit encrypted form data',
+          statusCode: response.statusCode,
+        );
+      }
+    } on DioException catch (e) {
+      return ApiResponse<String>(
+        success: false,
+        message: _handleDioError(e),
+        statusCode: e.response?.statusCode,
+      );
+    } catch (e) {
+      return ApiResponse<String>(
+        success: false,
+        message: 'Unexpected error: $e',
+      );
+    }
+  }
+
+  /// Get health facilities list
+  Future<ApiResponse<List<dynamic>>> getHealthFacilities() async {
+    try {
+      if (!await hasInternetConnection()) {
+        return ApiResponse<List<dynamic>>(
+          success: false,
+          message: 'No internet connection available',
+        );
+      }
+
+      final response = await _dio.get('/api/HealthFacilities/GetHealthFacilitiesList');
+
+      if (response.statusCode == 200) {
+        return ApiResponse<List<dynamic>>(
+          success: true,
+          message: 'Health facilities fetched successfully',
+          data: response.data,
+          statusCode: response.statusCode,
+        );
+      } else {
+        return ApiResponse<List<dynamic>>(
+          success: false,
+          message: 'Failed to fetch health facilities',
+          statusCode: response.statusCode,
+        );
+      }
+    } on DioException catch (e) {
+      return ApiResponse<List<dynamic>>(
+        success: false,
+        message: _handleDioError(e),
+        statusCode: e.response?.statusCode,
+      );
+    } catch (e) {
+      return ApiResponse<List<dynamic>>(
+        success: false,
+        message: 'Unexpected error: $e',
       );
     }
   }

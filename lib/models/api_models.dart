@@ -19,6 +19,7 @@ class RegisterRequest {
   final String phoneNo;
   final int healthFacilityId;
   final int userRoleId;
+  final int isActive;
 
   RegisterRequest({
     required this.userName,
@@ -28,6 +29,7 @@ class RegisterRequest {
     required this.phoneNo,
     required this.healthFacilityId,
     required this.userRoleId,
+    required this.isActive
   });
 
   Map<String, dynamic> toJson() => {
@@ -38,6 +40,7 @@ class RegisterRequest {
     'phoneNo': phoneNo,
     'healthFacilityId': healthFacilityId,
     'userRoleId': userRoleId,
+    'isActive': isActive,
   };
 }
 
@@ -469,16 +472,21 @@ class Medicine {
 class FormSubmissionModel {
   final List<PatientFormData> patients;
   final List<OpdFormData> opdVisits;
+  final int hospitalId;
 
   FormSubmissionModel({
     required this.patients,
     required this.opdVisits,
+    required this.hospitalId,
   });
 
-  Map<String, dynamic> toJson() => {
-    'patients': patients.map((p) => p.toJson()).toList(),
-    'opdVisits': opdVisits.map((v) => v.toJson()).toList(),
-  };
+  Map<String, dynamic> toJson() {
+    return {
+      'patients': patients.map((p) => p.toJson()).toList(),
+      'opdVisits': opdVisits.map((o) => o.toJson()).toList(),
+      'hospitalId': hospitalId,
+    };
+  }
 }
 
 class PatientFormData {

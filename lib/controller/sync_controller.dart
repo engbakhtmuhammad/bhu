@@ -8,6 +8,7 @@ import '../db/database_helper.dart';
 import '../models/api_models.dart';
 import '../models/patient_model.dart';
 import '../services/api_service.dart';
+import '../utils/encryption_helper.dart';
 
 class SyncController extends GetxController {
   final ApiService _apiService = ApiService();
@@ -445,6 +446,10 @@ class SyncController extends GetxController {
       uploadedPatients.value = patients.length;
       uploadedOpdVisits.value = opdVisits.length;
       
+      // Get current user's health facility ID
+      final currentUser = _authController.currentUser.value;
+      final int hospitalId = currentUser?.healthFacilityId ?? 1;
+      
       // Convert patients to form data
       List<PatientFormData> patientFormData = patients.map((p) {
         // Convert gender to integer
@@ -514,15 +519,23 @@ class SyncController extends GetxController {
       final formSubmission = FormSubmissionModel(
         patients: patientFormData,
         opdVisits: opdFormData,
+        hospitalId: hospitalId, // Add hospital ID from current user
       );
       
-      // Log the data being sent
-      debugPrint('Submitting form data: ${json.encode(formSubmission.toJson())}');
+      // Convert to JSON string
+      final jsonString = json.encode(formSubmission.toJson());
       
-      syncStatus.value = 'Submitting form data...';
+      // Encrypt the JSON string
+      final encryptedString = EncryptionHelper.encryptText(jsonString);
+      
+      // Print the encrypted string for verification
+      debugPrint(">>>>>>>>>>>>>>>>>>>>>>>>> $encryptedString");
+      
+      syncStatus.value = 'Submitting encrypted data...';
       syncProgress.value = 0.8;
       
-      final result = await _apiService.submitFormData(formSubmission.toJson());
+      // Send the encrypted string to the API
+      final result = await _apiService.submitEncryptedFormData(encryptedString);
       
       if (result.success) {
         syncStatus.value = 'Form data submitted successfully';

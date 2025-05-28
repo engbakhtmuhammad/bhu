@@ -87,6 +87,7 @@ class AuthController extends GetxController {
         phoneNo: phoneNo,
         healthFacilityId: healthFacilityId,
         userRoleId: userRoleId,
+        isActive: 0
       );
 
       final response = await _apiService.registerUser(request);
@@ -141,6 +142,7 @@ class AuthController extends GetxController {
       final response = await _apiService.loginUser(request);
 
       if (response.success && response.data != null) {
+        // Account approved, proceed with login
         // Store authentication data
         await _storeAuthData(response.data!, email);
 
@@ -149,9 +151,9 @@ class AuthController extends GetxController {
         if (decryptedData != null) {
           try {
             await _dbHelper.storeReferenceData(decryptedData);
-            print('Reference data stored successfully in database');
+            debugPrint('Reference data stored successfully in database');
           } catch (e) {
-            print('Error storing reference data: $e');
+            debugPrint('Error storing reference data: $e');
           }
         }
 
@@ -169,16 +171,37 @@ class AuthController extends GetxController {
           backgroundColor: Colors.green,
           colorText: Colors.white,
         );
-
+        
         return true;
       } else {
-        Get.snackbar(
-          'Login Failed',
-          response.message,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+        // Handle specific error messages from API
+        final errorMessage = response.message;
+        
+        if (errorMessage.contains('pending approval')) {
+          Get.snackbar(
+            'Account Pending',
+            errorMessage,
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: Colors.orange,
+            colorText: Colors.white,
+          );
+        } else if (errorMessage.contains('rejected')) {
+          Get.snackbar(
+            'Account Rejected',
+            errorMessage,
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+        } else {
+          Get.snackbar(
+            'Login Failed',
+            errorMessage,
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+        }
         return false;
       }
     } catch (e) {

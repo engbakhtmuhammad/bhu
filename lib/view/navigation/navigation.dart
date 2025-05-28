@@ -291,6 +291,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
               // Show confirmation dialog
               final shouldLogout = await Get.dialog<bool>(
                 AlertDialog(
+                  backgroundColor: whiteColor,
                   title: Text('Logout'),
                   content: Text('Are you sure you want to logout?'),
                   actions: [
