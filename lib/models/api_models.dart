@@ -465,3 +465,108 @@ class Medicine {
     'version': version,
   };
 }
+
+class FormSubmissionModel {
+  final List<PatientFormData> patients;
+  final List<OpdFormData> opdVisits;
+
+  FormSubmissionModel({
+    required this.patients,
+    required this.opdVisits,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'patients': patients.map((p) => p.toJson()).toList(),
+    'opdVisits': opdVisits.map((v) => v.toJson()).toList(),
+  };
+}
+
+class PatientFormData {
+  final String patientId;
+  final String fullName;
+  final String relationCnic;
+  final String relationType;
+  final String contact;
+  final String address;
+  final int gender;
+  final int bloodGroup;
+  final String medicalHistory;
+  final bool immunized;
+
+  PatientFormData({
+    required this.patientId,
+    required this.fullName,
+    required this.relationCnic,
+    required this.relationType,
+    required this.contact,
+    required this.address,
+    required this.gender,
+    required this.bloodGroup,
+    required this.medicalHistory,
+    required this.immunized,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'patientId': patientId,
+    'fullName': fullName,
+    'relationCnic': relationCnic,
+    'relationType': relationType,
+    'contact': contact,
+    'address': address,
+    'gender': gender,
+    'bloodGroup': bloodGroup,
+    'medicalHistory': medicalHistory,
+    'immunized': immunized,
+  };
+}
+
+class OpdFormData {
+  final String opdTicketNo;
+  final String patientId;
+  final String visitDateTime;
+  final String reasonForVisit;
+  final bool isFollowUp;
+  final List<String> diagnosis;
+  final List<String> prescriptions;
+  final List<String> labTests;
+  final bool isReferred;
+  final bool followUpAdvised;
+  final int? followUpDays;
+  final bool fpAdvised;
+  final List<String> fpList;
+  final String? obgynData;
+
+  OpdFormData({
+    required this.opdTicketNo,
+    required this.patientId,
+    required this.visitDateTime,
+    required this.reasonForVisit,
+    required this.isFollowUp,
+    required this.diagnosis,
+    required this.prescriptions,
+    required this.labTests,
+    required this.isReferred,
+    required this.followUpAdvised,
+    this.followUpDays,
+    required this.fpAdvised,
+    required this.fpList,
+    this.obgynData,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'opdTicketNo': opdTicketNo,
+    'patientId': patientId,
+    'visitDateTime': visitDateTime,
+    'reasonForVisit': reasonForVisit,
+    'isFollowUp': isFollowUp,
+    'diagnosis': diagnosis,
+    'prescriptions': prescriptions,
+    'labTests': labTests,
+    'isReferred': isReferred,
+    'followUpAdvised': followUpAdvised,
+    'followUpDays': followUpDays,
+    'fpAdvised': fpAdvised,
+    'fpList': fpList,
+    'obgynData': obgynData,
+  };
+}

@@ -1,7 +1,5 @@
 import 'package:bhu/utils/constants.dart';
 import 'package:bhu/utils/style.dart';
-
-import 'package:bhu/view/chat/chat.dart';
 import 'package:bhu/view/notification/notification.dart';
 import 'package:bhu/view/home/home.dart';
 import 'package:bhu/view/profile/profile.dart';

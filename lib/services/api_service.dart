@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/material.dart';
 import '../models/api_models.dart';
 import '../models/app_user_data.dart';
 import 'encryption_service.dart';
@@ -333,12 +334,31 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return ApiResponse<String>(
-          success: true,
-          message: 'Patient uploaded successfully',
-          data: response.data.toString(),
-          statusCode: response.statusCode,
-        );
+        final responseData = response.data;
+        // Check if the response has a success field
+        if (responseData is Map<String, dynamic> && responseData.containsKey('success')) {
+          if (responseData['success'] == true) {
+            return ApiResponse<String>(
+              success: true,
+              message: 'Patient uploaded successfully',
+              data: responseData['data']?.toString() ?? '',
+              statusCode: response.statusCode,
+            );
+          } else {
+            return ApiResponse<String>(
+              success: false,
+              message: responseData['message'] ?? 'Server returned failure',
+              statusCode: response.statusCode,
+            );
+          }
+        } else {
+          return ApiResponse<String>(
+            success: true,
+            message: 'Patient uploaded successfully',
+            data: response.data.toString(),
+            statusCode: response.statusCode,
+          );
+        }
       } else {
         return ApiResponse<String>(
           success: false,
@@ -347,10 +367,16 @@ class ApiService {
         );
       }
     } on DioException catch (e) {
+      // Log the error response for debugging
+      if (e.response?.data != null) {
+        debugPrint('Server error response: ${json.encode(e.response?.data)}');
+      }
+      
       return ApiResponse<String>(
         success: false,
         message: _handleDioError(e),
         statusCode: e.response?.statusCode,
+        data: e.response?.data.toString(),
       );
     } catch (e) {
       return ApiResponse<String>(
@@ -442,6 +468,43 @@ class ApiService {
       return ApiResponse<String>(
         success: false,
         message: 'Unexpected error: $e',
+      );
+    }
+  }
+
+  /// Submit form data to the server
+  Future<ApiResponse<String>> submitFormData(Map<String, dynamic> formData) async {
+    try {
+      if (!await hasInternetConnection()) {
+        return ApiResponse<String>(
+          success: false,
+          message: 'No internet connection available',
+        );
+      }
+
+      final response = await _dio.post(
+        '/api/FormSubmission/CreateForm',
+        queryParameters: {'val': jsonEncode(formData)},
+      );
+
+      if (response.statusCode == 200) {
+        return ApiResponse<String>(
+          success: true,
+          message: 'Form data submitted successfully',
+          data: response.data.toString(),
+          statusCode: response.statusCode,
+        );
+      } else {
+        return ApiResponse<String>(
+          success: false,
+          message: 'Failed to submit form data',
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse<String>(
+        success: false,
+        message: 'Error submitting form data: $e',
       );
     }
   }

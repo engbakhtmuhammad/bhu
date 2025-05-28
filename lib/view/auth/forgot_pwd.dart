@@ -3,7 +3,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_iconly/flutter_iconly.dart';
 import 'package:get/get.dart';
-import '../../controller/auth_controller.dart';
 import '../../utils/constants.dart';
 import '../../widgets/custom_btn.dart';
 import '../../widgets/input_field.dart';

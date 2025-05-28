@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../controller/auth_controller.dart';
 import '../db/database_helper.dart';
 import '../models/api_models.dart';
+import '../models/patient_model.dart';
 import '../services/api_service.dart';
 
 class SyncController extends GetxController {
@@ -110,30 +113,31 @@ class SyncController extends GetxController {
       syncProgress.value = 0.0;
       syncStatus.value = 'Starting sync...';
 
-      // Step 1: Upload local data (30% of progress)
-      await _uploadLocalData();
-      syncProgress.value = 0.3;
-
-      // Step 2: Download server data (70% of progress)
-      await _downloadServerData();
-      syncProgress.value = 1.0;
-
-      // Update sync status
-      lastSyncTime.value = DateTime.now();
-      hasUnsyncedData.value = false;
-      syncStatus.value = 'Sync completed successfully';
-
-      await _saveSyncStatus();
-
-      Get.snackbar(
-        'Sync Complete',
-        'Data synchronized successfully',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
-
-      return true;
+      // Submit all data together using form submission
+      syncStatus.value = 'Preparing data for submission...';
+      syncProgress.value = 0.2;
+      
+      final success = await submitFormData();
+      
+      if (success) {
+        syncProgress.value = 1.0;
+        syncStatus.value = 'Sync completed successfully';
+        lastSyncTime.value = DateTime.now();
+        hasUnsyncedData.value = false;
+        await _saveSyncStatus();
+        
+        Get.snackbar(
+          'Sync Complete',
+          'Data synchronized successfully',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+        
+        return true;
+      } else {
+        throw Exception('Form submission failed');
+      }
     } catch (e) {
       syncStatus.value = 'Sync failed: $e';
       Get.snackbar(
@@ -174,11 +178,22 @@ class SyncController extends GetxController {
 
         // Convert local patient to API format
         final apiPatient = _convertPatientToApiFormat(patients[i]);
+        
+        // Log the request payload for debugging
+        debugPrint('Uploading patient: ${json.encode(apiPatient)}');
 
         // Upload patient to server
         final result = await _apiService.uploadPatient(apiPatient);
         if (!result.success) {
-          throw Exception('Failed to upload patient: ${result.message}');
+          debugPrint('Failed to upload patient: ${result.message}');
+          debugPrint('Status code: ${result.statusCode}');
+          
+          if (result.statusCode == 400) {
+            // Handle bad request specifically
+            throw Exception('Server rejected patient data (400): ${result.message}');
+          } else {
+            throw Exception('Failed to upload patient: ${result.message}');
+          }
         }
 
         uploadedPatients.value++;
@@ -269,7 +284,7 @@ class SyncController extends GetxController {
   }
 
   /// Convert local patient model to API format
-  Map<String, dynamic> _convertPatientToApiFormat(patient) {
+  Map<String, dynamic> _convertPatientToApiFormat(PatientModel patient) {
     // Extract father/husband name from relation data
     String fatherName = '';
     String? husbandName;
@@ -280,7 +295,10 @@ class SyncController extends GetxController {
       husbandName = patient.relationCnic; // Assuming this contains the name
     }
 
-    // Convert blood group string to ID (you may need to map this properly)
+    // Convert gender to proper format expected by API
+    String gender = patient.gender.toLowerCase();
+    
+    // Convert blood group string to ID
     int bloodGroupId = 1; // Default
     switch (patient.bloodGroup.toLowerCase()) {
       case 'a+': bloodGroupId = 1; break;
@@ -293,15 +311,19 @@ class SyncController extends GetxController {
       case 'o-': bloodGroupId = 8; break;
     }
 
+    // Calculate age from DOB if available, or use default
+    double age = 25.0; // Default age
+    // TODO: Calculate actual age if DOB is available
+
     return {
       'id': 0, // New record
       'uniqueId': patient.patientId,
       'name': patient.fullName,
       'fatherName': fatherName,
       'husbandName': husbandName,
-      'age': 25.0, // You may need to calculate this from DOB or add age field
-      'gender': patient.gender,
-      'cnic': patient.relationCnic, // Assuming this is the CNIC
+      'age': age,
+      'gender': gender,
+      'cnic': patient.relationCnic,
       'version': 1,
       'contact': patient.contact,
       'emergencyContact': patient.contact, // Using same contact as emergency
@@ -362,5 +384,163 @@ class SyncController extends GetxController {
   void markDataForSync() {
     hasUnsyncedData.value = true;
     _saveSyncStatus();
+  }
+
+  /// Convert local patient model to form submission format
+  Map<String, dynamic> _convertPatientToFormFormat(PatientModel patient) {
+    // Convert gender to integer
+    int genderId = 1; // Default to male
+    if (patient.gender.toLowerCase() == 'female') {
+      genderId = 2;
+    }
+    
+    // Convert blood group string to ID
+    int bloodGroupId = 1; // Default
+    switch (patient.bloodGroup.toLowerCase()) {
+      case 'a+': bloodGroupId = 1; break;
+      case 'a-': bloodGroupId = 2; break;
+      case 'b+': bloodGroupId = 3; break;
+      case 'b-': bloodGroupId = 4; break;
+      case 'ab+': bloodGroupId = 5; break;
+      case 'ab-': bloodGroupId = 6; break;
+      case 'o+': bloodGroupId = 7; break;
+      case 'o-': bloodGroupId = 8; break;
+    }
+
+    return {
+      'patientId': patient.patientId,
+      'fullName': patient.fullName,
+      'relationCnic': patient.relationCnic,
+      'relationType': patient.relationType,
+      'contact': patient.contact,
+      'address': patient.address,
+      'gender': genderId,
+      'bloodGroup': bloodGroupId,
+      'medicalHistory': patient.medicalHistory,
+      'immunized': patient.immunized,
+    };
+  }
+
+  /// Submit form data to the server using models
+  Future<bool> submitFormData() async {
+    if (!_authController.isAuthenticated) {
+      Get.snackbar(
+        'Authentication Required',
+        'Please login to submit data',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+      );
+      return false;
+    }
+
+    try {
+      syncStatus.value = 'Preparing form data...';
+      
+      // Get all patients and OPD visits
+      final patients = await _dbHelper.getAllPatients();
+      final opdVisits = await _dbHelper.getAllOpdVisits();
+      
+      // Reset counters
+      uploadedPatients.value = patients.length;
+      uploadedOpdVisits.value = opdVisits.length;
+      
+      // Convert patients to form data
+      List<PatientFormData> patientFormData = patients.map((p) {
+        // Convert gender to integer
+        int genderId = 1; // Default to male
+        if (p.gender.toLowerCase() == 'female') {
+          genderId = 2;
+        }
+        
+        // Convert blood group string to ID
+        int bloodGroupId = 1; // Default
+        switch (p.bloodGroup.toLowerCase()) {
+          case 'a+': bloodGroupId = 1; break;
+          case 'a-': bloodGroupId = 2; break;
+          case 'b+': bloodGroupId = 3; break;
+          case 'b-': bloodGroupId = 4; break;
+          case 'ab+': bloodGroupId = 5; break;
+          case 'ab-': bloodGroupId = 6; break;
+          case 'o+': bloodGroupId = 7; break;
+          case 'o-': bloodGroupId = 8; break;
+        }
+        
+        return PatientFormData(
+          patientId: p.patientId,
+          fullName: p.fullName,
+          relationCnic: p.relationCnic,
+          relationType: p.relationType,
+          contact: p.contact,
+          address: p.address,
+          gender: genderId,
+          bloodGroup: bloodGroupId,
+          medicalHistory: p.medicalHistory,
+          immunized: p.immunized,
+        );
+      }).toList();
+      
+      syncProgress.value = 0.4;
+      syncStatus.value = 'Processing OPD visits...';
+      
+      // For each OPD visit, get its prescriptions
+      List<OpdFormData> opdFormData = [];
+      for (var visit in opdVisits) {
+        // Get prescriptions for this visit
+        final prescriptions = await _dbHelper.getPrescriptionsByTicket(visit.opdTicketNo);
+        final prescriptionTexts = prescriptions.map((p) => "${p.drugName} - ${p.dosage} - ${p.duration}").toList();
+        
+        opdFormData.add(OpdFormData(
+          opdTicketNo: visit.opdTicketNo,
+          patientId: visit.patientId,
+          visitDateTime: visit.visitDateTime.toIso8601String(),
+          reasonForVisit: visit.reasonForVisit,
+          isFollowUp: visit.isFollowUp,
+          diagnosis: visit.diagnosis,
+          prescriptions: prescriptionTexts,
+          labTests: visit.labTests,
+          isReferred: visit.isReferred,
+          followUpAdvised: visit.followUpAdvised,
+          followUpDays: visit.followUpDays,
+          fpAdvised: visit.fpAdvised,
+          fpList: visit.fpList,
+          obgynData: visit.obgynData,
+        ));
+      }
+      
+      syncProgress.value = 0.6;
+      
+      // Create form submission model
+      final formSubmission = FormSubmissionModel(
+        patients: patientFormData,
+        opdVisits: opdFormData,
+      );
+      
+      // Log the data being sent
+      debugPrint('Submitting form data: ${json.encode(formSubmission.toJson())}');
+      
+      syncStatus.value = 'Submitting form data...';
+      syncProgress.value = 0.8;
+      
+      final result = await _apiService.submitFormData(formSubmission.toJson());
+      
+      if (result.success) {
+        syncStatus.value = 'Form data submitted successfully';
+        downloadedData.value = 1; // Mark as processed
+        return true;
+      } else {
+        throw Exception(result.message);
+      }
+    } catch (e) {
+      syncStatus.value = 'Form submission failed: $e';
+      Get.snackbar(
+        'Submission Failed',
+        'Failed to submit form data: $e',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    }
   }
 }

@@ -649,6 +649,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showSyncInfo() {
     Get.dialog(
       AlertDialog(
+        backgroundColor: whiteColor,
         title: Text('Sync Information'),
         content: Obx(() => Column(
           mainAxisSize: MainAxisSize.min,

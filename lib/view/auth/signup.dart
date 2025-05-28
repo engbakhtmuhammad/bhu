@@ -220,12 +220,12 @@ class _SignupScreenState extends State<SignupScreen> {
                         style: subTitleTextStyle(color: blackColor, size: 15),
                       ),
                       Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                decoration: BoxDecoration(
+                  color: greyColor,
+                  borderRadius: BorderRadius.circular(containerRoundCorner),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<int>(
                             value: selectedHealthFacilityId,
@@ -243,7 +243,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               });
                             },
                           ),
-                        ),
+                        ),)
                       ),
                       const SizedBox(height: 15),
 
@@ -253,12 +253,12 @@ class _SignupScreenState extends State<SignupScreen> {
                         style: subTitleTextStyle(color: blackColor, size: 15),
                       ),
                       Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                decoration: BoxDecoration(
+                  color: greyColor,
+                  borderRadius: BorderRadius.circular(containerRoundCorner),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<int>(
                             value: selectedUserRoleId,
@@ -277,7 +277,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             },
                           ),
                         ),
-                      ),
+                      )),
                       const SizedBox(height: 15),
 
                       // Password Field

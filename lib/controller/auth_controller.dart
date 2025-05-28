@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/api_models.dart';
-import '../models/app_user_data.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 
