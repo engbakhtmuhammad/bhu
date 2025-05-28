@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:bhu/models/api_models.dart';
 import 'package:dio/dio.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
-import '../models/api_models.dart';
+import '../models/api_models.dart' as api_models;
 import '../models/app_user_data.dart';
 import 'encryption_service.dart';
 
@@ -121,6 +122,14 @@ class ApiService {
         data: request.toJson(),
       );
 
+      debugPrint('API: statusCode: ${response.statusCode}');
+      debugPrint('API: headers:');
+      response.headers.forEach((name, values) {
+        debugPrint('API:  $name: ${values.join(', ')}');
+      });
+      debugPrint('API: Response Text:');
+      debugPrint('API: ${response.data}');
+
       if (response.statusCode == 200) {
         final responseData = response.data;
 
@@ -136,13 +145,47 @@ class ApiService {
               try {
                 // Decrypt, decompress and deserialize the response
                 final appUserData = _encryptionService.decryptAndDecompressAndDeserialize(encryptedData);
+                
+                // Print the decrypted data for debugging
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DECRYPTED RESPONSE:');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ${appUserData.token}');
 
                 // Store the decrypted data for later use
                 _lastDecryptedData = appUserData;
 
-                // Create a basic LoginResponse with the token and user info
-                // We'll store the full decrypted data separately for the sync system
-                final loginResponse = LoginResponse.fromDecryptedData(appUserData);
+                // Create a LoginResponse with the token and reference data
+                final loginResponse = LoginResponse(
+                  token: appUserData.token ?? '',
+                  bloodGroups: appUserData.bloodGroups?.map((bg) => api_models.BloodGroup(id: bg.id, name: bg.name)).toList() ?? [],
+                  deliveryTypes: appUserData.deliveryTypes?.map((dt) => api_models.DeliveryType(id: dt.id, name: dt.name)).toList() ?? [],
+                  deliveryModes: appUserData.deliveryModes?.map((dm) => api_models.DeliveryMode(id: dm.id, name: dm.name)).toList() ?? [],
+                  familyPlanningServices: appUserData.familyPlanning?.map((fp) => api_models.FamilyPlanningService(id: fp.id, name: fp.name)).toList() ?? [],
+                  antenatalVisits: appUserData.antenatalVisits?.map((av) => api_models.AntenatalVisit(id: av.id, name: av.name)).toList() ?? [],
+                  tTAdvisedList: appUserData.tTAdvisedList?.map((tt) => api_models.TTAdvised(id: tt.id, name: tt.name)).toList() ?? [],
+                  pregnancyIndicators: appUserData.pregnancyIndicators?.map((pi) => api_models.PregnancyIndicator(id: pi.id, name: pi.name)).toList() ?? [],
+                  postPartumStatuses: appUserData.postPartumStatuses?.map((pps) => api_models.PostPartumStatus(id: pps.id, name: pps.name)).toList() ?? [],
+                  medicineDosages: appUserData.medicineDosages?.map((md) => api_models.MedicineDosage(id: md.id, name: md.name)).toList() ?? [],
+                  districts: appUserData.districts?.map((d) => api_models.District(id: d.id ?? 0, name: d.name ?? '', version: 1)).toList() ?? [],
+                  patients: [], // AppUserData doesn't have patients property
+                  diseases: appUserData.diseases?.map((d) => api_models.Disease(
+                    id: d.id ?? 0, 
+                    name: d.name ?? '', 
+                    version: d.category != null ? 1 : 0
+                  )).toList() ?? [],
+                  subDiseases: appUserData.subDiseases?.map((sd) => api_models.SubDisease(
+                    id: sd.id, 
+                    name: sd.name, 
+                    diseaseId: sd.diseaseId, 
+                    version: sd.version
+                  )).toList() ?? [],
+                  labTests: [], // AppUserData doesn't have labTests property
+                  medicines: appUserData.medicines?.map((m) => api_models.Medicine(
+                    id: m.id, 
+                    name: m.name, 
+                    code: m.code ?? '', 
+                    version: m.version
+                  )).toList() ?? [],
+                );
 
                 return ApiResponse<LoginResponse>(
                   success: true,

@@ -20,7 +20,7 @@ class DatabaseHelper {
 
   Future<Database> _initDatabase() async {
     final path = join(await getDatabasesPath(), 'bhu.db');
-    return await openDatabase(path, version: 3, onCreate: _onCreate, onUpgrade: _onUpgrade);
+    return await openDatabase(path, version: 4, onCreate: _onCreate, onUpgrade: _onUpgrade);
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -231,6 +231,17 @@ class DatabaseHelper {
         )
       ''');
     }
+
+    if (oldVersion < 4) {
+      // Check if the column exists before trying to add it
+      var tableInfo = await db.rawQuery("PRAGMA table_info(api_medicines)");
+      bool hasCodeColumn = tableInfo.any((column) => column['name'] == 'code');
+      
+      if (!hasCodeColumn) {
+        // Add code column to api_medicines table
+        await db.execute('ALTER TABLE api_medicines ADD COLUMN code TEXT');
+      }
+    }
   }
 
   Future<void> _insertDefaultDiseases(Database db) async {
@@ -392,79 +403,151 @@ class DatabaseHelper {
   Future<void> storeReferenceData(AppUserData appUserData) async {
     final db = await database;
 
-    // Clear existing reference data
-    await db.delete('api_districts');
-    await db.delete('api_medicines');
-    await db.delete('api_blood_groups');
-    await db.delete('api_user_roles');
-    await db.delete('api_health_facilities');
-    await db.delete('api_diseases');
+    // Create tables if they don't exist
+    await createReferenceTables(db);
 
-    // Store districts
-    if (appUserData.districts != null) {
-      for (var district in appUserData.districts!) {
-        await db.insert('api_districts', {
-          'id': district.id,
-          'name': district.name,
-          'version': 1,
-        }, conflictAlgorithm: ConflictAlgorithm.replace);
-      }
-    }
+    // Begin transaction
+    await db.transaction((txn) async {
+      // Clear existing reference data
+      await txn.delete('api_districts');
+      await txn.delete('api_medicines');
+      await txn.delete('api_blood_groups');
+      await txn.delete('api_diseases');
+      await txn.delete('api_sub_diseases');
+      await txn.delete('api_delivery_types');
+      await txn.delete('api_delivery_modes');
+      await txn.delete('api_antenatal_visits');
+      await txn.delete('api_tt_advised_list');
+      await txn.delete('api_pregnancy_indicators');
+      await txn.delete('api_post_partum_statuses');
+      await txn.delete('api_medicine_dosages');
 
-    // Store medicines
-    if (appUserData.medicines != null) {
-      for (var medicine in appUserData.medicines!) {
-        await db.insert('api_medicines', {
-          'id': medicine.id,
-          'name': medicine.name,
-          'dosage': medicine.dosage,
-          'version': 1,
-        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      // Store districts
+      if (appUserData.districts != null) {
+        for (var district in appUserData.districts!) {
+          await txn.insert('api_districts', {
+            'id': district.id,
+            'name': district.name,
+            'version': 1, // Default version since District class doesn't have version property
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
       }
-    }
 
-    // Store blood groups
-    if (appUserData.bloodGroups != null) {
-      for (var bloodGroup in appUserData.bloodGroups!) {
-        await db.insert('api_blood_groups', {
-          'id': bloodGroup.id,
-          'name': bloodGroup.name,
-        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      // Store medicines
+      if (appUserData.medicines != null) {
+        for (var medicine in appUserData.medicines!) {
+          await txn.insert('api_medicines', {
+            'id': medicine.id,
+            'name': medicine.name,
+            'code': medicine.code,
+            'version': medicine.version,
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
       }
-    }
 
-    // Store user roles
-    if (appUserData.userRoles != null) {
-      for (var userRole in appUserData.userRoles!) {
-        await db.insert('api_user_roles', {
-          'id': userRole.id,
-          'name': userRole.name,
-        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      // Store blood groups
+      if (appUserData.bloodGroups != null) {
+        for (var bloodGroup in appUserData.bloodGroups!) {
+          await txn.insert('api_blood_groups', {
+            'id': bloodGroup.id,
+            'name': bloodGroup.name,
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
       }
-    }
 
-    // Store health facilities
-    if (appUserData.healthFacilities != null) {
-      for (var facility in appUserData.healthFacilities!) {
-        await db.insert('api_health_facilities', {
-          'id': facility.id,
-          'name': facility.name,
-          'type': facility.type,
-        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      // Store diseases
+      if (appUserData.diseases != null) {
+        for (var disease in appUserData.diseases!) {
+          await txn.insert('api_diseases', {
+            'id': disease.id,
+            'name': disease.name,
+            'version': disease.category != null ? 1 : 0, // Default version since Disease class doesn't have version property
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
       }
-    }
 
-    // Store diseases
-    if (appUserData.diseases != null) {
-      for (var disease in appUserData.diseases!) {
-        await db.insert('api_diseases', {
-          'id': disease.id,
-          'name': disease.name,
-          'category': disease.category,
-          'version': 1,
-        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      // Store sub-diseases
+      if (appUserData.subDiseases != null) {
+        for (var subDisease in appUserData.subDiseases!) {
+          await txn.insert('api_sub_diseases', {
+            'id': subDisease.id,
+            'name': subDisease.name,
+            'diseaseId': subDisease.diseaseId,
+            'version': subDisease.version,
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
       }
-    }
+
+      // Store delivery types
+      if (appUserData.deliveryTypes != null) {
+        for (var deliveryType in appUserData.deliveryTypes!) {
+          await txn.insert('api_delivery_types', {
+            'id': deliveryType.id,
+            'name': deliveryType.name,
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+
+      // Store delivery modes
+      if (appUserData.deliveryModes != null) {
+        for (var deliveryMode in appUserData.deliveryModes!) {
+          await txn.insert('api_delivery_modes', {
+            'id': deliveryMode.id,
+            'name': deliveryMode.name,
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+
+      // Store antenatal visits
+      if (appUserData.antenatalVisits != null) {
+        for (var antenatalVisit in appUserData.antenatalVisits!) {
+          await txn.insert('api_antenatal_visits', {
+            'id': antenatalVisit.id,
+            'name': antenatalVisit.name,
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+
+      // Store TT advised list
+      if (appUserData.tTAdvisedList != null) {
+        for (var ttAdvised in appUserData.tTAdvisedList!) {
+          await txn.insert('api_tt_advised_list', {
+            'id': ttAdvised.id,
+            'name': ttAdvised.name,
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+
+      // Store pregnancy indicators
+      if (appUserData.pregnancyIndicators != null) {
+        for (var pregnancyIndicator in appUserData.pregnancyIndicators!) {
+          await txn.insert('api_pregnancy_indicators', {
+            'id': pregnancyIndicator.id,
+            'name': pregnancyIndicator.name,
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+
+      // Store post-partum statuses
+      if (appUserData.postPartumStatuses != null) {
+        for (var postPartumStatus in appUserData.postPartumStatuses!) {
+          await txn.insert('api_post_partum_statuses', {
+            'id': postPartumStatus.id,
+            'name': postPartumStatus.name,
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+
+      // Store medicine dosages
+      if (appUserData.medicineDosages != null) {
+        for (var medicineDosage in appUserData.medicineDosages!) {
+          await txn.insert('api_medicine_dosages', {
+            'id': medicineDosage.id,
+            'name': medicineDosage.name,
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+    });
   }
 
   // Methods to get table information for profile screen
@@ -472,20 +555,11 @@ class DatabaseHelper {
     final db = await database;
     final Map<String, int> counts = {};
 
-    final tables = [
-      'patients',
-      'opd_visits',
-      'diseases',
-      'prescriptions',
-      'api_districts',
-      'api_medicines',
-      'api_blood_groups',
-      'api_user_roles',
-      'api_health_facilities',
-      'api_diseases',
-    ];
-
-    for (String table in tables) {
+    // Get all table names
+    final tableNames = await getAllTableNames();
+    
+    // Count records in each table
+    for (String table in tableNames) {
       try {
         final result = await db.rawQuery('SELECT COUNT(*) as count FROM $table');
         counts[table] = result.first['count'] as int;
@@ -513,5 +587,110 @@ class DatabaseHelper {
       "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
     );
     return result.map((row) => row['name'] as String).toList();
+  }
+
+  // Create all reference data tables
+  Future<void> createReferenceTables(Database db) async {
+    // Districts table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_districts(
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        version INTEGER DEFAULT 0
+      )
+    ''');
+
+    // Medicines table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_medicines(
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        code TEXT,
+        version INTEGER DEFAULT 0
+      )
+    ''');
+
+    // Blood groups table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_blood_groups(
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+
+    // Diseases table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_diseases(
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        version INTEGER DEFAULT 0
+      )
+    ''');
+
+    // Sub-diseases table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_sub_diseases(
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        diseaseId INTEGER,
+        version INTEGER DEFAULT 0
+      )
+    ''');
+
+    // Delivery types table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_delivery_types(
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+
+    // Delivery modes table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_delivery_modes(
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+
+    // Antenatal visits table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_antenatal_visits(
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+
+    // TT advised list table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_tt_advised_list(
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+
+    // Pregnancy indicators table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_pregnancy_indicators(
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+
+    // Post-partum statuses table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_post_partum_statuses(
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+
+    // Medicine dosages table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_medicine_dosages(
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
   }
 }

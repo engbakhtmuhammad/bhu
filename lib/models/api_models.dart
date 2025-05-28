@@ -134,32 +134,61 @@ class LoginResponse {
         id: bg.id ?? 0,
         name: bg.name ?? '',
       )).toList() ?? [],
-      deliveryTypes: [], // Empty for now - add if available in appUserData
-      deliveryModes: [], // Empty for now - add if available in appUserData
-      familyPlanningServices: [], // Empty for now - add if available in appUserData
-      antenatalVisits: [], // Empty for now - add if available in appUserData
-      tTAdvisedList: [], // Empty for now - add if available in appUserData
-      pregnancyIndicators: [], // Empty for now - add if available in appUserData
-      postPartumStatuses: [], // Empty for now - add if available in appUserData
-      medicineDosages: [], // Empty for now - add if available in appUserData
+      deliveryTypes: appUserData.deliveryTypes?.map<DeliveryType>((dt) => DeliveryType(
+        id: dt.id ?? 0,
+        name: dt.name ?? '',
+      )).toList() ?? [],
+      deliveryModes: appUserData.deliveryModes?.map<DeliveryMode>((dm) => DeliveryMode(
+        id: dm.id ?? 0,
+        name: dm.name ?? '',
+      )).toList() ?? [],
+      familyPlanningServices: appUserData.familyPlanning?.map<FamilyPlanningService>((fp) => FamilyPlanningService(
+        id: fp.id ?? 0,
+        name: fp.name ?? '',
+      )).toList() ?? [],
+      antenatalVisits: appUserData.antenatalVisits?.map<AntenatalVisit>((av) => AntenatalVisit(
+        id: av.id ?? 0,
+        name: av.name ?? '',
+      )).toList() ?? [],
+      tTAdvisedList: appUserData.tTAdvisedList?.map<TTAdvised>((tt) => TTAdvised(
+        id: tt.id ?? 0,
+        name: tt.name ?? '',
+      )).toList() ?? [],
+      pregnancyIndicators: appUserData.pregnancyIndicators?.map<PregnancyIndicator>((pi) => PregnancyIndicator(
+        id: pi.id ?? 0,
+        name: pi.name ?? '',
+      )).toList() ?? [],
+      postPartumStatuses: appUserData.postPartumStatuses?.map<PostPartumStatus>((pps) => PostPartumStatus(
+        id: pps.id ?? 0,
+        name: pps.name ?? '',
+      )).toList() ?? [],
+      medicineDosages: appUserData.medicineDosages?.map<MedicineDosage>((md) => MedicineDosage(
+        id: md.id ?? 0,
+        name: md.name ?? '',
+      )).toList() ?? [],
       districts: appUserData.districts?.map<District>((d) => District(
         id: d.id ?? 0,
         name: d.name ?? '',
-        version: 1, // Default version
+        version: d.version ?? 0, // Use actual version
       )).toList() ?? [],
       patients: [], // Empty for now - add if available in appUserData
       diseases: appUserData.diseases?.map<Disease>((d) => Disease(
         id: d.id ?? 0,
         name: d.name ?? '',
-        version: 1, // Default version
+        version: d.version ?? 0, // Use actual version
       )).toList() ?? [],
-      subDiseases: [], // Empty for now - add if available in appUserData
+      subDiseases: appUserData.subDiseases?.map<SubDisease>((sd) => SubDisease(
+        id: sd.id ?? 0,
+        name: sd.name ?? '',
+        version: sd.version ?? 0,
+        diseaseId: sd.diseaseId ?? 0,
+      )).toList() ?? [],
       labTests: [], // Empty for now - add if available in appUserData
       medicines: appUserData.medicines?.map<Medicine>((m) => Medicine(
         id: m.id ?? 0,
         name: m.name ?? '',
-        code: '', // Default empty code
-        version: 1, // Default version
+        code: m.code ?? '',
+        version: m.version ?? 0, // Use actual version
       )).toList() ?? [],
     );
   }
