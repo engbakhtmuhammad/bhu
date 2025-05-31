@@ -1,8 +1,6 @@
 
 
 import 'package:bhu/utils/constants.dart';
-import 'package:bhu/view/forms/opd_visit.dart';
-import 'package:bhu/view/forms/prescription_form.dart';
 import 'package:bhu/view/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -25,7 +23,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         textTheme: GoogleFonts.senTextTheme(),
       ),
-      home:  PrescriptionForm(),
+      home: const SplashScreen(),
     );
   }
 }
