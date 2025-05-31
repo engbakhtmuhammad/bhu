@@ -232,4 +232,9 @@ class OpdController extends GetxController {
       familyPlanningServices.add(service);
     }
   }
+
+  // Add this method to reload patients from the database
+  Future<void> refreshPatients() async {
+    await loadPatients();
+  }
 }

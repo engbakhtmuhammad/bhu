@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_iconly/flutter_iconly.dart';
 import '../../controller/patient_controller.dart';
+import '../../controller/opd_controller.dart';
 import '../../models/patient_model.dart';
 import '../../utils/constants.dart';
 import '../../utils/style.dart';
@@ -150,6 +151,13 @@ class PatientRegistrationForm extends StatelessWidget {
                   immunized: immunized.value,
                 );
                 await controller.savePatient(patient);
+                
+                // Refresh OPD controller's patient list
+                if (Get.isRegistered<OpdController>()) {
+                  final opdController = Get.find<OpdController>();
+                  await opdController.refreshPatients();
+                }
+                
                 Get.snackbar("Success", "Patient saved with ID: $id");
               },
             )

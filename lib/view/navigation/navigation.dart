@@ -89,22 +89,28 @@ class _NavigationScreenState extends State<NavigationScreen> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
-            child: IconButton.filledTonal(
-              style: IconButton.styleFrom(backgroundColor: blackColor),
-              onPressed: () => Get.to(() => NotificationScreen()),
-              icon: badges.Badge(
-                badgeContent: Text(
-                  '',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
+            child: currentPageIndex == 2
+                ? IconButton.filledTonal(
+                    style: IconButton.styleFrom(backgroundColor: blackColor),
+                    onPressed: () => Get.to(() => PatientRegistrationForm()),
+                    icon: Icon(IconlyLight.addUser, color: whiteColor),
+                  )
+                : IconButton.filledTonal(
+                    style: IconButton.styleFrom(backgroundColor: blackColor),
+                    onPressed: () => Get.to(() => NotificationScreen()),
+                    icon: badges.Badge(
+                      badgeContent: Text(
+                        '',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                      position: badges.BadgePosition.topEnd(top: -15, end: -12),
+                      badgeStyle: badges.BadgeStyle(badgeColor: primaryColor),
+                      child: Icon(IconlyBroken.notification, color: whiteColor),
+                    ),
                   ),
-                ),
-                position: badges.BadgePosition.topEnd(top: -15, end: -12),
-                badgeStyle: badges.BadgeStyle(badgeColor: primaryColor),
-                child: Icon(IconlyBroken.notification, color: whiteColor),
-              ),
-            ),
           ),
         ],
       ),
