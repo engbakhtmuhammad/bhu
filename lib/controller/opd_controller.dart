@@ -15,6 +15,16 @@ class OpdController extends GetxController {
   var diseases = <DiseaseModel>[].obs;
   var prescriptions = <PrescriptionModel>[].obs;
   
+  // Reference data from SQLite
+  var diseasesByCategory = <String, List<DiseaseModel>>{}.obs;
+  var labTestOptions = <String>[].obs;
+  var fpOptions = <String>[].obs;
+  var antenatalVisitOptions = <String>[].obs;
+  var deliveryModeOptions = <String>[].obs;
+  var pregnancyIndicators = <String>[].obs;
+  var ttAdvisedOptions = <String>[].obs;
+  var postPartumStatusOptions = <String>[].obs;
+  
   // Form reactive variables
   var selectedPatient = Rx<PatientModel?>(null);
   var reasonForVisit = 'General OPD'.obs;
@@ -46,48 +56,190 @@ class OpdController extends GetxController {
   var postpartumFollowup = ''.obs;
   var familyPlanningServices = <String>[].obs;
 
-  final fpOptions = [
-    'Pills',
-    'Injections', 
-    'Condoms',
-    'IUCD/Implants',
-    'FP Counseling'
-  ];
-
-  final labTestOptions = [
-    'Blood Test',
-    'Urine Test',
-    'X-Ray',
-    'ECG',
-    'Ultrasound',
-    'CT Scan',
-    'MRI',
-    'Blood Sugar',
-    'Blood Pressure',
-    'Cholesterol Test'
-  ];
-
-  final antenatalVisitOptions = [
-    'ANC 1-4',
-    '5+',
-    'Additional Checkup'
-  ];
-
-  final deliveryModeOptions = [
-    'Normal Delivery (Live Birth)',
-    'Maternal Death',
-    'Still Birth',
-    'Neonatal Death (within 28 Days)',
-    'Intra Uterine Death (IUD)',
-    'Abortion'
-  ];
-
   @override
   void onInit() {
     loadOpdVisits();
     loadPatients();
     loadDiseases();
+    loadReferenceData();
     super.onInit();
+  }
+
+  Future<void> loadReferenceData() async {
+    try {
+      // Load family planning services
+      final fpServices = await db.getFamilyPlanningServices();
+      if (fpServices.isNotEmpty) {
+        fpOptions.value = fpServices.map((e) => e['name'] as String).toList();
+      } else {
+        // Fallback data for family planning
+        fpOptions.value = [
+          'Condoms',
+          'Oral Contraceptive Pills',
+          'Injectable Contraceptives',
+          'IUD',
+          'Implants',
+          'Natural Family Planning',
+          'Sterilization'
+        ];
+      }
+      
+      // Load lab tests
+      final labTests = await db.getLabTests();
+      if (labTests.isNotEmpty) {
+        labTestOptions.value = labTests.map((e) => e['name'] as String).toList();
+      } else {
+        // Fallback data for lab tests
+        labTestOptions.value = [
+          'Complete Blood Count',
+          'Blood Glucose',
+          'Lipid Profile',
+          'Liver Function Test',
+          'Kidney Function Test',
+          'Urine Analysis',
+          'Stool Examination',
+          'X-Ray',
+          'Ultrasound'
+        ];
+      }
+      
+      // Load antenatal visits
+      final antenatalVisits = await db.getAntenatalVisits();
+      if (antenatalVisits.isNotEmpty) {
+        antenatalVisitOptions.value = antenatalVisits.map((e) => e['name'] as String).toList();
+      } else {
+        // Fallback data for antenatal visits
+        antenatalVisitOptions.value = [
+          'ANC 1-4',
+          'ANC 5-8',
+          'ANC 9+',
+          'No ANC'
+        ];
+      }
+      
+      // Load delivery modes
+      final deliveryModes = await db.getDeliveryModes();
+      if (deliveryModes.isNotEmpty) {
+        deliveryModeOptions.value = deliveryModes.map((e) => e['name'] as String).toList();
+      } else {
+        // Fallback data for delivery modes
+        deliveryModeOptions.value = [
+          'Normal Delivery (Live Birth)',
+          'C-Section (Live Birth)',
+          'Normal Delivery (Stillbirth)',
+          'C-Section (Stillbirth)',
+          'Assisted Delivery'
+        ];
+      }
+      
+      // Load pregnancy indicators
+      final indicators = await db.getPregnancyIndicators();
+      if (indicators.isNotEmpty) {
+        pregnancyIndicators.value = indicators.map((e) => e['name'] as String).toList();
+      } else {
+        // Fallback data for pregnancy indicators
+        pregnancyIndicators.value = [
+          'Hypertension',
+          'Diabetes',
+          'Anemia',
+          'Previous C-Section',
+          'Multiple Pregnancy',
+          'Teenage Pregnancy',
+          'Advanced Maternal Age'
+        ];
+      }
+      
+      // Load TT advised options
+      final ttAdvised = await db.getTTAdvised();
+      if (ttAdvised.isNotEmpty) {
+        ttAdvisedOptions.value = ttAdvised.map((e) => e['name'] as String).toList();
+      } else {
+        // Fallback data for TT advised
+        ttAdvisedOptions.value = [
+          'TT1',
+          'TT2',
+          'TT Booster',
+          'Not Advised'
+        ];
+      }
+      
+      // Load postpartum statuses
+      final postpartumStatuses = await db.getPostpartumStatuses();
+      if (postpartumStatuses.isNotEmpty) {
+        postPartumStatusOptions.value = postpartumStatuses.map((e) => e['name'] as String).toList();
+      } else {
+        // Fallback data for postpartum statuses
+        postPartumStatusOptions.value = [
+          'Normal Recovery',
+          'Complications Present',
+          'Referred for Higher Care',
+          'Follow-up Required'
+        ];
+      }
+    } catch (e) {
+      print('Error loading reference data: $e');
+      // Set fallback values if there's an error
+      fpOptions.value = [
+        'Condoms',
+        'Oral Contraceptive Pills',
+        'Injectable Contraceptives',
+        'IUD',
+        'Implants',
+        'Natural Family Planning',
+        'Sterilization'
+      ];
+      
+      labTestOptions.value = [
+        'Complete Blood Count',
+        'Blood Glucose',
+        'Lipid Profile',
+        'Liver Function Test',
+        'Kidney Function Test',
+        'Urine Analysis',
+        'Stool Examination',
+        'X-Ray',
+        'Ultrasound'
+      ];
+      
+      antenatalVisitOptions.value = [
+        'ANC 1-4',
+        'ANC 5-8',
+        'ANC 9+',
+        'No ANC'
+      ];
+      
+      deliveryModeOptions.value = [
+        'Normal Delivery (Live Birth)',
+        'C-Section (Live Birth)',
+        'Normal Delivery (Stillbirth)',
+        'C-Section (Stillbirth)',
+        'Assisted Delivery'
+      ];
+      
+      pregnancyIndicators.value = [
+        'Hypertension',
+        'Diabetes',
+        'Anemia',
+        'Previous C-Section',
+        'Multiple Pregnancy',
+        'Teenage Pregnancy',
+        'Advanced Maternal Age'
+      ];
+      
+      ttAdvisedOptions.value = [
+        'TT1',
+        'TT2',
+        'TT Booster',
+        'Not Advised'
+      ];
+      
+      postPartumStatusOptions.value = [
+        'Normal Recovery',
+        'Complications Present',
+        'Referred for Higher Care',
+        'Follow-up Required'
+      ];
+    }
   }
 
   Future<void> loadOpdVisits() async {
@@ -99,7 +251,60 @@ class OpdController extends GetxController {
   }
 
   Future<void> loadDiseases() async {
-    diseases.value = await db.getAllDiseases();
+    try {
+      diseases.value = await db.getAllDiseases();
+      
+      if (diseases.isEmpty) {
+        // Provide fallback diseases if none are found in the database
+        diseases.value = [
+          DiseaseModel(id: 1, name: 'Common Cold', category: 'Respiratory diseases', categoryId: 1),
+          DiseaseModel(id: 2, name: 'Pneumonia', category: 'Respiratory diseases', categoryId: 1),
+          DiseaseModel(id: 3, name: 'Asthma', category: 'Respiratory diseases', categoryId: 1),
+          DiseaseModel(id: 4, name: 'Hypertension', category: 'Cardiovascular diseases', categoryId: 2),
+          DiseaseModel(id: 5, name: 'Diabetes', category: 'Endocrine diseases', categoryId: 3),
+          DiseaseModel(id: 6, name: 'Malaria', category: 'Infectious diseases', categoryId: 4),
+          DiseaseModel(id: 7, name: 'Typhoid', category: 'Infectious diseases', categoryId: 4),
+          DiseaseModel(id: 8, name: 'Diarrhea', category: 'Gastrointestinal diseases', categoryId: 5),
+          DiseaseModel(id: 9, name: 'Anemia', category: 'Hematological diseases', categoryId: 6),
+          DiseaseModel(id: 10, name: 'Arthritis', category: 'Musculoskeletal diseases', categoryId: 7),
+        ];
+      }
+      
+      // Populate diseasesByCategory after loading diseases
+      Map<String, List<DiseaseModel>> grouped = {};
+      for (var disease in diseases) {
+        if (!grouped.containsKey(disease.category)) {
+          grouped[disease.category] = [];
+        }
+        grouped[disease.category]!.add(disease);
+      }
+      diseasesByCategory.value = grouped;
+    } catch (e) {
+      print('Error loading diseases: $e');
+      // Provide fallback diseases if there's an error
+      diseases.value = [
+        DiseaseModel(id: 1, name: 'Common Cold', category: 'Respiratory diseases', categoryId: 1),
+        DiseaseModel(id: 2, name: 'Pneumonia', category: 'Respiratory diseases', categoryId: 1),
+        DiseaseModel(id: 3, name: 'Asthma', category: 'Respiratory diseases', categoryId: 1),
+        DiseaseModel(id: 4, name: 'Hypertension', category: 'Cardiovascular diseases', categoryId: 2),
+        DiseaseModel(id: 5, name: 'Diabetes', category: 'Endocrine diseases', categoryId: 3),
+        DiseaseModel(id: 6, name: 'Malaria', category: 'Infectious diseases', categoryId: 4),
+        DiseaseModel(id: 7, name: 'Typhoid', category: 'Infectious diseases', categoryId: 4),
+        DiseaseModel(id: 8, name: 'Diarrhea', category: 'Gastrointestinal diseases', categoryId: 5),
+        DiseaseModel(id: 9, name: 'Anemia', category: 'Hematological diseases', categoryId: 6),
+        DiseaseModel(id: 10, name: 'Arthritis', category: 'Musculoskeletal diseases', categoryId: 7),
+      ];
+      
+      // Populate diseasesByCategory with fallback data
+      Map<String, List<DiseaseModel>> grouped = {};
+      for (var disease in diseases) {
+        if (!grouped.containsKey(disease.category)) {
+          grouped[disease.category] = [];
+        }
+        grouped[disease.category]!.add(disease);
+      }
+      diseasesByCategory.value = grouped;
+    }
   }
 
   Future<void> saveOpdVisit() async {
@@ -190,7 +395,7 @@ class OpdController extends GetxController {
     familyPlanningServices.clear();
   }
 
-  Map<String, List<DiseaseModel>> get diseasesByCategory {
+  Map<String, List<DiseaseModel>> get groupedDiseases {
     Map<String, List<DiseaseModel>> grouped = {};
     for (var disease in diseases) {
       if (!grouped.containsKey(disease.category)) {

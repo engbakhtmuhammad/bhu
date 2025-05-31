@@ -11,42 +11,13 @@ class PrescriptionController extends GetxController {
   var selectedOpdTicket = ''.obs;
   var selectedDrug = ''.obs;
 
-  final commonDrugs = [
-    'Paracetamol',
-    'Ibuprofen',
-    'Aspirin',
-    'Amoxicillin',
-    'Ciprofloxacin',
-    'Metformin',
-    'Omeprazole',
-    'Cetirizine',
-    'Salbutamol',
-    'Prednisolone',
-    'Atorvastatin',
-    'Lisinopril',
-    'Furosemide',
-    'Warfarin',
-    'Insulin',
-    'Vitamin D',
-    'Iron Tablets',
-    'Calcium',
-    'Multivitamin',
-    'Folic Acid',
-    'Azithromycin',
-    'Doxycycline',
-    'Tramadol',
-    'Diclofenac',
-    'Loratadine',
-    'Montelukast',
-    'Ranitidine',
-    'Simvastatin',
-    'Amlodipine',
-    'Hydrochlorothiazide',
-  ];
+  var commonDrugs = <String>[].obs;
+  var medicineDosages = <String>[].obs;
 
   @override
   void onInit() {
     loadOpdVisits();
+    loadMedicines();
     super.onInit();
   }
 
@@ -88,5 +59,95 @@ class PrescriptionController extends GetxController {
     await dbClient.delete('prescriptions', where: 'id = ?', whereArgs: [id]);
     await loadPrescriptions(selectedOpdTicket.value);
     Get.snackbar("Success", "Prescription deleted");
+  }
+
+  Future<void> loadMedicines() async {
+    try {
+      // Load medicines from SQLite
+      final medicines = await db.getMedicines();
+      if (medicines.isNotEmpty) {
+        commonDrugs.value = medicines.map((e) => e['name'] as String).toList();
+      } else {
+        // Fallback to default medicines
+        commonDrugs.value = [
+          'Paracetamol',
+          'Ibuprofen',
+          'Aspirin',
+          'Amoxicillin',
+          'Ciprofloxacin',
+          'Metronidazole',
+          'Omeprazole',
+          'Diazepam',
+          'Atenolol',
+          'Metformin',
+          'Salbutamol',
+          'Hydrocortisone',
+          'Chlorpheniramine',
+          'Albendazole',
+          'Artemether/Lumefantrine'
+        ];
+      }
+      
+      // Load medicine dosages
+      final dosages = await db.getMedicineDosages();
+      if (dosages.isNotEmpty) {
+        medicineDosages.value = dosages.map((e) => e['name'] as String).toList();
+      } else {
+        // Fallback to default dosages
+        medicineDosages.value = [
+          '1 tablet twice daily',
+          '1 tablet three times daily',
+          '2 tablets twice daily',
+          '1 tablet once daily',
+          '1 tablet at bedtime',
+          '1 capsule three times daily',
+          '2 capsules twice daily',
+          '5ml three times daily',
+          '10ml twice daily',
+          '1 injection daily',
+          '1 injection weekly',
+          'Apply topically twice daily',
+          'Apply topically three times daily',
+          'Use as directed'
+        ];
+      }
+    } catch (e) {
+      print('Error loading medicines: $e');
+      // Keep the default values if there's an error
+      commonDrugs.value = [
+        'Paracetamol',
+        'Ibuprofen',
+        'Aspirin',
+        'Amoxicillin',
+        'Ciprofloxacin',
+        'Metronidazole',
+        'Omeprazole',
+        'Diazepam',
+        'Atenolol',
+        'Metformin',
+        'Salbutamol',
+        'Hydrocortisone',
+        'Chlorpheniramine',
+        'Albendazole',
+        'Artemether/Lumefantrine'
+      ];
+      
+      medicineDosages.value = [
+        '1 tablet twice daily',
+        '1 tablet three times daily',
+        '2 tablets twice daily',
+        '1 tablet once daily',
+        '1 tablet at bedtime',
+        '1 capsule three times daily',
+        '2 capsules twice daily',
+        '5ml three times daily',
+        '10ml twice daily',
+        '1 injection daily',
+        '1 injection weekly',
+        'Apply topically twice daily',
+        'Apply topically three times daily',
+        'Use as directed'
+      ];
+    }
   }
 }

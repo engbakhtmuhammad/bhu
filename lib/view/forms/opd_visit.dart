@@ -1,3 +1,4 @@
+import 'package:bhu/widgets/input_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_iconly/flutter_iconly.dart';
@@ -19,53 +20,39 @@ class OpdVisitForm extends StatelessWidget {
         child: ListView(
           children: [
             _label("SELECT PATIENT"),
-            Container(
-              decoration: BoxDecoration(
-                color: greyColor,
-                borderRadius: BorderRadius.circular(containerRoundCorner),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Obx(() => DropdownButtonHideUnderline(
-                      child: DropdownButton(
-                        value: controller.selectedPatient.value,
-                        hint: Text("Select Patient"),
-                        isExpanded: true,
-                        items: controller.patients
-                            .map((patient) => DropdownMenuItem(
-                                  value: patient,
-                                  child: Text("${patient.fullName} (${patient.patientId})"),
-                                ))
-                            .toList(),
-                        onChanged: (val) => controller.selectedPatient.value = val,
-                        dropdownColor: Colors.white,
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                    )),
-              ),
+            DropDownWidget(
+              child: Obx(() => DropdownButtonHideUnderline(
+                    child: DropdownButton(
+                      value: controller.selectedPatient.value,
+                      hint: Text("Select Patient"),
+                      isExpanded: true,
+                      items: controller.patients
+                          .map((patient) => DropdownMenuItem(
+                                value: patient,
+                                child: Text("${patient.fullName} (${patient.patientId})"),
+                              ))
+                          .toList(),
+                      onChanged: (val) => controller.selectedPatient.value = val,
+                      dropdownColor: Colors.white,
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  )),
             ),
 
             _label("REASON FOR VISIT"),
-            Container(
-              decoration: BoxDecoration(
-                color: greyColor,
-                borderRadius: BorderRadius.circular(containerRoundCorner),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Obx(() => DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: controller.reasonForVisit.value,
-                        isExpanded: true,
-                        items: ['OBGYN','General OPD']
-                            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                            .toList(),
-                        onChanged: (val) => controller.reasonForVisit.value = val!,
-                        dropdownColor: Colors.white,
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                    )),
-              ),
+            DropDownWidget(
+              child: Obx(() => DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: controller.reasonForVisit.value,
+                      isExpanded: true,
+                      items: ['OBGYN','General OPD']
+                          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .toList(),
+                      onChanged: (val) => controller.reasonForVisit.value = val!,
+                      dropdownColor: Colors.white,
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  )),
             ),
 
             _label("FOLLOW-UP"),
@@ -190,24 +177,17 @@ class OpdVisitForm extends StatelessWidget {
   }
 
   Widget _buildLabTestsSection() {
-    return Container(
-      decoration: BoxDecoration(
-        color: greyColor,
-        borderRadius: BorderRadius.circular(containerRoundCorner),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(15),
-        child: Obx(() => Column(
-              children: controller.labTestOptions.map((test) {
-                return CheckboxListTile(
-                  title: Text(test),
-                  value: controller.selectedLabTests.contains(test),
-                  onChanged: (val) => controller.toggleLabTestSelection(test),
-                  dense: true,
-                );
-              }).toList(),
-            )),
-      ),
+    return DropDownWidget(
+      child: Obx(() => Column(
+            children: controller.labTestOptions.map((test) {
+              return CheckboxListTile(
+                title: Text(test),
+                value: controller.selectedLabTests.contains(test),
+                onChanged: (val) => controller.toggleLabTestSelection(test),
+                dense: true,
+              );
+            }).toList(),
+          )),
     );
   }
 
@@ -216,24 +196,17 @@ class OpdVisitForm extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _label("FAMILY PLANNING LIST"),
-        Container(
-          decoration: BoxDecoration(
-            color: greyColor,
-            borderRadius: BorderRadius.circular(containerRoundCorner),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(15),
-            child: Obx(() => Column(
-                  children: controller.fpOptions.map((fp) {
-                    return CheckboxListTile(
-                      title: Text(fp),
-                      value: controller.selectedFpList.contains(fp),
-                      onChanged: (val) => controller.toggleFpSelection(fp),
-                      dense: true,
-                    );
-                  }).toList(),
-                )),
-          ),
+        DropDownWidget(
+          child: Obx(() => Column(
+                children: controller.fpOptions.map((fp) {
+                  return CheckboxListTile(
+                    title: Text(fp),
+                    value: controller.selectedFpList.contains(fp),
+                    onChanged: (val) => controller.toggleFpSelection(fp),
+                    dense: true,
+                  );
+                }).toList(),
+              )),
         ),
       ],
     );
@@ -316,26 +289,19 @@ class OpdVisitForm extends StatelessWidget {
         ),
 
         _label("ANTENATAL VISITS"),
-        Container(
-          decoration: BoxDecoration(
-            color: greyColor,
-            borderRadius: BorderRadius.circular(containerRoundCorner),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Obx(() => DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: controller.antenatalVisits.value,
-                    isExpanded: true,
-                    items: controller.antenatalVisitOptions
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                        .toList(),
-                    onChanged: (val) => controller.antenatalVisits.value = val!,
-                    dropdownColor: Colors.white,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                )),
-          ),
+        DropDownWidget(
+          child: Obx(() => DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: controller.antenatalVisits.value,
+                  isExpanded: true,
+                  items: controller.antenatalVisitOptions
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  onChanged: (val) => controller.antenatalVisits.value = val!,
+                  dropdownColor: Colors.white,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              )),
         ),
 
         _label("FUNDAL HEIGHT"),
@@ -454,26 +420,19 @@ class OpdVisitForm extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _label("DELIVERY MODE"),
-        Container(
-          decoration: BoxDecoration(
-            color: greyColor,
-            borderRadius: BorderRadius.circular(containerRoundCorner),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Obx(() => DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: controller.deliveryMode.value,
-                    isExpanded: true,
-                    items: controller.deliveryModeOptions
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                        .toList(),
-                    onChanged: (val) => controller.deliveryMode.value = val!,
-                    dropdownColor: Colors.white,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                )),
-          ),
+        DropDownWidget(
+          child: Obx(() => DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: controller.deliveryMode.value,
+                  isExpanded: true,
+                  items: controller.deliveryModeOptions
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  onChanged: (val) => controller.deliveryMode.value = val!,
+                  dropdownColor: Colors.white,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              )),
         ),
       ],
     );
@@ -493,24 +452,17 @@ class OpdVisitForm extends StatelessWidget {
         ),
 
         _label("FAMILY PLANNING SERVICES"),
-        Container(
-          decoration: BoxDecoration(
-            color: greyColor,
-            borderRadius: BorderRadius.circular(containerRoundCorner),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(15),
-            child: Obx(() => Column(
-                  children: controller.fpOptions.map((service) {
-                    return CheckboxListTile(
-                      title: Text(service),
-                      value: controller.familyPlanningServices.contains(service),
-                      onChanged: (val) => controller.toggleFamilyPlanningService(service),
-                      dense: true,
-                    );
-                  }).toList(),
-                )),
-          ),
+        DropDownWidget(
+          child: Obx(() => Column(
+                children: controller.fpOptions.map((service) {
+                  return CheckboxListTile(
+                    title: Text(service),
+                    value: controller.familyPlanningServices.contains(service),
+                    onChanged: (val) => controller.toggleFamilyPlanningService(service),
+                    dense: true,
+                  );
+                }).toList(),
+              )),
         ),
       ],
     );

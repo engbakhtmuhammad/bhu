@@ -3,14 +3,17 @@ import 'package:get/get.dart';
 import 'package:flutter_iconly/flutter_iconly.dart';
 import '../../controller/patient_controller.dart';
 import '../../controller/opd_controller.dart';
+import '../../db/database_helper.dart';
 import '../../models/patient_model.dart';
 import '../../utils/constants.dart';
 import '../../utils/style.dart';
 import '../../widgets/input_field.dart';
 import '../../widgets/custom_btn.dart';
+import '../../widgets/input_widget.dart';
 
 class PatientRegistrationForm extends StatelessWidget {
   final controller = Get.put(PatientController());
+  final db = DatabaseHelper();
 
   final nameCtrl = TextEditingController();
   final cnicCtrl = TextEditingController();
@@ -20,8 +23,46 @@ class PatientRegistrationForm extends StatelessWidget {
 
   final gender = ''.obs;
   final bloodGroup = ''.obs;
+  final bloodGroups = <Map<String, dynamic>>[].obs;
   final immunized = false.obs;
   final relationType = 'own'.obs;
+  
+  PatientRegistrationForm() {
+    _loadBloodGroups();
+  }
+  
+  Future<void> _loadBloodGroups() async {
+    try {
+      final groups = await db.getBloodGroups();
+      if (groups.isNotEmpty) {
+        bloodGroups.value = groups;
+      } else {
+        // Fallback to default blood groups
+        bloodGroups.value = [
+          {'id': 1, 'name': 'A+'},
+          {'id': 2, 'name': 'A-'},
+          {'id': 3, 'name': 'B+'},
+          {'id': 4, 'name': 'B-'},
+          {'id': 5, 'name': 'AB+'},
+          {'id': 6, 'name': 'AB-'},
+          {'id': 7, 'name': 'O+'},
+          {'id': 8, 'name': 'O-'},
+        ];
+      }
+    } catch (e) {
+      // Fallback to default blood groups
+      bloodGroups.value = [
+        {'id': 1, 'name': 'A+'},
+        {'id': 2, 'name': 'A-'},
+        {'id': 3, 'name': 'B+'},
+        {'id': 4, 'name': 'B-'},
+        {'id': 5, 'name': 'AB+'},
+        {'id': 6, 'name': 'AB-'},
+        {'id': 7, 'name': 'O+'},
+        {'id': 8, 'name': 'O-'},
+      ];
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,30 +77,21 @@ class PatientRegistrationForm extends StatelessWidget {
             _label("CNIC"),
             InputField(hintText: "e.g. 1234567890123", controller: cnicCtrl),
             _label("RELATION TYPE"),
-            Container(
-              decoration: BoxDecoration(
-                color: greyColor,
-                borderRadius: BorderRadius.circular(containerRoundCorner),
+            DropDownWidget(child: Obx(() => DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                value: relationType.value,
+                items: ['own', 'father', 'husband']
+                    .map((e) => DropdownMenuItem(
+                          value: e,
+                          child: Text(e.toUpperCase()),
+                        ))
+                    .toList(),
+                onChanged: (val) => relationType.value = val!,
+                dropdownColor: Colors.white,
+                borderRadius: BorderRadius.circular(8.0),
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Obx(() => DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        isExpanded: true,
-                        value: relationType.value,
-                        items: ['own', 'father', 'husband']
-                            .map((e) => DropdownMenuItem(
-                                  value: e,
-                                  child: Text(e.toUpperCase()),
-                                ))
-                            .toList(),
-                        onChanged: (val) => relationType.value = val!,
-                        dropdownColor: Colors.white,
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                    )),
-              ),
-            ),
+            )),),
             _label("CONTACT"),
             InputField(
                 hintText: "+923001234567",
@@ -68,59 +100,36 @@ class PatientRegistrationForm extends StatelessWidget {
             _label("ADDRESS"),
             InputField(hintText: "Your address", controller: addressCtrl),
             _label("GENDER"),
-            Container(
-                decoration: BoxDecoration(
-                  color: greyColor,
-                  borderRadius: BorderRadius.circular(containerRoundCorner),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Obx(() => DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: gender.value == '' ? null : gender.value,
-                          hint: Text("Select Gender"),
-                          items: ['Male', 'Female']
-                              .map((e) =>
-                                  DropdownMenuItem(value: e, child: Text(e)))
-                              .toList(),
-                          onChanged: (val) => gender.value = val!,
-                          dropdownColor: Colors.white,
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                      )),
-                )),
+            DropDownWidget(child: Obx(() => DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: gender.value == '' ? null : gender.value,
+                    hint: Text("Select Gender"),
+                    items: ['Male', 'Female']
+                        .map((e) =>
+                            DropdownMenuItem(value: e, child: Text(e)))
+                        .toList(),
+                    onChanged: (val) => gender.value = val!,
+                    dropdownColor: Colors.white,
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                ))),
             _label("BLOOD GROUP"),
-            Container(
-                decoration: BoxDecoration(
-                  color: greyColor,
-                  borderRadius: BorderRadius.circular(containerRoundCorner),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Obx(() => DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value:
-                              bloodGroup.value == '' ? null : bloodGroup.value,
-                          hint: Text("Select Blood Group"),
-                          items: [
-                            'A+',
-                            'A-',
-                            'B+',
-                            'B-',
-                            'AB+',
-                            'AB-',
-                            'O+',
-                            'O-'
-                          ]
-                              .map((e) =>
-                                  DropdownMenuItem(value: e, child: Text(e)))
-                              .toList(),
-                          onChanged: (val) => bloodGroup.value = val!,
-                          dropdownColor: Colors.white,
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                      )),
-                )),
+            DropDownWidget(
+              child: Obx(() => DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value:
+                          bloodGroup.value == '' ? null : bloodGroup.value,
+                      hint: Text("Select Blood Group"),
+                      items: bloodGroups
+                          .map((e) =>
+                              DropdownMenuItem<String>(value: e['name'] as String, child: Text(e['name'] as String)))
+                          .toList(),
+                      onChanged: (val) => bloodGroup.value = val!,
+                      dropdownColor: Colors.white,
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  )),
+            ),
             _label("IMMUNIZED"),
             Obx(() => SwitchListTile(
                   value: immunized.value,
@@ -177,3 +186,4 @@ class PatientRegistrationForm extends StatelessWidget {
     );
   }
 }
+

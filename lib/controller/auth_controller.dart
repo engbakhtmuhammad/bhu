@@ -87,7 +87,7 @@ class AuthController extends GetxController {
         phoneNo: phoneNo,
         healthFacilityId: healthFacilityId,
         userRoleId: userRoleId,
-        isActive: 0
+        isActive: 2
       );
 
       final response = await _apiService.registerUser(request);

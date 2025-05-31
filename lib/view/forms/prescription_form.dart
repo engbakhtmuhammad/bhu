@@ -117,8 +117,39 @@ class _PrescriptionFormState extends State<PrescriptionForm> {
             ),
 
             _label("DOSAGE/NO. OF ITEMS PROVIDED"),
+            Container(
+              decoration: BoxDecoration(
+                color: greyColor,
+                borderRadius: BorderRadius.circular(containerRoundCorner),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: dosageCtrl.text.isEmpty ? null : dosageCtrl.text,
+                    hint: Text("Select Dosage"),
+                    isExpanded: true,
+                    items: controller.medicineDosages
+                        .map((dosage) => DropdownMenuItem(
+                              value: dosage,
+                              child: Text(dosage),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        dosageCtrl.text = val ?? '';
+                      });
+                    },
+                    dropdownColor: Colors.white,
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 10),
             InputField(
-              hintText: "e.g., 2 tablets twice daily, 1 bottle",
+              hintText: "Or enter custom dosage",
               controller: dosageCtrl,
             ),
 
