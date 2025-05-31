@@ -147,7 +147,8 @@ class ApiService {
                 final appUserData = _encryptionService.decryptAndDecompressAndDeserialize(encryptedData);
                 
                 // Print the decrypted data for debugging
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DECRYPTED RESPONSE:');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ENCRYPTED RESPONSE: $encryptedData');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DECRYPTED RESPONSE: $appUserData');
                 debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ${appUserData.token}');
 
                 // Store the decrypted data for later use

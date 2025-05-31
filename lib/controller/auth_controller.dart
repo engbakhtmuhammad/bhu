@@ -150,8 +150,16 @@ class AuthController extends GetxController {
         final decryptedData = _apiService.getLastDecryptedData();
         if (decryptedData != null) {
           try {
+            // Clear existing reference data first
+            await _dbHelper.clearReferenceData();
+            
+            // Store new reference data
             await _dbHelper.storeReferenceData(decryptedData);
-            debugPrint('Reference data stored successfully in database');
+            
+            // Debug database schema
+            await _dbHelper.debugDatabaseSchema();
+            
+            debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>()> Reference data stored successfully in database');
           } catch (e) {
             debugPrint('Error storing reference data: $e');
           }
