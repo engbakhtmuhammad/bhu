@@ -40,15 +40,15 @@ class PatientModel {
 
   factory PatientModel.fromMap(Map<String, dynamic> map) {
     return PatientModel(
-      patientId: map['patientId'],
-      fullName: map['fullName'],
-      relationCnic: map['relationCnic'],
-      relationType: map['relationType'],
-      contact: map['contact'],
-      address: map['address'],
-      gender: map['gender'],
-      bloodGroup: map['bloodGroup'],
-      medicalHistory: map['medicalHistory'],
+      patientId: map['id']?.toString() ?? '',
+      fullName: map['name']?.toString() ?? '',
+      relationCnic: map['cnic']?.toString() ?? '',
+      relationType: map['relationType']?.toString() ?? 'own',
+      contact: map['phone']?.toString() ?? '',
+      address: map['address']?.toString() ?? '',
+      gender: map['gender']?.toString() ?? '',
+      bloodGroup: map['bloodGroup']?.toString() ?? '',
+      medicalHistory: map['medicalHistory']?.toString() ?? '',
       immunized: map['immunized'] == 1,
     );
   }

@@ -6,6 +6,8 @@ import '../models/opd_visit_model.dart';
 import '../models/patient_model.dart';
 import 'dart:convert';
 
+import '../models/prescription_model.dart';
+
 
 class OpdController extends GetxController {
   final db = DatabaseHelper();
@@ -358,6 +360,19 @@ class OpdController extends GetxController {
     );
 
     await db.insertOpdVisit(visit);
+    
+    // Save prescriptions
+    for (var prescription in prescriptions) {
+      // Create a new prescription model instance
+      await db.insertPrescription(PrescriptionModel(
+        drugName: prescription.drugName,
+        dosage: prescription.dosage,
+        duration: prescription.duration,
+        opdTicketNo: ticketNo,
+        quantity: prescription.quantity,
+      ));
+    }
+    
     await loadOpdVisits();
     clearForm();
     Get.snackbar("Success", "OPD Visit saved with Ticket No: $ticketNo");
@@ -393,6 +408,9 @@ class OpdController extends GetxController {
     deliveryMode.value = 'Normal Delivery (Live Birth)';
     postpartumFollowup.value = '';
     familyPlanningServices.clear();
+    
+    // Clear prescriptions
+    prescriptions.clear();
   }
 
   Map<String, List<DiseaseModel>> get groupedDiseases {

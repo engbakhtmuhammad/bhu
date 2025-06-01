@@ -3,13 +3,34 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_iconly/flutter_iconly.dart';
 import '../../controller/opd_controller.dart';
+import '../../controller/prescription_controller.dart';
+import '../../models/prescription_model.dart';
 import '../../utils/constants.dart';
 import '../../utils/style.dart';
 import '../../widgets/input_field.dart';
 import '../../widgets/custom_btn.dart';
 
-class OpdVisitForm extends StatelessWidget {
+class OpdVisitForm extends StatefulWidget {
+  @override
+  _OpdVisitFormState createState() => _OpdVisitFormState();
+}
+
+class _OpdVisitFormState extends State<OpdVisitForm> {
   final controller = Get.put(OpdController());
+  final prescriptionController = Get.put(PrescriptionController());
+  
+  final drugNameCtrl = TextEditingController();
+  final dosageCtrl = TextEditingController();
+  final durationCtrl = TextEditingController();
+  final quantityCtrl = TextEditingController(text: "1");
+  
+  String? selectedDrug;
+  
+  @override
+  void initState() {
+    super.initState();
+    prescriptionController.loadMedicines();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -121,6 +142,10 @@ class OpdVisitForm extends StatelessWidget {
             Obx(() => controller.reasonForVisit.value == 'OBGYN' 
                 ? _buildObgynSection() 
                 : SizedBox()),
+                
+            // Prescription Section
+            _label("PRESCRIPTIONS"),
+            _buildPrescriptionSection(),
 
             const SizedBox(height: 20),
             CustomBtn(
@@ -464,6 +489,205 @@ class OpdVisitForm extends StatelessWidget {
                 }).toList(),
               )),
         ),
+      ],
+    );
+  }
+
+  Widget _buildPrescriptionSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Drug selection
+        _label("DRUG NAME"),
+        Container(
+          decoration: BoxDecoration(
+            color: greyColor,
+            borderRadius: BorderRadius.circular(containerRoundCorner),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: selectedDrug,
+                hint: Text("Select Drug"),
+                isExpanded: true,
+                items: prescriptionController.commonDrugs
+                    .map((drug) => DropdownMenuItem(
+                          value: drug,
+                          child: Text(drug),
+                        ))
+                    .toList(),
+                onChanged: (val) {
+                  setState(() {
+                    selectedDrug = val;
+                    drugNameCtrl.text = val ?? '';
+                  });
+                },
+                dropdownColor: Colors.white,
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+            ),
+          ),
+        ),
+        
+        const SizedBox(height: 10),
+        InputField(
+          hintText: "Or enter custom drug name",
+          controller: drugNameCtrl,
+          onChanged: (val) {
+            setState(() {
+              selectedDrug = null; // Clear dropdown selection when typing
+            });
+          },
+        ),
+
+        _label("DOSAGE"),
+        Container(
+          decoration: BoxDecoration(
+            color: greyColor,
+            borderRadius: BorderRadius.circular(containerRoundCorner),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: dosageCtrl.text.isEmpty ? null : dosageCtrl.text,
+                hint: Text("Select Dosage"),
+                isExpanded: true,
+                items: prescriptionController.medicineDosages
+                    .map((dosage) => DropdownMenuItem(
+                          value: dosage,
+                          child: Text(dosage),
+                        ))
+                    .toList(),
+                onChanged: (val) {
+                  setState(() {
+                    dosageCtrl.text = val ?? '';
+                  });
+                },
+                dropdownColor: Colors.white,
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 10),
+        InputField(
+          hintText: "Or enter custom dosage",
+          controller: dosageCtrl,
+        ),
+
+        _label("DURATION OF MEDICATION"),
+        InputField(
+          hintText: "e.g., 7 days, 2 weeks",
+          controller: durationCtrl,
+        ),
+        
+        _label("QUANTITY"),
+        InputField(
+          hintText: "Number of units",
+          controller: quantityCtrl,
+          inputType: TextInputType.number,
+        ),
+
+        const SizedBox(height: 20),
+        CustomBtn(
+          icon: IconlyLight.plus,
+          text: "Add Prescription",
+          onPressed: () {
+            if (drugNameCtrl.text.trim().isEmpty) {
+              Get.snackbar("Error", "Please enter drug name");
+              return;
+            }
+            
+            // Create a new prescription
+            final newPrescription = PrescriptionModel(
+              drugName: drugNameCtrl.text.trim(),
+              dosage: dosageCtrl.text.trim(),
+              duration: durationCtrl.text.trim(),
+              opdTicketNo: controller.selectedPatient.value?.patientId ?? '',
+              quantity: int.tryParse(quantityCtrl.text) ?? 1,
+            );
+            
+            // Add to the list
+            controller.prescriptions.add(newPrescription);
+            
+            // Clear form
+            setState(() {
+              selectedDrug = null;
+              drugNameCtrl.clear();
+              dosageCtrl.clear();
+              durationCtrl.clear();
+              quantityCtrl.text = "1";
+            });
+          },
+        ),
+        
+        const SizedBox(height: 20),
+        _label("ADDED PRESCRIPTIONS"),
+        Obx(() {
+          final prescriptions = controller.prescriptions;
+          if (prescriptions.isEmpty) {
+            return Container(
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: greyColor,
+                borderRadius: BorderRadius.circular(containerRoundCorner),
+              ),
+              child: Text(
+                "No prescriptions added yet",
+                style: descriptionTextStyle(),
+                textAlign: TextAlign.center,
+              ),
+            );
+          }
+
+          return Column(
+            children: prescriptions.map((prescription) {
+              return Container(
+                margin: EdgeInsets.only(bottom: 10),
+                padding: EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(containerRoundCorner),
+                  border: Border.all(color: primaryColor.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            prescription.drugName,
+                            style: titleTextStyle(size: 16),
+                          ),
+                          Text(
+                            "Dosage: ${prescription.dosage}",
+                            style: descriptionTextStyle(size: 14),
+                          ),
+                          Text(
+                            "Duration: ${prescription.duration}",
+                            style: descriptionTextStyle(size: 14),
+                          ),
+                          Text(
+                            "Quantity: ${prescription.quantity}",
+                            style: descriptionTextStyle(size: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => controller.prescriptions.remove(prescription),
+                      icon: Icon(Icons.delete, color: Colors.red),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          );
+        }),
       ],
     );
   }

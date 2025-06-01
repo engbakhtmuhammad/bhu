@@ -31,226 +31,208 @@ class DatabaseHelper {
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    // Patients table
+    print('Creating database tables for version $version');
+    
+    // Create tables for reference data
     await db.execute('''
-      CREATE TABLE patients(
-        patientId TEXT PRIMARY KEY,
-        fullName TEXT,
-        relationCnic TEXT,
-        relationType TEXT,
-        contact TEXT,
-        address TEXT,
-        gender TEXT,
-        bloodGroup TEXT,
-        medicalHistory TEXT,
-        immunized INTEGER
+      CREATE TABLE IF NOT EXISTS api_blood_groups (
+        id INTEGER PRIMARY KEY,
+        name TEXT
       )
     ''');
-
-    // OPD Visits table
+    
     await db.execute('''
-      CREATE TABLE opd_visits(
-        opdTicketNo TEXT PRIMARY KEY,
-        patientId TEXT,
-        visitDateTime TEXT,
-        reasonForVisit TEXT,
-        isFollowUp INTEGER,
-        diagnosis TEXT,
-        prescriptions TEXT,
-        labTests TEXT,
-        isReferred INTEGER,
-        followUpAdvised INTEGER,
-        followUpDays INTEGER,
-        fpAdvised INTEGER,
-        fpList TEXT,
-        obgynData TEXT,
-        FOREIGN KEY (patientId) REFERENCES patients (patientId)
+      CREATE TABLE IF NOT EXISTS api_delivery_types (
+        id INTEGER PRIMARY KEY,
+        name TEXT
       )
     ''');
-
-    // Diseases table
+    
     await db.execute('''
-      CREATE TABLE diseases(
+      CREATE TABLE IF NOT EXISTS api_delivery_modes (
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+    
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_family_planning (
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+    
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_antenatal_visits (
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+    
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_tt_advised (
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+    
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_pregnancy_indicators (
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+    
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_postpartum_statuses (
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+    
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_medicine_dosages (
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+    
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_districts (
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+    
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_diseases (
         id INTEGER PRIMARY KEY,
         name TEXT,
         category TEXT,
-        categoryId INTEGER
+        category_id INTEGER,
+        version INTEGER
       )
     ''');
-
-    // Prescriptions table
+    
     await db.execute('''
-      CREATE TABLE prescriptions(
+      CREATE TABLE IF NOT EXISTS api_sub_diseases (
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        disease_id INTEGER,
+        version INTEGER
+      )
+    ''');
+    
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_lab_tests (
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+    
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_medicines (
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        code TEXT,
+        version INTEGER
+      )
+    ''');
+    
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_health_facilities (
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+    
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS api_user_roles (
+        id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    ''');
+    
+    // Create tables for local data
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS patients (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        drugName TEXT,
+        name TEXT,
+        cnic TEXT,
+        age INTEGER,
+        gender TEXT,
+        address TEXT,
+        phone TEXT,
+        district_id INTEGER,
+        is_synced INTEGER DEFAULT 0,
+        created_at TEXT,
+        updated_at TEXT
+      )
+    ''');
+    
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS opd_visits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_id INTEGER,
+        visit_date TEXT,
+        chief_complaint TEXT,
+        diagnosis TEXT,
+        treatment TEXT,
+        is_synced INTEGER DEFAULT 0,
+        created_at TEXT,
+        updated_at TEXT,
+        FOREIGN KEY (patient_id) REFERENCES patients (id)
+      )
+    ''');
+    
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS prescriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        opd_visit_id INTEGER,
+        medicine_name TEXT,
         dosage TEXT,
         duration TEXT,
-        opdTicketNo TEXT,
-        FOREIGN KEY (opdTicketNo) REFERENCES opd_visits (opdTicketNo)
+        is_synced INTEGER DEFAULT 0,
+        created_at TEXT,
+        updated_at TEXT,
+        FOREIGN KEY (opd_visit_id) REFERENCES opd_visits (id)
       )
     ''');
-
-    // Reference data tables from API
-    await db.execute('''
-      CREATE TABLE api_districts(
-        id INTEGER PRIMARY KEY,
-        name TEXT,
-        version INTEGER DEFAULT 1
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE api_medicines(
-        id INTEGER PRIMARY KEY,
-        name TEXT,
-        dosage TEXT,
-        version INTEGER DEFAULT 1
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE api_blood_groups(
-        id INTEGER PRIMARY KEY,
-        name TEXT
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE api_user_roles(
-        id INTEGER PRIMARY KEY,
-        name TEXT
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE api_health_facilities(
-        id INTEGER PRIMARY KEY,
-        name TEXT,
-        type TEXT
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE api_diseases(
-        id INTEGER PRIMARY KEY,
-        name TEXT,
-        category TEXT,
-        version INTEGER DEFAULT 1
-      )
-    ''');
-
-    // Insert default diseases and categories
-    await _insertDefaultDiseases(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 3) {
-      // Drop and recreate the api_medicines table
-      await db.execute("DROP TABLE IF EXISTS api_medicines");
-      await db.execute('''
-        CREATE TABLE api_medicines (
-          id INTEGER PRIMARY KEY,
-          name TEXT,
-          code TEXT,
-          version INTEGER
-        )
-      ''');
-      
-      // Create other tables if they don't exist
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS api_blood_groups (
-          id INTEGER PRIMARY KEY,
-          name TEXT
-        )
-      ''');
-      
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS api_delivery_types (
-          id INTEGER PRIMARY KEY,
-          name TEXT
-        )
-      ''');
-      
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS api_delivery_modes (
-          id INTEGER PRIMARY KEY,
-          name TEXT
-        )
-      ''');
-      
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS api_family_planning (
-          id INTEGER PRIMARY KEY,
-          name TEXT
-        )
-      ''');
-      
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS api_antenatal_visits (
-          id INTEGER PRIMARY KEY,
-          name TEXT
-        )
-      ''');
-      
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS api_tt_advised (
-          id INTEGER PRIMARY KEY,
-          name TEXT
-        )
-      ''');
-      
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS api_pregnancy_indicators (
-          id INTEGER PRIMARY KEY,
-          name TEXT
-        )
-      ''');
-      
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS api_postpartum_statuses (
-          id INTEGER PRIMARY KEY,
-          name TEXT
-        )
-      ''');
-      
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS api_medicine_dosages (
-          id INTEGER PRIMARY KEY,
-          name TEXT
-        )
-      ''');
-      
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS api_districts (
-          id INTEGER PRIMARY KEY,
-          name TEXT
-        )
-      ''');
-      
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS api_diseases (
-          id INTEGER PRIMARY KEY,
-          name TEXT,
-          version INTEGER
-        )
-      ''');
-      
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS api_sub_diseases (
-          id INTEGER PRIMARY KEY,
-          name TEXT,
-          diseaseId INTEGER,
-          version INTEGER
-        )
-      ''');
-      
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS api_lab_tests (
-          id INTEGER PRIMARY KEY,
-          name TEXT
-        )
-      ''');
+    print('Upgrading database from version $oldVersion to $newVersion');
+    
+    // Drop existing tables if they exist
+    final tables = [
+      'api_blood_groups',
+      'api_delivery_types',
+      'api_delivery_modes',
+      'api_family_planning',
+      'api_antenatal_visits',
+      'api_tt_advised',
+      'api_pregnancy_indicators',
+      'api_postpartum_statuses',
+      'api_medicine_dosages',
+      'api_districts',
+      'api_diseases',
+      'api_sub_diseases',
+      'api_lab_tests',
+      'api_medicines',
+      'api_health_facilities',
+      'api_user_roles'
+    ];
+    
+    for (final table in tables) {
+      try {
+        await db.execute('DROP TABLE IF EXISTS $table');
+      } catch (e) {
+        print('Error dropping table $table: $e');
+      }
     }
+    
+    // Recreate all tables
+    await _onCreate(db, newVersion);
   }
 
   Future<void> _insertDefaultDiseases(Database db) async {
@@ -411,188 +393,170 @@ class DatabaseHelper {
   // Reference data storage methods
   Future<void> storeReferenceData(AppUserData data) async {
     final db = await database;
+    final batch = db.batch();
     
     try {
-      // Start a transaction for better performance and atomicity
-      await db.transaction((txn) async {
-        // Store blood groups
-        if (data.bloodGroups != null) {
-          for (var item in data.bloodGroups!) {
-            await txn.insert(
-              'api_blood_groups',
-              {'id': item.id, 'name': item.name},
-              conflictAlgorithm: ConflictAlgorithm.replace,
-            );
-          }
+      // Store blood groups
+      if (data.bloodGroups != null) {
+        for (final item in data.bloodGroups!) {
+          batch.insert('api_blood_groups', {
+            'id': item.id,
+            'name': item.name
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
         }
-        
-        // Store delivery types
-        if (data.deliveryTypes != null) {
-          for (var item in data.deliveryTypes!) {
-            await txn.insert(
-              'api_delivery_types',
-              {'id': item.id, 'name': item.name},
-              conflictAlgorithm: ConflictAlgorithm.replace,
-            );
-          }
-        }
-        
-        // Store delivery modes
-        if (data.deliveryModes != null) {
-          for (var item in data.deliveryModes!) {
-            await txn.insert(
-              'api_delivery_modes',
-              {'id': item.id, 'name': item.name},
-              conflictAlgorithm: ConflictAlgorithm.replace,
-            );
-          }
-        }
-        
-        // Store family planning services
-        if (data.familyPlanning != null) {
-          for (var item in data.familyPlanning!) {
-            await txn.insert(
-              'api_family_planning',
-              {'id': item.id, 'name': item.name},
-              conflictAlgorithm: ConflictAlgorithm.replace,
-            );
-          }
-        }
-        
-        // Store antenatal visits
-        if (data.antenatalVisits != null) {
-          for (var item in data.antenatalVisits!) {
-            await txn.insert(
-              'api_antenatal_visits',
-              {'id': item.id, 'name': item.name},
-              conflictAlgorithm: ConflictAlgorithm.replace,
-            );
-          }
-        }
-        
-        // Store TT advised
-        if (data.tTAdvisedList != null) {
-          for (var item in data.tTAdvisedList!) {
-            await txn.insert(
-              'api_tt_advised',
-              {'id': item.id, 'name': item.name},
-              conflictAlgorithm: ConflictAlgorithm.replace,
-            );
-          }
-        }
-        
-        // Store pregnancy indicators
-        if (data.pregnancyIndicators != null) {
-          for (var item in data.pregnancyIndicators!) {
-            await txn.insert(
-              'api_pregnancy_indicators',
-              {'id': item.id, 'name': item.name},
-              conflictAlgorithm: ConflictAlgorithm.replace,
-            );
-          }
-        }
-        
-        // Store postpartum statuses
-        if (data.postPartumStatuses != null) {
-          for (var item in data.postPartumStatuses!) {
-            await txn.insert(
-              'api_postpartum_statuses',
-              {'id': item.id, 'name': item.name},
-              conflictAlgorithm: ConflictAlgorithm.replace,
-            );
-          }
-        }
-        
-        // Store medicine dosages
-        if (data.medicineDosages != null) {
-          for (var item in data.medicineDosages!) {
-            await txn.insert(
-              'api_medicine_dosages',
-              {'id': item.id, 'name': item.name},
-              conflictAlgorithm: ConflictAlgorithm.replace,
-            );
-          }
-        }
-        
-        // Store districts
-        if (data.districts != null) {
-          for (var item in data.districts!) {
-            await txn.insert(
-              'api_districts',
-              {'id': item.id, 'name': item.name},
-              conflictAlgorithm: ConflictAlgorithm.replace,
-            );
-          }
-        }
-        
-        // Store diseases
-        if (data.diseases != null) {
-          for (var item in data.diseases!) {
-            await txn.insert(
-              'api_diseases',
-              {
-                'id': item.id, 
-                'name': item.name,
-                'version': item.category != null ? 1 : 0
-              },
-              conflictAlgorithm: ConflictAlgorithm.replace,
-            );
-          }
-        }
-        
-        // Store sub-diseases
-        if (data.subDiseases != null) {
-          for (var item in data.subDiseases!) {
-            await txn.insert(
-              'api_sub_diseases',
-              {
-                'id': item.id,
-                'name': item.name,
-                'diseaseId': item.diseaseId,
-                'version': item.version ?? 0
-              },
-              conflictAlgorithm: ConflictAlgorithm.replace,
-            );
-          }
-        }
-        
-        // Store medicines
-        if (data.medicines != null) {
-          for (var item in data.medicines!) {
-            try {
-              await txn.insert(
-                'api_medicines',
-                {
-                  'id': item.id,
-                  'name': item.name,
-                  'code': item.code ?? '',
-                  'version': item.version ?? 0
-                },
-                conflictAlgorithm: ConflictAlgorithm.replace,
-              );
-            } catch (e) {
-              print('Error inserting medicine ${item.id}: $e');
-            }
-          }
-        }
-        
-        // Store lab tests if available
-        if (data.healthFacilities != null && data.healthFacilities!.isNotEmpty) {
-          for (var item in data.healthFacilities!) {
-            await txn.insert(
-              'api_health_facilities',
-              {'id': item.id, 'name': item.name, 'type': item.type},
-              conflictAlgorithm: ConflictAlgorithm.replace,
-            );
-          }
-        }
-      });
+      }
       
-      print('All reference data stored successfully');
+      // Store delivery types
+      if (data.deliveryTypes != null) {
+        for (final item in data.deliveryTypes!) {
+          batch.insert('api_delivery_types', {
+            'id': item.id,
+            'name': item.name
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+      
+      // Store delivery modes
+      if (data.deliveryModes != null) {
+        for (final item in data.deliveryModes!) {
+          batch.insert('api_delivery_modes', {
+            'id': item.id,
+            'name': item.name
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+      
+      // Store family planning services
+      if (data.familyPlanning != null) {
+        for (final item in data.familyPlanning!) {
+          batch.insert('api_family_planning', {
+            'id': item.id,
+            'name': item.name
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+      
+      // Store antenatal visits
+      if (data.antenatalVisits != null) {
+        for (final item in data.antenatalVisits!) {
+          batch.insert('api_antenatal_visits', {
+            'id': item.id,
+            'name': item.name
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+      
+      // Store TT advised options
+      if (data.tTAdvisedList != null) {
+        for (final item in data.tTAdvisedList!) {
+          batch.insert('api_tt_advised', {
+            'id': item.id,
+            'name': item.name
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+      
+      // Store pregnancy indicators
+      if (data.pregnancyIndicators != null) {
+        for (final item in data.pregnancyIndicators!) {
+          batch.insert('api_pregnancy_indicators', {
+            'id': item.id,
+            'name': item.name
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+      
+      // Store postpartum statuses
+      if (data.postPartumStatuses != null) {
+        for (final item in data.postPartumStatuses!) {
+          batch.insert('api_postpartum_statuses', {
+            'id': item.id,
+            'name': item.name
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+      
+      // Store medicine dosages
+      if (data.medicineDosages != null) {
+        for (final item in data.medicineDosages!) {
+          batch.insert('api_medicine_dosages', {
+            'id': item.id,
+            'name': item.name
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+      
+      // Store districts
+      if (data.districts != null) {
+        for (final item in data.districts!) {
+          batch.insert('api_districts', {
+            'id': item.id,
+            'name': item.name
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+      
+      // Store diseases
+      if (data.diseases != null) {
+        for (final item in data.diseases!) {
+          batch.insert('api_diseases', {
+            'id': item.id,
+            'name': item.name,
+            'category': item.category,
+            'category_id': item.category != null ? item.id : null,
+            'version': 1
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+      
+      // Store sub-diseases
+      if (data.subDiseases != null) {
+        for (final item in data.subDiseases!) {
+          batch.insert('api_sub_diseases', {
+            'id': item.id,
+            'name': item.name,
+            'disease_id': item.diseaseId,
+            'version': item.version
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+      
+      // Store medicines
+      if (data.medicines != null) {
+        for (final item in data.medicines!) {
+          batch.insert('api_medicines', {
+            'id': item.id,
+            'name': item.name,
+            'code': item.code,
+            'version': item.version
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+      
+      // Store health facilities
+      if (data.healthFacilities != null) {
+        for (final item in data.healthFacilities!) {
+          batch.insert('api_health_facilities', {
+            'id': item.id,
+            'name': item.name
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+      
+      // Store user roles
+      if (data.userInfo?.userRoleId != null) {
+        batch.insert('api_user_roles', {
+          'id': data.userInfo!.userRoleId,
+          'name': data.userInfo!.userName
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      
+      // Execute all inserts as a batch
+      await batch.commit();
+      print('Reference data stored successfully');
     } catch (e) {
       print('Error storing reference data: $e');
-      // Re-throw to allow caller to handle
-      rethrow;
+      throw e;
     }
   }
 
@@ -837,28 +801,42 @@ class DatabaseHelper {
   // Add this method to clear all reference data tables
   Future<void> clearReferenceData() async {
     final db = await database;
+    final batch = db.batch();
+    
+    final tables = [
+      'api_blood_groups',
+      'api_delivery_types',
+      'api_delivery_modes',
+      'api_family_planning',
+      'api_antenatal_visits',
+      'api_tt_advised',
+      'api_pregnancy_indicators',
+      'api_postpartum_statuses',
+      'api_medicine_dosages',
+      'api_districts',
+      'api_diseases',
+      'api_sub_diseases',
+      'api_lab_tests',
+      'api_medicines',
+      'api_health_facilities',
+      'api_user_roles'
+    ];
+    
+    for (final table in tables) {
+      try {
+        batch.delete(table);
+      } catch (e) {
+        print('Error clearing table $table: $e');
+        // Continue with other tables even if one fails
+      }
+    }
     
     try {
-      await db.transaction((txn) async {
-        await txn.delete('api_blood_groups');
-        await txn.delete('api_delivery_types');
-        await txn.delete('api_delivery_modes');
-        await txn.delete('api_family_planning');
-        await txn.delete('api_antenatal_visits');
-        await txn.delete('api_tt_advised');
-        await txn.delete('api_pregnancy_indicators');
-        await txn.delete('api_postpartum_statuses');
-        await txn.delete('api_medicine_dosages');
-        await txn.delete('api_districts');
-        await txn.delete('api_diseases');
-        await txn.delete('api_sub_diseases');
-        await txn.delete('api_medicines');
-        await txn.delete('api_lab_tests');
-      });
-      print('>>>>>>>>>>>>>>>>>>>>>>>>>All reference data cleared successfully');
+      await batch.commit();
+      print('Reference data cleared successfully');
     } catch (e) {
       print('Error clearing reference data: $e');
-      rethrow;
+      // We'll continue even if there's an error
     }
   }
 }

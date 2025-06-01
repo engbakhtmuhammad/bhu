@@ -4,6 +4,7 @@ class PrescriptionModel {
   final String dosage;
   final String duration;
   final String opdTicketNo;
+  final int quantity;
 
   PrescriptionModel({
     this.id, // Now nullable
@@ -11,6 +12,7 @@ class PrescriptionModel {
     required this.dosage,
     required this.duration,
     required this.opdTicketNo,
+    this.quantity = 1,
   });
 
   Map<String, dynamic> toMap() {
@@ -19,11 +21,12 @@ class PrescriptionModel {
       'dosage': dosage,
       'duration': duration,
       'opdTicketNo': opdTicketNo,
+      'quantity': quantity,
     };
     
     // Only include id if it's not null (for updates)
     if (id != null) {
-      map['id'] = id! as String;
+      map['id'] = id!;
     }
     
     return map;
@@ -36,6 +39,7 @@ class PrescriptionModel {
       dosage: map['dosage'],
       duration: map['duration'],
       opdTicketNo: map['opdTicketNo'],
+      quantity: map['quantity'] ?? 1,
     );
   }
 }

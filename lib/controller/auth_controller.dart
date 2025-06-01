@@ -87,7 +87,7 @@ class AuthController extends GetxController {
         phoneNo: phoneNo,
         healthFacilityId: healthFacilityId,
         userRoleId: userRoleId,
-        isActive: 2
+        isActive: 1
       );
 
       final response = await _apiService.registerUser(request);
@@ -127,7 +127,7 @@ class AuthController extends GetxController {
 
   /// User Login
   Future<bool> loginUser({
-    required String email,
+    required String cnic,
     required String password,
     bool rememberMe = false,
   }) async {
@@ -135,7 +135,7 @@ class AuthController extends GetxController {
       isLoading.value = true;
 
       final request = LoginRequest(
-        email: email,
+        email: cnic,
         password: password,
       );
 
@@ -144,7 +144,7 @@ class AuthController extends GetxController {
       if (response.success && response.data != null) {
         // Account approved, proceed with login
         // Store authentication data
-        await _storeAuthData(response.data!, email);
+        await _storeAuthData(response.data!, cnic);
 
         // Store decrypted reference data in database
         final decryptedData = _apiService.getLastDecryptedData();
@@ -167,7 +167,7 @@ class AuthController extends GetxController {
 
         // Handle remember me
         if (rememberMe) {
-          await _saveCredentials(email, password);
+          await _saveCredentials(cnic, password);
         } else {
           await _clearSavedCredentials();
         }

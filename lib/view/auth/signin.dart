@@ -54,11 +54,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    
     if (emailController.text.isEmpty || passwordController.text.isEmpty) {
       Get.snackbar(
         'Error',
-        'Please enter both email and password',
+        'Please enter both CNIC and password',
         snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -67,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     final success = await authController.loginUser(
-      email: emailController.text.trim(),
+      cnic: emailController.text.trim(),
       password: passwordController.text,
       rememberMe: rememberMe,
     );
@@ -116,13 +115,13 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 SizedBox(height: defaultPadding),
                 Text(
-                  "EMAIL",
+                  "CNIC",
                   style: subTitleTextStyle(color: blackColor, size: 15),
                 ),
                 InputField(
-                  hintText: "user@example.com",
-                  controller: emailController,
-                  inputType: TextInputType.emailAddress,
+                  hintText: "Enter your CNIC (e.g., 3520112345678)",
+                  controller: emailController, // We'll keep using emailController for backend compatibility
+                  inputType: TextInputType.number,
                 ),
                 const SizedBox(height: 10),
                 Text(

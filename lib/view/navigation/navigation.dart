@@ -164,8 +164,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
       case 2:
         return OpdVisitForm();
       case 3:
-        return PrescriptionForm();
-      case 4:
         return const ProfileScreen();
       default:
         return const HomeScreen();
@@ -188,11 +186,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
         icon: Icon(IconlyLight.document),
         label: "",
         activeIcon: Icon(IconlyBold.document),
-      ),
-      const BottomNavigationBarItem(
-        icon: Icon(IconlyLight.paper),
-        label: "",
-        activeIcon: Icon(IconlyBold.paper),
       ),
       const BottomNavigationBarItem(
         icon: Icon(IconlyLight.profile),
@@ -260,26 +253,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
           ),
           ListTile(
             leading: const Icon(
-              IconlyLight.paper,
-              color: Colors.orange,
-            ),
-            title: const Text('Prescriptions'),
-            onTap: () {
-              setState(() {
-                currentPageIndex = 3;
-                Navigator.pop(context);
-              });
-            },
-          ),
-          ListTile(
-            leading: const Icon(
               IconlyLight.profile,
               color: Colors.lime,
             ),
             title: const Text('Profile'),
             onTap: () {
               setState(() {
-                currentPageIndex = 4;
+                currentPageIndex = 3;
                 Navigator.pop(context);
               });
             },

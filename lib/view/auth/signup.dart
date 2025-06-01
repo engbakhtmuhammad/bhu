@@ -184,21 +184,21 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                       const SizedBox(height: 15),
 
-                      // Email Field
+                      // CNIC Field
                       Text(
-                        "EMAIL",
+                        "CNIC",
                         style: subTitleTextStyle(color: blackColor, size: 15),
                       ),
                       InputField(
-                        hintText: "user@example.com",
-                        controller: emailController,
-                        inputType: TextInputType.emailAddress,
+                        hintText: "Enter your CNIC (e.g., 3520112345678)",
+                        controller: emailController, // We'll keep using emailController for backend compatibility
+                        inputType: TextInputType.number,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your email';
+                            return 'Please enter your CNIC';
                           }
-                          if (!GetUtils.isEmail(value)) {
-                            return 'Please enter a valid email';
+                          if (value.length != 13) {
+                            return 'CNIC must be 13 digits';
                           }
                           return null;
                         },
