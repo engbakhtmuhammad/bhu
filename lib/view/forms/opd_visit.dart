@@ -29,7 +29,21 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
   @override
   void initState() {
     super.initState();
-    prescriptionController.loadMedicines();
+    print('Initializing OpdVisitForm');
+    
+    // Load prescription data immediately
+    prescriptionController.loadMedicines().then((_) {
+      // Force UI update after data is loaded
+      if (mounted) setState(() {});
+    });
+    
+    // Add debug logging
+    Future.delayed(Duration(seconds: 1), () {
+      print('Drug list size: ${prescriptionController.commonDrugs.length}');
+      print('Dosage list size: ${prescriptionController.medicineDosages.length}');
+      print('Lab test options size: ${controller.labTestOptions.length}');
+      print('FP options size: ${controller.fpOptions.length}');
+    });
   }
 
   @override

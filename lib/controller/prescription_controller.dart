@@ -1,24 +1,31 @@
+import 'package:bhu/models/prescription_model.dart';
 import 'package:get/get.dart';
+import 'package:sqflite/sqflite.dart';
 import '../db/database_helper.dart';
 import '../models/opd_visit_model.dart';
 import '../models/prescription_model.dart' as prescription;
 
 class PrescriptionController extends GetxController {
   final db = DatabaseHelper();
-
-  var opdVisits = <OpdVisitModel>[].obs;
-  var currentPrescriptions = <prescription.PrescriptionModel>[].obs;
-  var selectedOpdTicket = ''.obs;
-  var selectedDrug = ''.obs;
-
-  var commonDrugs = <String>[].obs;
-  var medicineDosages = <String>[].obs;
-
+  
+  // Observable lists for dropdown options
+  final RxList<String> commonDrugs = <String>[].obs;
+  final RxList<String> medicineDosages = <String>[].obs;
+  
+  // Selected values
+  final RxString selectedOpdTicket = ''.obs;
+  
+  // Current prescriptions for selected OPD visit
+  final RxList<PrescriptionModel> currentPrescriptions = <PrescriptionModel>[].obs;
+  
+  // OPD visits for dropdown
+  final RxList<OpdVisitModel> opdVisits = <OpdVisitModel>[].obs;
+  
   @override
   void onInit() {
-    loadOpdVisits();
-    loadMedicines();
     super.onInit();
+    loadMedicines();
+    loadOpdVisits();
   }
 
   Future<void> loadOpdVisits() async {
@@ -63,12 +70,24 @@ class PrescriptionController extends GetxController {
 
   Future<void> loadMedicines() async {
     try {
-      // Load medicines from SQLite
-      final medicines = await db.getMedicines();
+      print('Loading medicines and dosages from database...');
+      
+      // First try to get medicines from API table
+      var medicines = await db.getApiMedicines();
+      
+      if (medicines.isEmpty) {
+        // If API table is empty, try local medicines table
+        medicines = await db.getMedicines();
+        print('API medicines table empty, loaded ${medicines.length} medicines from local table');
+      } else {
+        print('Loaded ${medicines.length} medicines from API table');
+      }
+      
       if (medicines.isNotEmpty) {
         commonDrugs.value = medicines.map((e) => e['name'] as String).toList();
       } else {
-        // Fallback to default medicines
+        // Fallback to default medicines only if both tables are empty
+        print('Both API and local medicines tables are empty, using default list');
         commonDrugs.value = [
           'Paracetamol',
           'Ibuprofen',
@@ -86,14 +105,33 @@ class PrescriptionController extends GetxController {
           'Albendazole',
           'Artemether/Lumefantrine'
         ];
+        
+        // Save default medicines to database for future use
+        for (var drug in commonDrugs) {
+          await db.database.then((dbClient) => dbClient.insert(
+            'medicines', 
+            {'name': drug},
+            conflictAlgorithm: ConflictAlgorithm.ignore
+          ));
+        }
       }
       
-      // Load medicine dosages
-      final dosages = await db.getMedicineDosages();
+      // First try to get dosages from API table
+      var dosages = await db.getApiMedicineDosages();
+      
+      if (dosages.isEmpty) {
+        // If API table is empty, try local dosages table
+        dosages = await db.getMedicineDosages();
+        print('API dosages table empty, loaded ${dosages.length} dosages from local table');
+      } else {
+        print('Loaded ${dosages.length} dosages from API table');
+      }
+      
       if (dosages.isNotEmpty) {
         medicineDosages.value = dosages.map((e) => e['name'] as String).toList();
       } else {
-        // Fallback to default dosages
+        // Fallback to default dosages only if both tables are empty
+        print('Both API and local dosage tables are empty, using default list');
         medicineDosages.value = [
           '1 tablet twice daily',
           '1 tablet three times daily',
@@ -110,7 +148,19 @@ class PrescriptionController extends GetxController {
           'Apply topically three times daily',
           'Use as directed'
         ];
+        
+        // Save default dosages to database for future use
+        for (var dosage in medicineDosages) {
+          await db.database.then((dbClient) => dbClient.insert(
+            'medicine_dosages', 
+            {'name': dosage},
+            conflictAlgorithm: ConflictAlgorithm.ignore
+          ));
+        }
       }
+      
+      update(); // Notify UI of changes
+      print('Medicines loaded: ${commonDrugs.length}, Dosages loaded: ${medicineDosages.length}');
     } catch (e) {
       print('Error loading medicines: $e');
       // Keep the default values if there's an error
@@ -148,6 +198,8 @@ class PrescriptionController extends GetxController {
         'Apply topically three times daily',
         'Use as directed'
       ];
+      
+      update(); // Notify UI of changes
     }
   }
 }

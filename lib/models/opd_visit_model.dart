@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class OpdVisitModel {
   final String opdTicketNo;
   final String patientId;
@@ -5,7 +7,7 @@ class OpdVisitModel {
   final String reasonForVisit; // General OPD/OBGYN
   final bool isFollowUp;
   final List<String> diagnosis;
-  final List<String> prescriptions;
+  final List<Map<String, dynamic>> prescriptions; // Changed to store prescription details
   final List<String> labTests;
   final bool isReferred;
   final bool followUpAdvised;
@@ -39,7 +41,7 @@ class OpdVisitModel {
       'reasonForVisit': reasonForVisit,
       'isFollowUp': isFollowUp ? 1 : 0,
       'diagnosis': diagnosis.join(','),
-      'prescriptions': prescriptions.join(','),
+      'prescriptions': jsonEncode(prescriptions), // Encode prescriptions as JSON
       'labTests': labTests.join(','),
       'isReferred': isReferred ? 1 : 0,
       'followUpAdvised': followUpAdvised ? 1 : 0,
@@ -51,6 +53,18 @@ class OpdVisitModel {
   }
 
   factory OpdVisitModel.fromMap(Map<String, dynamic> map) {
+    List<Map<String, dynamic>> prescriptionsList = [];
+    if (map['prescriptions'] != null && map['prescriptions'].isNotEmpty) {
+      try {
+        final decoded = jsonDecode(map['prescriptions']);
+        if (decoded is List) {
+          prescriptionsList = List<Map<String, dynamic>>.from(decoded);
+        }
+      } catch (e) {
+        print('Error decoding prescriptions: $e');
+      }
+    }
+
     return OpdVisitModel(
       opdTicketNo: map['opdTicketNo'] ?? '',
       patientId: map['patientId'] ?? '',
@@ -58,7 +72,7 @@ class OpdVisitModel {
       reasonForVisit: map['reasonForVisit'] ?? '',
       isFollowUp: map['isFollowUp'] == 1,
       diagnosis: map['diagnosis']?.split(',') ?? [],
-      prescriptions: map['prescriptions']?.split(',') ?? [],
+      prescriptions: prescriptionsList,
       labTests: map['labTests']?.split(',') ?? [],
       isReferred: map['isReferred'] == 1,
       followUpAdvised: map['followUpAdvised'] == 1,

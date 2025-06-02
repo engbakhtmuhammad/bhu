@@ -5,23 +5,27 @@ import '../models/patient_model.dart';
 import '../models/opd_visit_model.dart';
 import '../models/prescription_model.dart' as prescription;
 import '../models/app_user_data.dart';
+import 'dart:convert';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
-  static Database? _database;
   factory DatabaseHelper() => _instance;
   DatabaseHelper._internal();
 
-  // Update the database version to trigger schema migration
-  static const int _databaseVersion = 3;
+  static Database? _database;
+  
+  // Increase the database version to trigger migration
+  final int _databaseVersion = 2; // Increment this from whatever it was before
 
   Future<Database> get database async {
-    _database ??= await _initDatabase();
+    if (_database != null) return _database!;
+    _database = await _initDatabase();
     return _database!;
   }
 
   Future<Database> _initDatabase() async {
-    final path = join(await getDatabasesPath(), 'bhu.db');
+    final databasesPath = await getDatabasesPath();
+    final path = join(databasesPath, 'bhu_database.db');
     return await openDatabase(
       path,
       version: _databaseVersion,
@@ -157,12 +161,16 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS patients (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        cnic TEXT,
-        age INTEGER,
-        gender TEXT,
+        patientId TEXT,
+        fullName TEXT,
+        relationCnic TEXT,
+        relationType TEXT,
+        contact TEXT,
         address TEXT,
-        phone TEXT,
+        gender TEXT,
+        bloodGroup TEXT,
+        medicalHistory TEXT,
+        immunized INTEGER DEFAULT 0,
         district_id INTEGER,
         is_synced INTEGER DEFAULT 0,
         created_at TEXT,
@@ -173,15 +181,21 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS opd_visits (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        patient_id INTEGER,
-        visit_date TEXT,
+        patient_id TEXT NOT NULL,
+        visit_date TEXT NOT NULL,
         chief_complaint TEXT,
         diagnosis TEXT,
         treatment TEXT,
+        lab_tests TEXT,
+        is_referred INTEGER DEFAULT 0,
+        follow_up_advised INTEGER DEFAULT 0,
+        follow_up_days INTEGER,
+        fp_advised INTEGER DEFAULT 0,
+        fp_list TEXT,
+        obgyn_data TEXT,
         is_synced INTEGER DEFAULT 0,
         created_at TEXT,
-        updated_at TEXT,
-        FOREIGN KEY (patient_id) REFERENCES patients (id)
+        updated_at TEXT
       )
     ''');
     
@@ -198,6 +212,66 @@ class DatabaseHelper {
         FOREIGN KEY (opd_visit_id) REFERENCES opd_visits (id)
       )
     ''');
+    
+    // Initialize default data
+    await _initializeDefaultData(db);
+  }
+  
+  Future<void> _initializeDefaultData(Database db) async {
+    // Insert default medicines
+    final defaultMedicines = [
+      'Paracetamol',
+      'Ibuprofen',
+      'Aspirin',
+      'Amoxicillin',
+      'Ciprofloxacin',
+      'Metronidazole',
+      'Omeprazole',
+      'Diazepam',
+      'Atenolol',
+      'Metformin',
+      'Salbutamol',
+      'Hydrocortisone',
+      'Chlorpheniramine',
+      'Albendazole',
+      'Artemether/Lumefantrine'
+    ];
+    
+    for (var medicine in defaultMedicines) {
+      await db.insert(
+        'medicines', 
+        {'name': medicine},
+        conflictAlgorithm: ConflictAlgorithm.ignore
+      );
+    }
+    
+    // Insert default dosages
+    final defaultDosages = [
+      '1 tablet twice daily',
+      '1 tablet three times daily',
+      '2 tablets twice daily',
+      '1 tablet once daily',
+      '1 tablet at bedtime',
+      '1 capsule three times daily',
+      '2 capsules twice daily',
+      '5ml three times daily',
+      '10ml twice daily',
+      '1 injection daily',
+      '1 injection weekly',
+      'Apply topically twice daily',
+      'Apply topically three times daily',
+      'Use as directed'
+    ];
+    
+    for (var dosage in defaultDosages) {
+      await db.insert(
+        'medicine_dosages', 
+        {'name': dosage},
+        conflictAlgorithm: ConflictAlgorithm.ignore
+      );
+    }
+    
+    // ... other default data initialization ...
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -342,7 +416,28 @@ class DatabaseHelper {
   // OPD Visit methods
   Future<void> insertOpdVisit(OpdVisitModel visit) async {
     final db = await database;
-    await db.insert('opd_visits', visit.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    
+    // Convert the OpdVisitModel to a map that matches the database schema
+    final Map<String, dynamic> visitMap = {
+      'id': null, // Let SQLite auto-generate the ID
+      'patient_id': visit.patientId,
+      'visit_date': visit.visitDateTime.toIso8601String(),
+      'chief_complaint': visit.reasonForVisit,
+      'diagnosis': visit.diagnosis.isNotEmpty ? visit.diagnosis.join(',') : '',
+      'treatment': '', // Prescriptions will be stored in a separate table
+      'lab_tests': visit.labTests.isNotEmpty ? visit.labTests.join(',') : '',
+      'is_referred': visit.isReferred ? 1 : 0,
+      'follow_up_advised': visit.followUpAdvised ? 1 : 0,
+      'follow_up_days': visit.followUpDays,
+      'fp_advised': visit.fpAdvised ? 1 : 0,
+      'fp_list': visit.fpList.isNotEmpty ? visit.fpList.join(',') : '',
+      'obgyn_data': visit.obgynData,
+      'is_synced': 0,
+      'created_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+    
+    await db.insert('opd_visits', visitMap, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<List<OpdVisitModel>> getOpdVisitsByPatient(String patientId) async {
@@ -352,9 +447,47 @@ class DatabaseHelper {
   }
 
   Future<List<OpdVisitModel>> getAllOpdVisits() async {
-    final db = await database;
-    final result = await db.query('opd_visits', orderBy: 'visitDateTime DESC');
-    return result.map((e) => OpdVisitModel.fromMap(e)).toList();
+    try {
+      final db = await database;
+      final List<Map<String, dynamic>> maps = await db.query(
+        'opd_visits',
+        orderBy: 'visit_date DESC'
+      );
+      
+      return List.generate(maps.length, (i) {
+        List<Map<String, dynamic>> prescriptions = [];
+        if (maps[i]['treatment'] != null && maps[i]['treatment'].isNotEmpty) {
+          try {
+            final decoded = jsonDecode(maps[i]['treatment']);
+            if (decoded is List) {
+              prescriptions = List<Map<String, dynamic>>.from(decoded);
+            }
+          } catch (e) {
+            print('Error decoding prescriptions: $e');
+          }
+        }
+        
+        return OpdVisitModel(
+          opdTicketNo: maps[i]['id'].toString(), // Use ID as ticket number
+          patientId: maps[i]['patient_id'] ?? '',
+          visitDateTime: DateTime.parse(maps[i]['visit_date']),
+          reasonForVisit: maps[i]['chief_complaint'] ?? 'General OPD',
+          isFollowUp: maps[i]['is_follow_up'] == 1,
+          diagnosis: maps[i]['diagnosis']?.split(',') ?? [],
+          prescriptions: prescriptions,
+          labTests: maps[i]['lab_tests']?.split(',') ?? [],
+          isReferred: maps[i]['is_referred'] == 1,
+          followUpAdvised: maps[i]['follow_up_advised'] == 1,
+          followUpDays: maps[i]['follow_up_days'],
+          fpAdvised: maps[i]['fp_advised'] == 1,
+          fpList: maps[i]['fp_list']?.split(',') ?? [],
+          obgynData: maps[i]['obgyn_data'],
+        );
+      });
+    } catch (e) {
+      print('Error getting OPD visits: $e');
+      return [];
+    }
   }
 
   Future<String> generateOpdTicketNo() async {
@@ -764,7 +897,7 @@ class DatabaseHelper {
     return await db.query('api_postpartum_statuses');
   }
 
-  Future<List<Map<String, dynamic>>> getMedicineDosages() async {
+  Future<List<Map<String, dynamic>>> getLocalMedicineDosages() async {
     final db = await database;
     return await db.query('api_medicine_dosages');
   }
@@ -774,9 +907,14 @@ class DatabaseHelper {
     return await db.query('api_districts');
   }
 
-  Future<List<Map<String, dynamic>>> getDiseases() async {
-    final db = await database;
-    return await db.query('api_diseases');
+  Future<List<Map<String, dynamic>>> getApiDiseases() async {
+    try {
+      final db = await database;
+      return await db.query('api_diseases');
+    } catch (e) {
+      print('Error getting API diseases: $e');
+      return [];
+    }
   }
 
   Future<List<Map<String, dynamic>>> getSubDiseases(int diseaseId) async {
@@ -788,7 +926,7 @@ class DatabaseHelper {
     );
   }
 
-  Future<List<Map<String, dynamic>>> getMedicines() async {
+  Future<List<Map<String, dynamic>>> getLocalMedicines() async {
     final db = await database;
     return await db.query('api_medicines');
   }
@@ -837,6 +975,153 @@ class DatabaseHelper {
     } catch (e) {
       print('Error clearing reference data: $e');
       // We'll continue even if there's an error
+    }
+  }
+
+  // Add this method to force recreate the database
+  Future<void> recreateDatabase() async {
+    final databasesPath = await getDatabasesPath();
+    final path = join(databasesPath, 'bhu_database.db');
+    
+    // Delete the database
+    await deleteDatabase(path);
+    
+    // Reinitialize the database
+    await database;
+    
+    print('Database recreated successfully');
+  }
+
+  // Methods for API medicines
+  Future<List<Map<String, dynamic>>> getApiMedicines() async {
+    final db = await database;
+    try {
+      // Try to query the API medicines table
+      return await db.query('api_medicines');
+    } catch (e) {
+      print('Error getting API medicines: $e');
+      // If table doesn't exist or other error, return empty list
+      return [];
+    }
+  }
+
+  // Methods for API medicine dosages
+  Future<List<Map<String, dynamic>>> getApiMedicineDosages() async {
+    final db = await database;
+    try {
+      // Try to query the API medicine dosages table
+      return await db.query('api_medicine_dosages');
+    } catch (e) {
+      print('Error getting API medicine dosages: $e');
+      // If table doesn't exist or other error, return empty list
+      return [];
+    }
+  }
+
+  // Methods for local medicines
+  Future<List<Map<String, dynamic>>> getMedicines() async {
+    final db = await database;
+    try {
+      return await db.query('medicines');
+    } catch (e) {
+      print('Error getting medicines: $e');
+      // If table doesn't exist, create it
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS medicines (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT UNIQUE
+        )
+      ''');
+      return [];
+    }
+  }
+
+  // Methods for local medicine dosages
+  Future<List<Map<String, dynamic>>> getMedicineDosages() async {
+    final db = await database;
+    try {
+      return await db.query('medicine_dosages');
+    } catch (e) {
+      print('Error getting medicine dosages: $e');
+      // If table doesn't exist, create it
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS medicine_dosages (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT UNIQUE
+        )
+      ''');
+      return [];
+    }
+  }
+
+  // API table query methods
+  Future<List<Map<String, dynamic>>> getApiFamilyPlanningServices() async {
+    final db = await database;
+    try {
+      return await db.query('api_family_planning_services');
+    } catch (e) {
+      print('Error getting API family planning services: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getApiLabTests() async {
+    final db = await database;
+    try {
+      return await db.query('api_lab_tests');
+    } catch (e) {
+      print('Error getting API lab tests: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getApiAntenatalVisits() async {
+    final db = await database;
+    try {
+      return await db.query('api_antenatal_visits');
+    } catch (e) {
+      print('Error getting API antenatal visits: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getApiDeliveryModes() async {
+    final db = await database;
+    try {
+      return await db.query('api_delivery_modes');
+    } catch (e) {
+      print('Error getting API delivery modes: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getApiPregnancyIndicators() async {
+    final db = await database;
+    try {
+      return await db.query('api_pregnancy_indicators');
+    } catch (e) {
+      print('Error getting API pregnancy indicators: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getApiTTAdvised() async {
+    final db = await database;
+    try {
+      return await db.query('api_tt_advised');
+    } catch (e) {
+      print('Error getting API TT advised options: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getApiPostpartumStatuses() async {
+    final db = await database;
+    try {
+      return await db.query('api_postpartum_statuses');
+    } catch (e) {
+      print('Error getting API postpartum statuses: $e');
+      return [];
     }
   }
 }

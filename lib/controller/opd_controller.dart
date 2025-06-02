@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:sqflite/sqflite.dart';
 import '../db/database_helper.dart';
 import '../models/disease_model.dart';
 import '../models/obgyn_model.dart';
@@ -69,12 +70,22 @@ class OpdController extends GetxController {
 
   Future<void> loadReferenceData() async {
     try {
+      print('Loading reference data for OPD form...');
+      
       // Load family planning services
-      final fpServices = await db.getFamilyPlanningServices();
+      var fpServices = await db.getApiFamilyPlanningServices();
+      if (fpServices.isEmpty) {
+        fpServices = await db.getFamilyPlanningServices();
+        print('API family planning services empty, loaded ${fpServices.length} from local table');
+      } else {
+        print('Loaded ${fpServices.length} family planning services from API table');
+      }
+      
       if (fpServices.isNotEmpty) {
         fpOptions.value = fpServices.map((e) => e['name'] as String).toList();
       } else {
         // Fallback data for family planning
+        print('Using default family planning services');
         fpOptions.value = [
           'Condoms',
           'Oral Contraceptive Pills',
@@ -84,14 +95,31 @@ class OpdController extends GetxController {
           'Natural Family Planning',
           'Sterilization'
         ];
+        
+        // Save default values to local table
+        for (var option in fpOptions) {
+          await db.database.then((dbClient) => dbClient.insert(
+            'api_family_planning', 
+            {'name': option},
+            conflictAlgorithm: ConflictAlgorithm.ignore
+          ));
+        }
       }
       
       // Load lab tests
-      final labTests = await db.getLabTests();
+      var labTests = await db.getApiLabTests();
+      if (labTests.isEmpty) {
+        labTests = await db.getLabTests();
+        print('API lab tests empty, loaded ${labTests.length} from local table');
+      } else {
+        print('Loaded ${labTests.length} lab tests from API table');
+      }
+      
       if (labTests.isNotEmpty) {
         labTestOptions.value = labTests.map((e) => e['name'] as String).toList();
       } else {
         // Fallback data for lab tests
+        print('Using default lab tests');
         labTestOptions.value = [
           'Complete Blood Count',
           'Blood Glucose',
@@ -103,28 +131,62 @@ class OpdController extends GetxController {
           'X-Ray',
           'Ultrasound'
         ];
+        
+        // Save default values to local table
+        for (var option in labTestOptions) {
+          await db.database.then((dbClient) => dbClient.insert(
+            'api_lab_tests', 
+            {'name': option},
+            conflictAlgorithm: ConflictAlgorithm.ignore
+          ));
+        }
       }
       
       // Load antenatal visits
-      final antenatalVisits = await db.getAntenatalVisits();
+      var antenatalVisits = await db.getApiAntenatalVisits();
+      if (antenatalVisits.isEmpty) {
+        antenatalVisits = await db.getAntenatalVisits();
+        print('API antenatal visits empty, loaded ${antenatalVisits.length} from local table');
+      } else {
+        print('Loaded ${antenatalVisits.length} antenatal visits from API table');
+      }
+      
       if (antenatalVisits.isNotEmpty) {
         antenatalVisitOptions.value = antenatalVisits.map((e) => e['name'] as String).toList();
       } else {
         // Fallback data for antenatal visits
+        print('Using default antenatal visits');
         antenatalVisitOptions.value = [
           'ANC 1-4',
           'ANC 5-8',
           'ANC 9+',
           'No ANC'
         ];
+        
+        // Save default values to local table
+        for (var option in antenatalVisitOptions) {
+          await db.database.then((dbClient) => dbClient.insert(
+            'api_antenatal_visits', 
+            {'name': option},
+            conflictAlgorithm: ConflictAlgorithm.ignore
+          ));
+        }
       }
       
       // Load delivery modes
-      final deliveryModes = await db.getDeliveryModes();
+      var deliveryModes = await db.getApiDeliveryModes();
+      if (deliveryModes.isEmpty) {
+        deliveryModes = await db.getDeliveryModes();
+        print('API delivery modes empty, loaded ${deliveryModes.length} from local table');
+      } else {
+        print('Loaded ${deliveryModes.length} delivery modes from API table');
+      }
+      
       if (deliveryModes.isNotEmpty) {
         deliveryModeOptions.value = deliveryModes.map((e) => e['name'] as String).toList();
       } else {
         // Fallback data for delivery modes
+        print('Using default delivery modes');
         deliveryModeOptions.value = [
           'Normal Delivery (Live Birth)',
           'C-Section (Live Birth)',
@@ -132,15 +194,32 @@ class OpdController extends GetxController {
           'C-Section (Stillbirth)',
           'Assisted Delivery'
         ];
+        
+        // Save default values to local table
+        for (var option in deliveryModeOptions) {
+          await db.database.then((dbClient) => dbClient.insert(
+            'api_delivery_modes', 
+            {'name': option},
+            conflictAlgorithm: ConflictAlgorithm.ignore
+          ));
+        }
       }
       
       // Load pregnancy indicators
-      final indicators = await db.getPregnancyIndicators();
-      if (indicators.isNotEmpty) {
-        pregnancyIndicators.value = indicators.map((e) => e['name'] as String).toList();
+      var pregnancyIndicators = await db.getApiPregnancyIndicators();
+      if (pregnancyIndicators.isEmpty) {
+        pregnancyIndicators = await db.getPregnancyIndicators();
+        print('API pregnancy indicators empty, loaded ${pregnancyIndicators.length} from local table');
+      } else {
+        print('Loaded ${pregnancyIndicators.length} pregnancy indicators from API table');
+      }
+      
+      if (pregnancyIndicators.isNotEmpty) {
+        this.pregnancyIndicators.value = pregnancyIndicators.map((e) => e['name'] as String).toList();
       } else {
         // Fallback data for pregnancy indicators
-        pregnancyIndicators.value = [
+        print('Using default pregnancy indicators');
+        this.pregnancyIndicators.value = [
           'Hypertension',
           'Diabetes',
           'Anemia',
@@ -149,35 +228,80 @@ class OpdController extends GetxController {
           'Teenage Pregnancy',
           'Advanced Maternal Age'
         ];
+        
+        // Save default values to local table
+        for (var option in pregnancyIndicators) {
+          await db.database.then((dbClient) => dbClient.insert(
+            'api_pregnancy_indicators', 
+            {'name': option},
+            conflictAlgorithm: ConflictAlgorithm.ignore
+          ));
+        }
       }
       
       // Load TT advised options
-      final ttAdvised = await db.getTTAdvised();
-      if (ttAdvised.isNotEmpty) {
-        ttAdvisedOptions.value = ttAdvised.map((e) => e['name'] as String).toList();
+      var ttAdvisedOptions = await db.getApiTTAdvised();
+      if (ttAdvisedOptions.isEmpty) {
+        ttAdvisedOptions = await db.getTTAdvised();
+        print('API TT advised options empty, loaded ${ttAdvisedOptions.length} from local table');
+      } else {
+        print('Loaded ${ttAdvisedOptions.length} TT advised options from API table');
+      }
+      
+      if (ttAdvisedOptions.isNotEmpty) {
+        this.ttAdvisedOptions.value = ttAdvisedOptions.map((e) => e['name'] as String).toList();
       } else {
         // Fallback data for TT advised
-        ttAdvisedOptions.value = [
+        print('Using default TT advised options');
+        this.ttAdvisedOptions.value = [
           'TT1',
           'TT2',
           'TT Booster',
           'Not Advised'
         ];
+        
+        // Save default values to local table
+        for (var option in ttAdvisedOptions) {
+          await db.database.then((dbClient) => dbClient.insert(
+            'api_tt_advised', 
+            {'name': option},
+            conflictAlgorithm: ConflictAlgorithm.ignore
+          ));
+        }
       }
       
       // Load postpartum statuses
-      final postpartumStatuses = await db.getPostpartumStatuses();
+      var postpartumStatuses = await db.getApiPostpartumStatuses();
+      if (postpartumStatuses.isEmpty) {
+        postpartumStatuses = await db.getPostpartumStatuses();
+        print('API postpartum statuses empty, loaded ${postpartumStatuses.length} from local table');
+      } else {
+        print('Loaded ${postpartumStatuses.length} postpartum statuses from API table');
+      }
+      
       if (postpartumStatuses.isNotEmpty) {
         postPartumStatusOptions.value = postpartumStatuses.map((e) => e['name'] as String).toList();
       } else {
         // Fallback data for postpartum statuses
+        print('Using default postpartum statuses');
         postPartumStatusOptions.value = [
           'Normal Recovery',
           'Complications Present',
           'Referred for Higher Care',
           'Follow-up Required'
         ];
+        
+        // Save default values to local table
+        for (var option in postPartumStatusOptions) {
+          await db.database.then((dbClient) => dbClient.insert(
+            'api_postpartum_statuses', 
+            {'name': option},
+            conflictAlgorithm: ConflictAlgorithm.ignore
+          ));
+        }
       }
+      
+      print('Reference data loading completed');
     } catch (e) {
       print('Error loading reference data: $e');
       // Set fallback values if there's an error
@@ -245,7 +369,13 @@ class OpdController extends GetxController {
   }
 
   Future<void> loadOpdVisits() async {
-    opdVisits.value = await db.getAllOpdVisits();
+    try {
+      opdVisits.value = await db.getAllOpdVisits();
+    } catch (e) {
+      print('Error loading OPD visits: $e');
+      // Initialize with empty list to prevent null errors
+      opdVisits.value = [];
+    }
   }
 
   Future<void> loadPatients() async {
@@ -257,22 +387,36 @@ class OpdController extends GetxController {
       diseases.value = await db.getAllDiseases();
       
       if (diseases.isEmpty) {
-        // Provide fallback diseases if none are found in the database
-        diseases.value = [
-          DiseaseModel(id: 1, name: 'Common Cold', category: 'Respiratory diseases', categoryId: 1),
-          DiseaseModel(id: 2, name: 'Pneumonia', category: 'Respiratory diseases', categoryId: 1),
-          DiseaseModel(id: 3, name: 'Asthma', category: 'Respiratory diseases', categoryId: 1),
-          DiseaseModel(id: 4, name: 'Hypertension', category: 'Cardiovascular diseases', categoryId: 2),
-          DiseaseModel(id: 5, name: 'Diabetes', category: 'Endocrine diseases', categoryId: 3),
-          DiseaseModel(id: 6, name: 'Malaria', category: 'Infectious diseases', categoryId: 4),
-          DiseaseModel(id: 7, name: 'Typhoid', category: 'Infectious diseases', categoryId: 4),
-          DiseaseModel(id: 8, name: 'Diarrhea', category: 'Gastrointestinal diseases', categoryId: 5),
-          DiseaseModel(id: 9, name: 'Anemia', category: 'Hematological diseases', categoryId: 6),
-          DiseaseModel(id: 10, name: 'Arthritis', category: 'Musculoskeletal diseases', categoryId: 7),
-        ];
+        // Check if api_diseases table exists and has data
+        final apiDiseases = await db.getApiDiseases();
+        if (apiDiseases.isNotEmpty) {
+          // Convert API diseases to local format
+          diseases.value = apiDiseases.map((d) => 
+            DiseaseModel(
+              id: d['id'], 
+              name: d['name'], 
+              category: d['category'] ?? 'Uncategorized', 
+              categoryId: d['category_id'] ?? 0
+            )
+          ).toList();
+        } else {
+          // Fallback data
+          diseases.value = [
+            DiseaseModel(id: 1, name: 'Common Cold', category: 'Respiratory diseases', categoryId: 1),
+            DiseaseModel(id: 2, name: 'Pneumonia', category: 'Respiratory diseases', categoryId: 1),
+            DiseaseModel(id: 3, name: 'Asthma', category: 'Respiratory diseases', categoryId: 1),
+            DiseaseModel(id: 4, name: 'Hypertension', category: 'Cardiovascular diseases', categoryId: 2),
+            DiseaseModel(id: 5, name: 'Diabetes', category: 'Endocrine diseases', categoryId: 3),
+            DiseaseModel(id: 6, name: 'Malaria', category: 'Infectious diseases', categoryId: 4),
+            DiseaseModel(id: 7, name: 'Typhoid', category: 'Infectious diseases', categoryId: 4),
+            DiseaseModel(id: 8, name: 'Diarrhea', category: 'Gastrointestinal diseases', categoryId: 5),
+            DiseaseModel(id: 9, name: 'Anemia', category: 'Hematological diseases', categoryId: 6),
+            DiseaseModel(id: 10, name: 'Arthritis', category: 'Musculoskeletal diseases', categoryId: 7),
+          ];
+        }
       }
       
-      // Populate diseasesByCategory after loading diseases
+      // Populate diseasesByCategory
       Map<String, List<DiseaseModel>> grouped = {};
       for (var disease in diseases) {
         if (!grouped.containsKey(disease.category)) {
@@ -342,6 +486,14 @@ class OpdController extends GetxController {
       obgynData = jsonEncode(obgynModel.toMap());
     }
 
+    // Convert prescriptions to a list of maps
+    List<Map<String, dynamic>> prescriptionMaps = prescriptions.map((p) => {
+      'drugName': p.drugName,
+      'dosage': p.dosage,
+      'duration': p.duration,
+      'quantity': p.quantity,
+    }).toList();
+
     final visit = OpdVisitModel(
       opdTicketNo: ticketNo,
       patientId: selectedPatient.value!.patientId,
@@ -349,7 +501,7 @@ class OpdController extends GetxController {
       reasonForVisit: reasonForVisit.value,
       isFollowUp: isFollowUp.value,
       diagnosis: selectedDiseases,
-      prescriptions: [], // Will be added separately
+      prescriptions: prescriptionMaps, // Use the converted prescriptions
       labTests: selectedLabTests,
       isReferred: isReferred.value,
       followUpAdvised: followUpAdvised.value,
@@ -359,19 +511,64 @@ class OpdController extends GetxController {
       obgynData: obgynData,
     );
 
-    await db.insertOpdVisit(visit);
-    
-    // Save prescriptions
-    for (var prescription in prescriptions) {
-      // Create a new prescription model instance
-      await db.insertPrescription(PrescriptionModel(
-        drugName: prescription.drugName,
-        dosage: prescription.dosage,
-        duration: prescription.duration,
-        opdTicketNo: ticketNo,
-        quantity: prescription.quantity,
-      ));
-    }
+    await db.database.then((dbClient) async {
+      // First, check if the table has the required columns
+      var tableInfo = await dbClient.rawQuery("PRAGMA table_info(opd_visits)");
+      List<String> columns = tableInfo.map((col) => col['name'] as String).toList();
+      
+      // Create a map with only the columns that exist in the table
+      Map<String, dynamic> visitMap = {};
+      
+      if (columns.contains('patient_id')) 
+        visitMap['patient_id'] = visit.patientId;
+      
+      if (columns.contains('visit_date')) 
+        visitMap['visit_date'] = visit.visitDateTime.toIso8601String();
+      
+      if (columns.contains('chief_complaint')) 
+        visitMap['chief_complaint'] = visit.reasonForVisit;
+      
+      if (columns.contains('diagnosis')) 
+        visitMap['diagnosis'] = visit.diagnosis.join(',');
+      
+      if (columns.contains('treatment')) 
+        visitMap['treatment'] = jsonEncode(visit.prescriptions); // Store prescriptions as JSON
+      
+      if (columns.contains('lab_tests')) 
+        visitMap['lab_tests'] = visit.labTests.join(',');
+      
+      if (columns.contains('is_referred')) 
+        visitMap['is_referred'] = visit.isReferred ? 1 : 0;
+      
+      if (columns.contains('follow_up_advised')) 
+        visitMap['follow_up_advised'] = visit.followUpAdvised ? 1 : 0;
+      
+      if (columns.contains('follow_up_days')) 
+        visitMap['follow_up_days'] = visit.followUpDays;
+      
+      if (columns.contains('fp_advised')) 
+        visitMap['fp_advised'] = visit.fpAdvised ? 1 : 0;
+      
+      if (columns.contains('fp_list')) 
+        visitMap['fp_list'] = visit.fpList.join(',');
+      
+      if (columns.contains('obgyn_data')) 
+        visitMap['obgyn_data'] = visit.obgynData;
+      
+      if (columns.contains('is_synced')) 
+        visitMap['is_synced'] = 0;
+      
+      if (columns.contains('created_at')) 
+        visitMap['created_at'] = DateTime.now().toIso8601String();
+      
+      if (columns.contains('updated_at')) 
+        visitMap['updated_at'] = DateTime.now().toIso8601String();
+      
+      // Insert the visit with only the columns that exist
+      int visitId = await dbClient.insert('opd_visits', visitMap);
+      
+      // No need to save prescriptions separately anymore
+    });
     
     await loadOpdVisits();
     clearForm();
