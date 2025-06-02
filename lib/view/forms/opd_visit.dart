@@ -331,7 +331,9 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
         DropDownWidget(
           child: Obx(() => DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
-                  value: controller.antenatalVisits.value,
+                  value: controller.antenatalVisitOptions.contains(controller.antenatalVisits.value) 
+                      ? controller.antenatalVisits.value 
+                      : controller.antenatalVisitOptions.first,
                   isExpanded: true,
                   items: controller.antenatalVisitOptions
                       .map((e) => DropdownMenuItem(value: e, child: Text(e)))
