@@ -372,7 +372,7 @@ class OpdController extends GetxController {
     try {
       opdVisits.value = await db.getAllOpdVisits();
     } catch (e) {
-      print('Error loading OPD visits: $e');
+      print('<><><><><><><><><><><><><><><<>Error loading OPD visits: $e');
       // Initialize with empty list to prevent null errors
       opdVisits.value = [];
     }

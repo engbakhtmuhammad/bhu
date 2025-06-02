@@ -467,20 +467,23 @@ class DatabaseHelper {
           }
         }
         
+        // Convert the ID to string explicitly to avoid type mismatch
+        String ticketNo = maps[i]['id'] != null ? maps[i]['id'].toString() : '';
+        
         return OpdVisitModel(
-          opdTicketNo: maps[i]['id'].toString(), // Use ID as ticket number
-          patientId: maps[i]['patient_id'] ?? '',
-          visitDateTime: DateTime.parse(maps[i]['visit_date']),
+          opdTicketNo: ticketNo,
+          patientId: maps[i]['patient_id']?.toString() ?? '',
+          visitDateTime: DateTime.parse(maps[i]['visit_date'] ?? DateTime.now().toIso8601String()),
           reasonForVisit: maps[i]['chief_complaint'] ?? 'General OPD',
           isFollowUp: maps[i]['is_follow_up'] == 1,
-          diagnosis: maps[i]['diagnosis']?.split(',') ?? [],
+          diagnosis: maps[i]['diagnosis']?.toString().split(',').where((s) => s.isNotEmpty).toList() ?? [],
           prescriptions: prescriptions,
-          labTests: maps[i]['lab_tests']?.split(',') ?? [],
+          labTests: maps[i]['lab_tests']?.toString().split(',').where((s) => s.isNotEmpty).toList() ?? [],
           isReferred: maps[i]['is_referred'] == 1,
           followUpAdvised: maps[i]['follow_up_advised'] == 1,
           followUpDays: maps[i]['follow_up_days'],
           fpAdvised: maps[i]['fp_advised'] == 1,
-          fpList: maps[i]['fp_list']?.split(',') ?? [],
+          fpList: maps[i]['fp_list']?.toString().split(',').where((s) => s.isNotEmpty).toList() ?? [],
           obgynData: maps[i]['obgyn_data'],
         );
       });
