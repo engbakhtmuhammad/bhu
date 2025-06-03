@@ -1,14 +1,20 @@
+import 'api_patient_models.dart';
+
 class PatientModel {
-  final String patientId;
-  final String fullName;
-  final String relationCnic;
-  final String relationType; // own, father, husband
-  final String contact;
-  final String address;
+  final String patientId;  // This corresponds to uniqueId in ApiPatientModel
+  final String fullName;   // This corresponds to name in ApiPatientModel
+  final String fatherName;
+  final String? husbandName;
+  final double age;
   final String gender;
-  final String bloodGroup;
+  final String cnic;
+  final int version;
+  final String contact;
+  final String emergencyContact;
+  final String address;
   final String medicalHistory;
-  final bool immunized;
+  final bool immunized;    // This corresponds to immunization in ApiPatientModel
+  final int bloodGroup;    // Changed from string to int to match API model
   final int? districtId;
   final bool isSynced;
   final String? createdAt;
@@ -17,14 +23,18 @@ class PatientModel {
   PatientModel({
     required this.patientId,
     required this.fullName,
-    required this.relationCnic,
-    required this.relationType,
-    required this.contact,
-    required this.address,
+    required this.fatherName,
+    this.husbandName,
+    required this.age,
     required this.gender,
-    required this.bloodGroup,
+    required this.cnic,
+    this.version = 1,
+    required this.contact,
+    required this.emergencyContact,
+    required this.address,
     required this.medicalHistory,
     required this.immunized,
+    required this.bloodGroup,
     this.districtId,
     this.isSynced = false,
     this.createdAt,
@@ -33,39 +43,86 @@ class PatientModel {
 
   Map<String, dynamic> toMap() {
     return {
-      'patientId': patientId,
-      'fullName': fullName,
-      'relationCnic': relationCnic,
-      'relationType': relationType,
-      'contact': contact,
-      'address': address,
+      'id': patientId,
+      'name': fullName,
+      'age': age.toInt(),
       'gender': gender,
-      'bloodGroup': bloodGroup,
-      'medicalHistory': medicalHistory,
-      'immunized': immunized ? 1 : 0,
-      'district_id': districtId,
-      'is_synced': isSynced ? 1 : 0,
-      'created_at': createdAt ?? DateTime.now().toIso8601String(),
-      'updated_at': updatedAt ?? DateTime.now().toIso8601String(),
+      'relationCnic': cnic,
+      'phoneNumber': contact,
+      'address': address,
+      'bloodGroup': bloodGroup.toString(), // Convert int to string for storage
+      'isPregnant': 0,
+      'isLactating': 0,
+      'isSynced': isSynced ? 1 : 0,
+      'createdAt': createdAt ?? DateTime.now().toIso8601String(),
+      'updatedAt': updatedAt ?? DateTime.now().toIso8601String(),
     };
   }
 
   factory PatientModel.fromMap(Map<String, dynamic> map) {
     return PatientModel(
-      patientId: map['patientId'] ?? '',
-      fullName: map['fullName'] ?? '',
-      relationCnic: map['relationCnic'] ?? '',
-      relationType: map['relationType'] ?? '',
-      contact: map['contact'] ?? '',
-      address: map['address'] ?? '',
+      patientId: map['id'] ?? '',
+      fullName: map['name'] ?? '',
+      fatherName: map['fatherName'] ?? '',
+      husbandName: map['husbandName'],
+      age: (map['age'] ?? 0).toDouble(),
       gender: map['gender'] ?? '',
-      bloodGroup: map['bloodGroup'] ?? '',
+      cnic: map['relationCnic'] ?? '',
+      version: map['version'] ?? 1,
+      contact: map['phoneNumber'] ?? '',
+      emergencyContact: map['emergencyContact'] ?? map['phoneNumber'] ?? '',
+      address: map['address'] ?? '',
       medicalHistory: map['medicalHistory'] ?? '',
       immunized: map['immunized'] == 1,
+      bloodGroup: int.tryParse(map['bloodGroup'] ?? '1') ?? 1, // Convert string to int
       districtId: map['district_id'],
-      isSynced: map['is_synced'] == 1,
-      createdAt: map['created_at'],
-      updatedAt: map['updated_at'],
+      isSynced: map['isSynced'] == 1,
+      createdAt: map['createdAt'],
+      updatedAt: map['updatedAt'],
+    );
+  }
+
+  // Convert to ApiPatientModel format for API requests
+  Map<String, dynamic> toApiJson() {
+    return {
+      'id': 0, // New record for API
+      'uniqueId': patientId,
+      'name': fullName,
+      'fatherName': fatherName,
+      'husbandName': husbandName,
+      'age': age,
+      'gender': gender,
+      'cnic': cnic,
+      'version': version,
+      'contact': contact,
+      'emergencyContact': emergencyContact,
+      'address': address,
+      'medicalHistory': medicalHistory,
+      'immunization': immunized,
+      'bloodGroup': bloodGroup,
+    };
+  }
+
+  // Create PatientModel from ApiPatientModel
+  factory PatientModel.fromApiModel(ApiPatientModel apiModel) {
+    return PatientModel(
+      patientId: apiModel.uniqueId,
+      fullName: apiModel.name,
+      fatherName: apiModel.fatherName,
+      husbandName: apiModel.husbandName,
+      age: apiModel.age,
+      gender: apiModel.gender,
+      cnic: apiModel.cnic,
+      version: apiModel.version,
+      contact: apiModel.contact,
+      emergencyContact: apiModel.emergencyContact,
+      address: apiModel.address,
+      medicalHistory: apiModel.medicalHistory,
+      immunized: apiModel.immunization,
+      bloodGroup: apiModel.bloodGroup,
+      isSynced: true, // Coming from API, so it's synced
+      createdAt: DateTime.now().toIso8601String(),
+      updatedAt: DateTime.now().toIso8601String(),
     );
   }
 }

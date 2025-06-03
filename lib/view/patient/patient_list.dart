@@ -246,7 +246,7 @@ class _AllPatientsScreenState extends State<AllPatientsScreen> {
       patients = patients.where((patient) {
         return patient.fullName.toLowerCase().contains(searchQuery) ||
             patient.contact.toLowerCase().contains(searchQuery) ||
-            patient.relationCnic.toLowerCase().contains(searchQuery);
+            patient.cnic.toLowerCase().contains(searchQuery);
       }).toList();
     }
 

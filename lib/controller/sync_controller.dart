@@ -286,53 +286,8 @@ class SyncController extends GetxController {
 
   /// Convert local patient model to API format
   Map<String, dynamic> _convertPatientToApiFormat(PatientModel patient) {
-    // Extract father/husband name from relation data
-    String fatherName = '';
-    String? husbandName;
-
-    if (patient.relationType == 'father') {
-      fatherName = patient.relationCnic; // Assuming this contains the name
-    } else if (patient.relationType == 'husband') {
-      husbandName = patient.relationCnic; // Assuming this contains the name
-    }
-
-    // Convert gender to proper format expected by API
-    String gender = patient.gender.toLowerCase();
-    
-    // Convert blood group string to ID
-    int bloodGroupId = 1; // Default
-    switch (patient.bloodGroup.toLowerCase()) {
-      case 'a+': bloodGroupId = 1; break;
-      case 'a-': bloodGroupId = 2; break;
-      case 'b+': bloodGroupId = 3; break;
-      case 'b-': bloodGroupId = 4; break;
-      case 'ab+': bloodGroupId = 5; break;
-      case 'ab-': bloodGroupId = 6; break;
-      case 'o+': bloodGroupId = 7; break;
-      case 'o-': bloodGroupId = 8; break;
-    }
-
-    // Calculate age from DOB if available, or use default
-    double age = 25.0; // Default age
-    // TODO: Calculate actual age if DOB is available
-
-    return {
-      'id': 0, // New record
-      'uniqueId': patient.patientId,
-      'name': patient.fullName,
-      'fatherName': fatherName,
-      'husbandName': husbandName,
-      'age': age,
-      'gender': gender,
-      'cnic': patient.relationCnic,
-      'version': 1,
-      'contact': patient.contact,
-      'emergencyContact': patient.contact, // Using same contact as emergency
-      'address': patient.address,
-      'medicalHistory': patient.medicalHistory,
-      'immunization': patient.immunized,
-      'bloodGroup': bloodGroupId,
-    };
+    // Use the new toApiJson method
+    return patient.toApiJson();
   }
 
   /// Convert local OPD visit model to API format
@@ -397,22 +352,13 @@ class SyncController extends GetxController {
     
     // Convert blood group string to ID
     int bloodGroupId = 1; // Default
-    switch (patient.bloodGroup.toLowerCase()) {
-      case 'a+': bloodGroupId = 1; break;
-      case 'a-': bloodGroupId = 2; break;
-      case 'b+': bloodGroupId = 3; break;
-      case 'b-': bloodGroupId = 4; break;
-      case 'ab+': bloodGroupId = 5; break;
-      case 'ab-': bloodGroupId = 6; break;
-      case 'o+': bloodGroupId = 7; break;
-      case 'o-': bloodGroupId = 8; break;
-    }
+  
 
     return {
       'patientId': patient.patientId,
       'fullName': patient.fullName,
-      'relationCnic': patient.relationCnic,
-      'relationType': patient.relationType,
+      'relationCnic': patient.cnic,
+      'relationType': patient.fatherName,
       'contact': patient.contact,
       'address': patient.address,
       'gender': genderId,
@@ -450,66 +396,46 @@ class SyncController extends GetxController {
       final currentUser = _authController.currentUser.value;
       final int hospitalId = currentUser?.healthFacilityId ?? 1;
       
-      // Convert patients to form data
-      List<PatientFormData> patientFormData = patients.map((p) {
-        // Convert gender to integer
-        int genderId = 1; // Default to male
-        if (p.gender.toLowerCase() == 'female') {
-          genderId = 2;
-        }
-        
-        // Convert blood group string to ID
-        int bloodGroupId = 1; // Default
-        switch (p.bloodGroup.toLowerCase()) {
-          case 'a+': bloodGroupId = 1; break;
-          case 'a-': bloodGroupId = 2; break;
-          case 'b+': bloodGroupId = 3; break;
-          case 'b-': bloodGroupId = 4; break;
-          case 'ab+': bloodGroupId = 5; break;
-          case 'ab-': bloodGroupId = 6; break;
-          case 'o+': bloodGroupId = 7; break;
-          case 'o-': bloodGroupId = 8; break;
-        }
-        
-        return PatientFormData(
-          patientId: p.patientId,
-          fullName: p.fullName,
-          relationCnic: p.relationCnic,
-          relationType: p.relationType,
-          contact: p.contact,
-          address: p.address,
-          gender: genderId,
-          bloodGroup: bloodGroupId,
-          medicalHistory: p.medicalHistory,
-          immunized: p.immunized,
-        );
-      }).toList();
-      
-      syncProgress.value = 0.4;
-      syncStatus.value = 'Processing OPD visits...';
+      // Convert patients to form data format
+      List<PatientFormData> patientFormData = [];
+      for (var patient in patients) {
+        patientFormData.add(PatientFormData(
+          patientId: patient.patientId,
+          fullName: patient.fullName,
+          relationCnic: patient.cnic ?? '',
+          relationType: patient.fatherName ?? '',
+          contact: patient.contact ?? '',
+          address: patient.address ?? '',
+          gender: patient.gender == 'Male' ? 1 : 2,
+          bloodGroup: patient.bloodGroup ?? 1,
+          medicalHistory: patient.medicalHistory ?? '',
+          immunized: patient.immunized ? true : false,
+        ));
+      }
       
       // For each OPD visit, get its prescriptions
       List<OpdFormData> opdFormData = [];
       for (var visit in opdVisits) {
         // Get prescriptions for this visit
         final prescriptions = await _dbHelper.getPrescriptionsByTicket(visit.opdTicketNo);
-        final prescriptionTexts = prescriptions.map((p) => "${p.drugName} - ${p.dosage} - ${p.duration}").toList();
+        final prescriptionTexts = prescriptions.map((p) => 
+          "${p.drugName ?? ''} - ${p.dosage ?? ''} - ${p.duration ?? ''}").toList();
         
         opdFormData.add(OpdFormData(
           opdTicketNo: visit.opdTicketNo,
           patientId: visit.patientId,
           visitDateTime: visit.visitDateTime.toIso8601String(),
           reasonForVisit: visit.reasonForVisit,
-          isFollowUp: visit.isFollowUp,
+          isFollowUp: visit.isFollowUp ? true : false,
           diagnosis: visit.diagnosis,
           prescriptions: prescriptionTexts,
           labTests: visit.labTests,
-          isReferred: visit.isReferred,
-          followUpAdvised: visit.followUpAdvised,
-          followUpDays: visit.followUpDays,
-          fpAdvised: visit.fpAdvised,
+          isReferred: visit.isReferred ? true : false,
+          followUpAdvised: visit.followUpAdvised ? true : false,
+          followUpDays: visit.followUpDays ?? 0,
+          fpAdvised: visit.fpAdvised ? true : false,
           fpList: visit.fpList,
-          obgynData: visit.obgynData,
+          obgynData: visit.obgynData ?? '',
         ));
       }
       
@@ -519,7 +445,7 @@ class SyncController extends GetxController {
       final formSubmission = FormSubmissionModel(
         patients: patientFormData,
         opdVisits: opdFormData,
-        hospitalId: hospitalId, // Add hospital ID from current user
+        hospitalId: hospitalId,
       );
       
       // Convert to JSON string

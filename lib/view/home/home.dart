@@ -451,13 +451,12 @@ class _HomeScreenState extends State<HomeScreen> {
       final filteredPatients = patientController.patients.where((patient) {
         return patient.fullName.toLowerCase().contains(searchQuery) ||
                patient.contact.toLowerCase().contains(searchQuery) ||
-               patient.relationCnic.toLowerCase().contains(searchQuery);
+               patient.cnic.toLowerCase().contains(searchQuery);
       }).toList();
 
       // Filter OPD visits
       final filteredVisits = opdController.opdVisits.where((visit) {
         return visit.opdTicketNo.toLowerCase().contains(searchQuery) ||
-               visit.reasonForVisit.toLowerCase().contains(searchQuery) ||
                visit.patientId.toLowerCase().contains(searchQuery);
       }).toList();
 

@@ -4,7 +4,7 @@ class OpdVisitModel {
   final String opdTicketNo;
   final String patientId;
   final DateTime visitDateTime;
-  final String reasonForVisit; // General OPD/OBGYN
+  final bool reasonForVisit; // General OPD/OBGYN
   final bool isFollowUp;
   final List<String> diagnosis;
   final List<Map<String, dynamic>> prescriptions; // Changed to store prescription details

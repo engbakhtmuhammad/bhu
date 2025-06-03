@@ -498,7 +498,7 @@ class OpdController extends GetxController {
       opdTicketNo: ticketNo,
       patientId: selectedPatient.value!.patientId,
       visitDateTime: DateTime.now(),
-      reasonForVisit: reasonForVisit.value,
+      reasonForVisit: reasonForVisit.value=='General OPD'?true:false,
       isFollowUp: isFollowUp.value,
       diagnosis: selectedDiseases,
       prescriptions: prescriptionMaps, // Use the converted prescriptions

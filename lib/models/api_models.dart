@@ -561,7 +561,7 @@ class OpdFormData {
   final String opdTicketNo;
   final String patientId;
   final String visitDateTime;
-  final String reasonForVisit;
+  final bool reasonForVisit; // if obgyn then 0 else 1
   final bool isFollowUp;
   final List<String> diagnosis;
   final List<String> prescriptions;
