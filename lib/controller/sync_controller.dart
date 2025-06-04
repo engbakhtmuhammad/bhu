@@ -7,6 +7,7 @@ import '../controller/auth_controller.dart';
 import '../db/database_helper.dart';
 import '../models/api_models.dart';
 import '../models/patient_model.dart';
+import '../models/prescription_model.dart';
 import '../services/api_service.dart';
 import '../utils/encryption_helper.dart';
 
@@ -36,6 +37,7 @@ class SyncController extends GetxController {
     super.onInit();
     _loadSyncStatus();
     _checkUnsyncedData();
+    _ensureSyncColumns();
   }
 
   /// Load sync status from SharedPreferences
@@ -385,6 +387,9 @@ class SyncController extends GetxController {
     try {
       syncStatus.value = 'Preparing form data...';
       
+      // Ensure sync columns exist
+      await _ensureSyncColumns();
+      
       // Get all patients and OPD visits
       final patients = await _dbHelper.getAllPatients();
       final opdVisits = await _dbHelper.getAllOpdVisits();
@@ -447,18 +452,39 @@ class SyncController extends GetxController {
         final prescriptions = await _dbHelper.getPrescriptionsByTicket(visit.opdTicketNo);
         debugPrint('Found ${prescriptions.length} prescriptions for visit ${visit.opdTicketNo}');
         
-        final prescriptionTexts = prescriptions.map((p) => 
-          "${p.drugName ?? ''} - ${p.dosage ?? ''} - ${p.duration ?? ''}").toList();
+        // If no prescriptions found in the prescriptions table, try to extract from the visit.prescriptions field
+        List<String> prescriptionTexts = [];
+        if (prescriptions.isEmpty && visit.prescriptions.isNotEmpty) {
+          debugPrint('Using prescriptions from OPD visit record');
+          prescriptionTexts = visit.prescriptions.map((p) {
+            if (p is Map<String, dynamic>) {
+              return "${p['drugName'] ?? ''} - ${p['dosage'] ?? ''} - ${p['duration'] ?? ''}";
+            }
+            return p.toString();
+          }).toList();
+        } else {
+          prescriptionTexts = prescriptions.map((p) => 
+            "${(p as PrescriptionModel).drugName} - ${(p as PrescriptionModel).dosage} - ${(p as PrescriptionModel).duration}").toList();
+        }
         
         // Debug log the diagnosis and lab tests
         debugPrint('Diagnosis: ${visit.diagnosis}');
         debugPrint('Lab tests: ${visit.labTests}');
+        debugPrint('Prescriptions: $prescriptionTexts');
+        
+        // Convert reasonForVisit to boolean if it's a string
+        bool isGeneralOPD = true;
+        if (visit.reasonForVisit is bool) {
+          isGeneralOPD = visit.reasonForVisit;
+        } else if (visit.reasonForVisit is String) {
+          isGeneralOPD = visit.reasonForVisit == 'General OPD';
+        }
         
         final visitData = OpdFormData(
           opdTicketNo: visit.opdTicketNo,
           patientId: visit.patientId,
           visitDateTime: visit.visitDateTime.toIso8601String(),
-          reasonForVisit: visit.reasonForVisit ?? true,
+          reasonForVisit: isGeneralOPD,
           isFollowUp: visit.isFollowUp,
           diagnosis: visit.diagnosis,
           prescriptions: prescriptionTexts,
@@ -535,20 +561,35 @@ class SyncController extends GetxController {
   /// Mark all data as synced in the database
   Future<void> _markDataAsSynced() async {
     try {
+      // Ensure sync columns exist
+      await _ensureSyncColumns();
+      
       final db = await _dbHelper.database;
       
       // Mark patients as synced
       await db.update('patients', {'is_synced': 1});
+      debugPrint('Marked patients as synced');
       
       // Mark OPD visits as synced
       await db.update('opd_visits', {'is_synced': 1});
+      debugPrint('Marked OPD visits as synced');
       
       // Mark prescriptions as synced
       await db.update('prescriptions', {'is_synced': 1});
+      debugPrint('Marked prescriptions as synced');
       
       debugPrint('All data marked as synced in the database');
     } catch (e) {
       debugPrint('Error marking data as synced: $e');
+    }
+  }
+
+  /// Ensure sync columns exist in database tables
+  Future<void> _ensureSyncColumns() async {
+    try {
+      await _dbHelper.addSyncColumns();
+    } catch (e) {
+      debugPrint('Error ensuring sync columns: $e');
     }
   }
 }

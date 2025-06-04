@@ -1,9 +1,9 @@
+import 'package:bhu/models/prescription_model.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/disease_model.dart';
 import '../models/patient_model.dart';
 import '../models/opd_visit_model.dart';
-import '../models/prescription_model.dart' as prescription;
 import '../models/app_user_data.dart';
 import 'dart:convert';
 
@@ -734,18 +734,17 @@ class DatabaseHelper {
 
   // Prescription methods
   Future<int> insertPrescription(
-      prescription.PrescriptionModel prescription) async {
+      PrescriptionModel prescription) async {
     final db = await database;
     return await db.insert('prescriptions', prescription.toMap());
   }
 
-  Future<List<prescription.PrescriptionModel>> getPrescriptionsByTicket(
-      String opdTicketNo) async {
+  Future<List<PrescriptionModel>> getPrescriptionsByOpdTicket(String opdTicketNo) async {
     final db = await database;
     final result = await db.query('prescriptions',
         where: 'opdTicketNo = ?', whereArgs: [opdTicketNo]);
     return result
-        .map((e) => prescription.PrescriptionModel.fromMap(e))
+        .map((e) => PrescriptionModel.fromMap(e))
         .toList();
   }
 
@@ -1261,6 +1260,99 @@ class DatabaseHelper {
     } catch (e) {
       print('Error getting API postpartum statuses: $e');
       return [];
+    }
+  }
+
+  // Add this method to get prescriptions by ticket number
+  Future<List<PrescriptionModel>> getPrescriptionsByTicket(String opdTicketNo) async {
+    final db = await database;
+    try {
+      final List<Map<String, dynamic>> maps = await db.query(
+        'prescriptions',
+        where: 'opdTicketNo = ?',  // Changed from 'opd_ticket_no' to 'opdTicketNo'
+        whereArgs: [opdTicketNo],
+      );
+      
+      print('Found ${maps.length} prescriptions for ticket $opdTicketNo in database');
+      
+      if (maps.isEmpty) {
+        // Check if prescriptions are stored in the OPD visit record
+        final opdVisits = await db.query(
+          'opd_visits',
+          where: 'opdTicketNo = ?',  // Changed from 'opd_ticket_no' to 'opdTicketNo'
+          whereArgs: [opdTicketNo],
+        );
+        
+        if (opdVisits.isNotEmpty && opdVisits[0]['prescriptions'] != null) {
+          print('Found prescriptions in OPD visit record');
+          try {
+            final dynamic prescData = opdVisits[0]['prescriptions'];
+            if (prescData is String) {
+              final List<dynamic> prescList = json.decode(prescData);
+              return prescList.map((p) => PrescriptionModel(
+                id: p['id'] ?? 0,
+                drugName: p['drugName'] ?? '',
+                dosage: p['dosage'] ?? '',
+                duration: p['duration'] ?? '',
+                opdTicketNo: opdTicketNo,
+                quantity: p['quantity'] ?? 1,
+              )).toList();
+            }
+          } catch (e) {
+            print('Error parsing prescriptions from OPD visit: $e');
+          }
+        }
+      }
+      
+      return List.generate(maps.length, (i) {
+        return PrescriptionModel(
+          id: maps[i]['id'],
+          drugName: maps[i]['drugName'],  // Changed from 'drug_name' to 'drugName'
+          dosage: maps[i]['dosage'],
+          duration: maps[i]['duration'],
+          opdTicketNo: maps[i]['opdTicketNo'],  // Changed from 'opd_ticket_no' to 'opdTicketNo'
+          quantity: maps[i]['quantity'] ?? 1,
+        );
+      });
+    } catch (e) {
+      print('Error getting prescriptions by ticket: $e');
+      return [];
+    }
+  }
+
+  // Add this method to add sync columns to tables
+  Future<void> addSyncColumns() async {
+    final db = await database;
+    try {
+      // Check if columns exist before adding them
+      var patientsInfo = await db.rawQuery('PRAGMA table_info(patients)');
+      var opdVisitsInfo = await db.rawQuery('PRAGMA table_info(opd_visits)');
+      var prescriptionsInfo = await db.rawQuery('PRAGMA table_info(prescriptions)');
+      
+      // Extract column names
+      List<String> patientColumns = patientsInfo.map((col) => col['name'].toString()).toList();
+      List<String> opdVisitColumns = opdVisitsInfo.map((col) => col['name'].toString()).toList();
+      List<String> prescriptionColumns = prescriptionsInfo.map((col) => col['name'].toString()).toList();
+      
+      // Add is_synced column to patients if it doesn't exist
+      if (!patientColumns.contains('is_synced')) {
+        await db.execute('ALTER TABLE patients ADD COLUMN is_synced INTEGER DEFAULT 0');
+        print('Added is_synced column to patients table');
+      }
+      
+      // Add is_synced column to opd_visits if it doesn't exist
+      if (!opdVisitColumns.contains('is_synced')) {
+        await db.execute('ALTER TABLE opd_visits ADD COLUMN is_synced INTEGER DEFAULT 0');
+        print('Added is_synced column to opd_visits table');
+      }
+      
+      // Add is_synced column to prescriptions if it doesn't exist
+      if (!prescriptionColumns.contains('is_synced')) {
+        await db.execute('ALTER TABLE prescriptions ADD COLUMN is_synced INTEGER DEFAULT 0');
+        print('Added is_synced column to prescriptions table');
+      }
+    } catch (e) {
+      print('Error adding sync columns: $e');
     }
   }
 }
