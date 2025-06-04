@@ -351,7 +351,7 @@ class SyncController extends GetxController {
     }
     
     // Convert blood group string to ID
-    int bloodGroupId = 1; // Default
+    // int bloodGroupId = 1; // Default
   
 
     return {
@@ -362,7 +362,8 @@ class SyncController extends GetxController {
       'contact': patient.contact,
       'address': patient.address,
       'gender': genderId,
-      'bloodGroup': bloodGroupId,
+      'bloodGroup': patient.bloodGroup,
+      'ageGroup': patient.ageGroup,
       'medicalHistory': patient.medicalHistory,
       'immunized': patient.immunized,
     };
@@ -388,6 +389,21 @@ class SyncController extends GetxController {
       final patients = await _dbHelper.getAllPatients();
       final opdVisits = await _dbHelper.getAllOpdVisits();
       
+      // Debug logging
+      debugPrint('Found ${patients.length} patients to sync');
+      debugPrint('Found ${opdVisits.length} OPD visits to sync');
+      
+      if (patients.isEmpty && opdVisits.isEmpty) {
+        Get.snackbar(
+          'No Data to Sync',
+          'There are no patients or OPD visits to synchronize',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+      
       // Reset counters
       uploadedPatients.value = patients.length;
       uploadedOpdVisits.value = opdVisits.length;
@@ -396,10 +412,15 @@ class SyncController extends GetxController {
       final currentUser = _authController.currentUser.value;
       final int hospitalId = currentUser?.healthFacilityId ?? 1;
       
+      debugPrint('Using hospital ID: $hospitalId');
+      
       // Convert patients to form data format
       List<PatientFormData> patientFormData = [];
       for (var patient in patients) {
-        patientFormData.add(PatientFormData(
+        // Debug log each patient
+        debugPrint('Processing patient: ${patient.patientId} - ${patient.fullName}');
+        
+        final patientData = PatientFormData(
           patientId: patient.patientId,
           fullName: patient.fullName,
           relationCnic: patient.cnic ?? '',
@@ -411,36 +432,53 @@ class SyncController extends GetxController {
           ageGroup: patient.ageGroup ?? 1,
           medicalHistory: patient.medicalHistory ?? '',
           immunized: patient.immunized ? true : false,
-        ));
+        );
+        
+        patientFormData.add(patientData);
       }
       
       // For each OPD visit, get its prescriptions
       List<OpdFormData> opdFormData = [];
       for (var visit in opdVisits) {
+        // Debug log each visit
+        debugPrint('Processing OPD visit: ${visit.opdTicketNo} for patient ${visit.patientId}');
+        
         // Get prescriptions for this visit
         final prescriptions = await _dbHelper.getPrescriptionsByTicket(visit.opdTicketNo);
+        debugPrint('Found ${prescriptions.length} prescriptions for visit ${visit.opdTicketNo}');
+        
         final prescriptionTexts = prescriptions.map((p) => 
           "${p.drugName ?? ''} - ${p.dosage ?? ''} - ${p.duration ?? ''}").toList();
         
-        opdFormData.add(OpdFormData(
+        // Debug log the diagnosis and lab tests
+        debugPrint('Diagnosis: ${visit.diagnosis}');
+        debugPrint('Lab tests: ${visit.labTests}');
+        
+        final visitData = OpdFormData(
           opdTicketNo: visit.opdTicketNo,
           patientId: visit.patientId,
           visitDateTime: visit.visitDateTime.toIso8601String(),
-          reasonForVisit: visit.reasonForVisit,
-          isFollowUp: visit.isFollowUp ? true : false,
+          reasonForVisit: visit.reasonForVisit ?? true,
+          isFollowUp: visit.isFollowUp,
           diagnosis: visit.diagnosis,
           prescriptions: prescriptionTexts,
           labTests: visit.labTests,
-          isReferred: visit.isReferred ? true : false,
-          followUpAdvised: visit.followUpAdvised ? true : false,
+          isReferred: visit.isReferred,
+          followUpAdvised: visit.followUpAdvised,
           followUpDays: visit.followUpDays ?? 0,
-          fpAdvised: visit.fpAdvised ? true : false,
+          fpAdvised: visit.fpAdvised,
           fpList: visit.fpList,
           obgynData: visit.obgynData ?? '',
-        ));
+        );
+        
+        opdFormData.add(visitData);
       }
       
       syncProgress.value = 0.6;
+      
+      // Debug log the form data counts
+      debugPrint('Prepared ${patientFormData.length} patient records for submission');
+      debugPrint('Prepared ${opdFormData.length} OPD visit records for submission');
       
       // Create form submission model
       final formSubmission = FormSubmissionModel(
@@ -452,11 +490,14 @@ class SyncController extends GetxController {
       // Convert to JSON string
       final jsonString = json.encode(formSubmission.toJson());
       
+      // Debug log the JSON string (truncated for readability)
+      debugPrint('Form submission JSON (first 500 chars): ${jsonString.substring(0, jsonString.length > 500 ? 500 : jsonString.length)}...');
+      
       // Encrypt the JSON string
       final encryptedString = EncryptionHelper.encryptText(jsonString);
       
-      // Print the encrypted string for verification
-      debugPrint(">>>>>>>>>>>>>>>>>>>>>>>>> $encryptedString");
+      // Debug log the encrypted string length
+      debugPrint('Encrypted string length: ${encryptedString.length}');
       
       syncStatus.value = 'Submitting encrypted data...';
       syncProgress.value = 0.8;
@@ -465,13 +506,20 @@ class SyncController extends GetxController {
       final result = await _apiService.submitEncryptedFormData(encryptedString);
       
       if (result.success) {
+        debugPrint('Form submission successful: ${result.message}');
         syncStatus.value = 'Form data submitted successfully';
         downloadedData.value = 1; // Mark as processed
+        
+        // Mark all data as synced in the database
+        await _markDataAsSynced();
+        
         return true;
       } else {
+        debugPrint('Form submission failed: ${result.message}');
         throw Exception(result.message);
       }
     } catch (e) {
+      debugPrint('Exception during form submission: $e');
       syncStatus.value = 'Form submission failed: $e';
       Get.snackbar(
         'Submission Failed',
@@ -481,6 +529,26 @@ class SyncController extends GetxController {
         colorText: Colors.white,
       );
       return false;
+    }
+  }
+
+  /// Mark all data as synced in the database
+  Future<void> _markDataAsSynced() async {
+    try {
+      final db = await _dbHelper.database;
+      
+      // Mark patients as synced
+      await db.update('patients', {'is_synced': 1});
+      
+      // Mark OPD visits as synced
+      await db.update('opd_visits', {'is_synced': 1});
+      
+      // Mark prescriptions as synced
+      await db.update('prescriptions', {'is_synced': 1});
+      
+      debugPrint('All data marked as synced in the database');
+    } catch (e) {
+      debugPrint('Error marking data as synced: $e');
     }
   }
 }
