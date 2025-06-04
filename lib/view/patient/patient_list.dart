@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:bhu/utils/constants.dart';
 import 'package:bhu/utils/style.dart';
 import '../../controller/patient_controller.dart';
+import '../../utils/helpers.dart';
 import 'patient_details.dart';
 
 class AllPatientsScreen extends StatefulWidget {
@@ -360,7 +361,7 @@ class _AllPatientsScreenState extends State<AllPatientsScreen> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            patient.bloodGroup,
+                            getBloodGroupName(patient.bloodGroup),
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.red,
@@ -407,7 +408,7 @@ class _AllPatientsScreenState extends State<AllPatientsScreen> {
                         SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            'CNIC: ${patient.relationCnic}',
+                            'CNIC: ${patient.cnic}',
                             style: descriptionTextStyle(size: 12),
                             overflow: TextOverflow.ellipsis,
                           ),

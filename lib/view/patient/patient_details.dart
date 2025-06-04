@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:bhu/utils/constants.dart';
 import 'package:bhu/utils/style.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
+import '../../utils/helpers.dart';
 
 class PatientDetailScreen extends StatefulWidget {
   const PatientDetailScreen({super.key, required this.patient});
@@ -106,7 +107,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              widget.patient.bloodGroup.toString(),
+                              getBloodGroupName(widget.patient.bloodGroup),
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.red,
@@ -191,7 +192,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
             title: "Medical Information",
             icon: IconlyBold.heart,
             children: [
-              _buildInfoRow("Blood Group", widget.patient.bloodGroup.toString(), Icons.water_drop_outlined),
+              _buildInfoRow("Blood Group", getBloodGroupName(widget.patient.bloodGroup), Icons.water_drop_outlined),
               _buildInfoRow("Allergies", "None reported", IconlyLight.dangerCircle),
               _buildInfoRow("Chronic Conditions", "None reported", IconlyLight.activity),
               _buildInfoRow("Current Medications", "None", IconlyLight.category),

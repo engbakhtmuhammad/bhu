@@ -12,6 +12,7 @@ import '../../controller/sync_controller.dart';
 import '../../controller/auth_controller.dart';
 import '../patient/patient_details.dart';
 import '../patient/patient_list.dart';
+import '../../utils/helpers.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -286,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      'Blood Group: ${patient.bloodGroup}',
+                      'Blood Group: ${getBloodGroupName(patient.bloodGroup)}',
                       style: descriptionTextStyle(size: 12),
                     ),
                   ],
