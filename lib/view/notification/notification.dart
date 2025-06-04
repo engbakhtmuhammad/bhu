@@ -5,39 +5,15 @@ import 'package:bhu/models/notification.dart';
 import 'package:bhu/utils/constants.dart';
 import 'package:bhu/utils/style.dart';
 import 'package:bhu/widgets/notification_card.dart';
+import 'package:bhu/controller/opd_controller.dart';
+import 'package:intl/intl.dart';
 
 // ignore: must_be_immutable
 class NotificationScreen extends StatelessWidget {
   NotificationScreen({super.key});
 
-  List<NotificationModel> notificationList = [
-    NotificationModel(
-      title: "OPD Schedule Update",
-      description: "Dr. Ayesha's OPD timings have been updated to 10 AM - 2 PM.",
-      time: "20 minutes ago",
-    ),
-    NotificationModel(
-      title: "Vaccination Drive",
-      description: "Free polio vaccination for children under 5 years starts tomorrow.",
-      time: "1 hour ago",
-    ),
-    NotificationModel(
-      title: "Appointment Reminder",
-      description: "Your appointment with Dr. Imran is scheduled for today at 3 PM.",
-      time: "2 hours ago",
-    ),
-    NotificationModel(
-      title: "Health Tip",
-      description: "Stay hydrated! Drink at least 8 glasses of water a day.",
-      time: "4 hours ago",
-    ),
-    NotificationModel(
-      title: "Lab Report Ready",
-      description: "Your blood test report is now available. Visit the BHU to collect it.",
-      time: "6 hours ago",
-    ),
-  ];
-
+  final OpdController opdController = Get.find<OpdController>();
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,24 +30,98 @@ class NotificationScreen extends StatelessWidget {
           style: titleTextStyle(),
         ),
       ),
-      body: notificationList.isNotEmpty
-          ? SingleChildScrollView(
-              child: Column(
-                children: List.generate(
-                  notificationList.length,
-                  (index) => Padding(
-                    padding: const EdgeInsets.only(bottom: 5),
-                    child: NotificationWidget(notification: notificationList[index]),
+      body: Obx(() {
+        // Convert OPD visits to notifications
+        List<NotificationModel> notificationList = [];
+        
+        if (opdController.opdVisits.isNotEmpty) {
+          // Add OPD visit notifications
+          for (var visit in opdController.opdVisits.take(5)) {
+            final dateFormat = DateFormat('dd/MM/yyyy');
+            final timeFormat = DateFormat('hh:mm a');
+            final visitDate = visit.visitDateTime;
+            final formattedDate = dateFormat.format(visitDate);
+            final formattedTime = timeFormat.format(visitDate);
+            
+            // Calculate time ago
+            final now = DateTime.now();
+            final difference = now.difference(visitDate);
+            String timeAgo;
+            
+            if (difference.inMinutes < 60) {
+              timeAgo = '${difference.inMinutes} minutes ago';
+            } else if (difference.inHours < 24) {
+              timeAgo = '${difference.inHours} hours ago';
+            } else if (difference.inDays < 7) {
+              timeAgo = '${difference.inDays} days ago';
+            } else {
+              timeAgo = formattedDate;
+            }
+            
+            notificationList.add(
+              NotificationModel(
+                title: "OPD Visit: ${visit.opdTicketNo}",
+                description: "Patient visit for ${visit.reasonForVisit} on $formattedDate at $formattedTime",
+                time: timeAgo,
+              ),
+            );
+          }
+          
+          // Add follow-up reminders if any
+          for (var visit in opdController.opdVisits) {
+            if (visit.followUpAdvised && visit.followUpDays != null) {
+              final followUpDate = visit.visitDateTime.add(Duration(days: visit.followUpDays!));
+              
+              // Only show upcoming follow-ups within the next 7 days
+              final now = DateTime.now();
+              final difference = followUpDate.difference(now);
+              
+              if (difference.inDays >= 0 && difference.inDays <= 7) {
+                final dateFormat = DateFormat('dd/MM/yyyy');
+                final formattedDate = dateFormat.format(followUpDate);
+                
+                notificationList.add(
+                  NotificationModel(
+                    title: "Follow-up Reminder",
+                    description: "Follow-up visit for ticket ${visit.opdTicketNo} is scheduled for $formattedDate",
+                    time: "Upcoming",
+                  ),
+                );
+              }
+            }
+          }
+        }
+        
+        // If no OPD visits, add a welcome notification
+        if (notificationList.isEmpty) {
+          notificationList.add(
+            NotificationModel(
+              title: "Welcome to BHU App",
+              description: "Start registering patients and recording OPD visits to see notifications here.",
+              time: "Just now",
+            ),
+          );
+        }
+        
+        return notificationList.isNotEmpty
+            ? SingleChildScrollView(
+                child: Column(
+                  children: List.generate(
+                    notificationList.length,
+                    (index) => Padding(
+                      padding: const EdgeInsets.only(bottom: 5),
+                      child: NotificationWidget(notification: notificationList[index]),
+                    ),
                   ),
                 ),
-              ),
-            )
-          : Center(
-              child: Text(
-                "No Notifications",
-                style: subTitleTextStyle(color: primaryColor),
-              ),
-            ),
+              )
+            : Center(
+                child: Text(
+                  "No Notifications",
+                  style: subTitleTextStyle(color: primaryColor),
+                ),
+              );
+      }),
     );
   }
 }

@@ -599,30 +599,84 @@ class DatabaseHelper {
       final db = await database;
       final List<Map<String, dynamic>> maps =
           await db.query('opd_visits', orderBy: 'visit_date DESC');
-
+      
       return List.generate(maps.length, (i) {
+        // Generate a ticket number if it doesn't exist
+        String ticketNo = maps[i]['opd_ticket_no'] ?? 
+                          'OPD${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}${(i + 1).toString().padLeft(4, '0')}';
+        
+        // Handle prescriptions
         List<Map<String, dynamic>> prescriptions = [];
-        if (maps[i]['treatment'] != null && maps[i]['treatment'].isNotEmpty) {
+        if (maps[i]['prescriptions'] != null) {
           try {
-            final decoded = jsonDecode(maps[i]['treatment']);
-            if (decoded is List) {
-              prescriptions = List<Map<String, dynamic>>.from(decoded);
+            // Try to parse JSON if it's stored as a string
+            final dynamic prescData = maps[i]['prescriptions'];
+            if (prescData is String) {
+              try {
+                prescriptions = List<Map<String, dynamic>>.from(
+                    json.decode(prescData) as List);
+              } catch (e) {
+                print('Error parsing prescriptions JSON: $e');
+                // If parsing fails, split by comma as fallback
+                prescriptions = [];
+              }
+            } else if (prescData is List) {
+              prescriptions = List<Map<String, dynamic>>.from(prescData);
             }
           } catch (e) {
-            print('Error decoding prescriptions: $e');
+            print('Error processing prescriptions: $e');
+            prescriptions = [];
           }
         }
 
-        // Convert the ID to string explicitly to avoid type mismatch
-        String ticketNo = maps[i]['id'] != null ? maps[i]['id'].toString() : '';
+        // Parse boolean fields safely
+        bool isFollowUp = false;
+        if (maps[i]['is_follow_up'] != null) {
+          isFollowUp = maps[i]['is_follow_up'] is bool 
+              ? maps[i]['is_follow_up'] 
+              : maps[i]['is_follow_up'] == 1 || maps[i]['is_follow_up'] == '1' || maps[i]['is_follow_up'] == 'true';
+        }
+        
+        bool isReferred = false;
+        if (maps[i]['is_referred'] != null) {
+          isReferred = maps[i]['is_referred'] is bool 
+              ? maps[i]['is_referred'] 
+              : maps[i]['is_referred'] == 1 || maps[i]['is_referred'] == '1' || maps[i]['is_referred'] == 'true';
+        }
+        
+        bool followUpAdvised = false;
+        if (maps[i]['follow_up_advised'] != null) {
+          followUpAdvised = maps[i]['follow_up_advised'] is bool 
+              ? maps[i]['follow_up_advised'] 
+              : maps[i]['follow_up_advised'] == 1 || maps[i]['follow_up_advised'] == '1' || maps[i]['follow_up_advised'] == 'true';
+        }
+        
+        bool fpAdvised = false;
+        if (maps[i]['fp_advised'] != null) {
+          fpAdvised = maps[i]['fp_advised'] is bool 
+              ? maps[i]['fp_advised'] 
+              : maps[i]['fp_advised'] == 1 || maps[i]['fp_advised'] == '1' || maps[i]['fp_advised'] == 'true';
+        }
+        
+        // Parse reason for visit
+        String reasonForVisit = maps[i]['chief_complaint'] ?? 'General OPD';
+        bool isGeneralOPD = true;
+        if (maps[i]['reasonForVisit'] != null) {
+          if (maps[i]['reasonForVisit'] is bool) {
+            isGeneralOPD = maps[i]['reasonForVisit'];
+          } else if (maps[i]['reasonForVisit'] is String) {
+            reasonForVisit = maps[i]['reasonForVisit'];
+            isGeneralOPD = reasonForVisit == 'General OPD';
+          }
+        }
 
         return OpdVisitModel(
           opdTicketNo: ticketNo,
           patientId: maps[i]['patient_id']?.toString() ?? '',
           visitDateTime: DateTime.parse(
               maps[i]['visit_date'] ?? DateTime.now().toIso8601String()),
-          reasonForVisit: maps[i]['chief_complaint'] ?? 'General OPD',
-          isFollowUp: maps[i]['is_follow_up'] == 1,
+          reasonForVisit: reasonForVisit=='General OPD'?true:false,
+          isFollowUp: isFollowUp,
           diagnosis: maps[i]['diagnosis']
                   ?.toString()
                   .split(',')
@@ -636,10 +690,10 @@ class DatabaseHelper {
                   .where((s) => s.isNotEmpty)
                   .toList() ??
               [],
-          isReferred: maps[i]['is_referred'] == 1,
-          followUpAdvised: maps[i]['follow_up_advised'] == 1,
+          isReferred: isReferred,
+          followUpAdvised: followUpAdvised,
           followUpDays: maps[i]['follow_up_days'],
-          fpAdvised: maps[i]['fp_advised'] == 1,
+          fpAdvised: fpAdvised,
           fpList: maps[i]['fp_list']
                   ?.toString()
                   .split(',')

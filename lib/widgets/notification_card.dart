@@ -21,7 +21,7 @@ class NotificationWidget extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           color: Colors.red,
         ),
         child: const Icon(
@@ -59,34 +59,50 @@ class NotificationWidget extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
         decoration: BoxDecoration(
-          color: greyColor,
-          borderRadius: BorderRadius.circular(12), // Rounded borders
+          color: whiteColor,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: greyColor,
+              spreadRadius: 1,
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: ListTile(
           contentPadding: const EdgeInsets.all(12),
           title: Text(
             notification.title,
-            style: Theme.of(context).textTheme.titleMedium,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-      Text(
-        notification.description,
-        style: Theme.of(context).textTheme.bodySmall,
-      ),
-      const SizedBox(height: 5), // Spacing between description and time
-      Text(
-        notification.time,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.grey),
-      ),
+              const SizedBox(height: 4),
+              Text(
+                notification.description,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                notification.time,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
           leading: CircleAvatar(
             backgroundColor: primaryLightColor,
             child: Text(
-      notification.title[0],
-      style: titleTextStyle(),
+              notification.title[0],
+              style: titleTextStyle(color: primaryColor),
             ),
           ),
         ),

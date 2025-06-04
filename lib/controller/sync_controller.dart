@@ -408,6 +408,7 @@ class SyncController extends GetxController {
           address: patient.address ?? '',
           gender: patient.gender == 'Male' ? 1 : 2,
           bloodGroup: patient.bloodGroup ?? 1,
+          ageGroup: patient.ageGroup ?? 1,
           medicalHistory: patient.medicalHistory ?? '',
           immunized: patient.immunized ? true : false,
         ));

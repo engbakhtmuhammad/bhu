@@ -527,6 +527,7 @@ class PatientFormData {
   final String address;
   final int gender;
   final int bloodGroup;
+  final int ageGroup;
   final String medicalHistory;
   final bool immunized;
 
@@ -539,6 +540,7 @@ class PatientFormData {
     required this.address,
     required this.gender,
     required this.bloodGroup,
+    required this.ageGroup,
     required this.medicalHistory,
     required this.immunized,
   });
@@ -552,6 +554,7 @@ class PatientFormData {
     'address': address,
     'gender': gender,
     'bloodGroup': bloodGroup,
+    'ageGroup': ageGroup,
     'medicalHistory': medicalHistory,
     'immunized': immunized,
   };

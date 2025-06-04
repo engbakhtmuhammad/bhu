@@ -6,7 +6,7 @@ class ApiPatientModel {
   final String name;
   final String fatherName;
   final String? husbandName;
-  final double age;
+  final int ageGroup;
   final String gender;
   final String cnic;
   final int version;
@@ -23,7 +23,7 @@ class ApiPatientModel {
     required this.name,
     required this.fatherName,
     this.husbandName,
-    required this.age,
+    required this.ageGroup,
     required this.gender,
     required this.cnic,
     required this.version,
@@ -42,7 +42,7 @@ class ApiPatientModel {
       name: json['name'] ?? '',
       fatherName: json['fatherName'] ?? '',
       husbandName: json['husbandName'],
-      age: (json['age'] ?? 0).toDouble(),
+      ageGroup: json['ageGroup'] ?? 1,
       gender: json['gender'] ?? '',
       cnic: json['cnic'] ?? '',
       version: json['version'] ?? 1,
@@ -62,7 +62,7 @@ class ApiPatientModel {
       'name': name,
       'fatherName': fatherName,
       'husbandName': husbandName,
-      'age': age,
+      'ageGroup': ageGroup,
       'gender': gender,
       'cnic': cnic,
       'version': version,

@@ -24,7 +24,9 @@ class PatientRegistrationForm extends StatelessWidget {
 
   final gender = ''.obs;
   final bloodGroup = ''.obs;
+  final ageGroup = ''.obs;
   final bloodGroups = <Map<String, dynamic>>[].obs;
+  final ageGroups = <Map<String, dynamic>>[].obs;
   final immunized = false.obs;
   final relationType = 'own'.obs;
   
@@ -63,6 +65,13 @@ class PatientRegistrationForm extends StatelessWidget {
         {'id': 8, 'name': 'O-'},
       ];
     }
+   ageGroups.value = [
+  {'id': 1, 'name': 'Child (0-12)'},
+  {'id': 2, 'name': 'Teenager (13-19)'},
+  {'id': 3, 'name': 'Adult (20-59)'},
+  {'id': 4, 'name': 'Senior (60+)'},
+];
+
   }
 
   @override
@@ -133,6 +142,23 @@ class PatientRegistrationForm extends StatelessWidget {
                       ),
                     )),
               ),
+               _label("AGE GROUP"),
+              DropDownWidget(
+                child: Obx(() => DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value:
+                            ageGroup.value == '' ? null : ageGroup.value,
+                        hint: Text("Select Age Group"),
+                        items: ageGroups
+                            .map((e) =>
+                                DropdownMenuItem<String>(value: e['name'] as String, child: Text(e['name'] as String)))
+                            .toList(),
+                        onChanged: (val) => ageGroup.value = val!,
+                        dropdownColor: Colors.white,
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                    )),
+              ),
               _label("IMMUNIZED"),
               Obx(() => SwitchListTile(
                     value: immunized.value,
@@ -161,6 +187,13 @@ class PatientRegistrationForm extends StatelessWidget {
                     (bg) => bg['name'] == bloodGroup.value,
                     orElse: () => {'id': 1, 'name': 'A+'},
                   );
+
+                  // Get age group ID from selected blood group name
+                  int ageGroupId = 1; // Default to A+ (ID: 1)
+                  final selectedAg = ageGroups.firstWhere(
+                    (ag) => ag['name'] == ageGroup.value,
+                    orElse: () => {'id': 1, 'name': 'Child (0-12)'},
+                  );
                   
                   // Determine father/husband name based on relation type
                   String fatherName = '';
@@ -177,7 +210,7 @@ class PatientRegistrationForm extends StatelessWidget {
                     fullName: nameCtrl.text.trim(),
                     fatherName: fatherName,
                     husbandName: husbandName,
-                    age: 18,
+                    ageGroup: selectedAg['id'],
                     gender: gender.value,
                     cnic: cnicCtrl.text.trim(),
                     contact: contactCtrl.text.trim(),

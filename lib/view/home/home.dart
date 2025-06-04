@@ -365,7 +365,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    visit.reasonForVisit,
+                    visit.reasonForVisit==1?'General OPD':'OBGYN',
                     style: descriptionTextStyle(size: 13),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
