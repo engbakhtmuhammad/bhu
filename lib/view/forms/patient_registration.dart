@@ -24,11 +24,12 @@ class PatientRegistrationForm extends StatelessWidget {
 
   final gender = ''.obs;
   final bloodGroup = ''.obs;
-  final ageGroup = ''.obs;
+  final age = 0.obs;
   final bloodGroups = <Map<String, dynamic>>[].obs;
-  final ageGroups = <Map<String, dynamic>>[].obs;
+  final ages = <Map<String, dynamic>>[].obs;
   final immunized = false.obs;
   final relationType = 'own'.obs;
+  final yearOfBirth = Rx<int?>(null);
   
   PatientRegistrationForm() {
     _loadBloodGroups();
@@ -65,7 +66,7 @@ class PatientRegistrationForm extends StatelessWidget {
         {'id': 8, 'name': 'O-'},
       ];
     }
-   ageGroups.value = [
+   ages.value = [
   {'id': 1, 'name': 'Child (0-12)'},
   {'id': 2, 'name': 'Teenager (13-19)'},
   {'id': 3, 'name': 'Adult (20-59)'},
@@ -93,7 +94,7 @@ class PatientRegistrationForm extends StatelessWidget {
                 child: DropdownButton<String>(
                   isExpanded: true,
                   value: relationType.value,
-                  items: ['own', 'father', 'husband']
+                  items: ['own', 'father', 'husband', 'mother']
                       .map((e) => DropdownMenuItem(
                             value: e,
                             child: Text(e.toUpperCase()),
@@ -116,7 +117,7 @@ class PatientRegistrationForm extends StatelessWidget {
                     child: DropdownButton<String>(
                       value: gender.value == '' ? null : gender.value,
                       hint: Text("Select Gender"),
-                      items: ['Male', 'Female']
+                      items: ['Male', 'Female', 'Transgender']
                           .map((e) =>
                               DropdownMenuItem(value: e, child: Text(e)))
                           .toList(),
@@ -125,50 +126,78 @@ class PatientRegistrationForm extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                   ))),
-              _label("BLOOD GROUP"),
-              DropDownWidget(
-                child: Obx(() => DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value:
-                            bloodGroup.value == '' ? null : bloodGroup.value,
-                        hint: Text("Select Blood Group"),
-                        items: bloodGroups
-                            .map((e) =>
-                                DropdownMenuItem<String>(value: e['name'] as String, child: Text(e['name'] as String)))
-                            .toList(),
-                        onChanged: (val) => bloodGroup.value = val!,
-                        dropdownColor: Colors.white,
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                    )),
+              // _label("BLOOD GROUP"),
+              // DropDownWidget(
+              //   child: Obx(() => DropdownButtonHideUnderline(
+              //         child: DropdownButton<String>(
+              //           value:
+              //               bloodGroup.value == '' ? null : bloodGroup.value,
+              //           hint: Text("Select Blood Group"),
+              //           items: bloodGroups
+              //               .map((e) =>
+              //                   DropdownMenuItem<String>(value: e['name'] as String, child: Text(e['name'] as String)))
+              //               .toList(),
+              //           onChanged: (val) => bloodGroup.value = val!,
+              //           dropdownColor: Colors.white,
+              //           borderRadius: BorderRadius.circular(8.0),
+              //         ),
+              //       )),
+              // ),
+               _label("YEAR OF BIRTH"),
+              GestureDetector(
+                onTap: () async {
+                  final DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime(DateTime.now().year - 20),
+                    firstDate: DateTime(1900),
+                    lastDate: DateTime.now(),
+                    initialDatePickerMode: DatePickerMode.year,
+                  );
+                  if (picked != null) {
+                    yearOfBirth.value = picked.year;
+                    // Calculate age from year of birth
+                    age.value = DateTime.now().year - picked.year;
+                    // Set age group based on calculated age
+                    // if (age <= 12) {
+                    //   age.value = 'Child (0-12)';
+                    // } else if (age <= 19) {
+                    //   age.value = 'Teenager (13-19)';
+                    // } else if (age <= 59) {
+                    //   age.value = 'Adult (20-59)';
+                    // } else {
+                    //   age.value = 'Senior (60+)';
+                    // }
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: greyColor,
+                    borderRadius: BorderRadius.circular(containerRoundCorner),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(IconlyLight.calendar),
+                      SizedBox(width: 10),
+                      Obx(() => Text(
+                        yearOfBirth.value != null
+                            ? "${yearOfBirth.value}"
+                            : "Select Year of Birth",
+                      )),
+                    ],
+                  ),
+                ),
               ),
-               _label("AGE GROUP"),
-              DropDownWidget(
-                child: Obx(() => DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value:
-                            ageGroup.value == '' ? null : ageGroup.value,
-                        hint: Text("Select Age Group"),
-                        items: ageGroups
-                            .map((e) =>
-                                DropdownMenuItem<String>(value: e['name'] as String, child: Text(e['name'] as String)))
-                            .toList(),
-                        onChanged: (val) => ageGroup.value = val!,
-                        dropdownColor: Colors.white,
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                    )),
-              ),
-              _label("IMMUNIZED"),
-              Obx(() => SwitchListTile(
-                    value: immunized.value,
-                    onChanged: (val) => immunized.value = val,
-                    title: Text("Immunized?"),
-                  )),
-              _label("MEDICAL HISTORY"),
-              InputField(
-                  hintText: "Chronic illnesses, allergies",
-                  controller: historyCtrl),
+              // _label("IMMUNIZED"),
+              // Obx(() => SwitchListTile(
+              //       value: immunized.value,
+              //       onChanged: (val) => immunized.value = val,
+              //       title: Text("Immunized?"),
+              //     )),
+              // _label("MEDICAL HISTORY"),
+              // InputField(
+              //     hintText: "Chronic illnesses, allergies",
+              //     controller: historyCtrl),
               const SizedBox(height: 20),
               CustomBtn(
                 icon: IconlyLight.addUser,
@@ -187,13 +216,6 @@ class PatientRegistrationForm extends StatelessWidget {
                     (bg) => bg['name'] == bloodGroup.value,
                     orElse: () => {'id': 1, 'name': 'A+'},
                   );
-
-                  // Get age group ID from selected blood group name
-                  int ageGroupId = 1; // Default to A+ (ID: 1)
-                  final selectedAg = ageGroups.firstWhere(
-                    (ag) => ag['name'] == ageGroup.value,
-                    orElse: () => {'id': 1, 'name': 'Child (0-12)'},
-                  );
                   
                   // Determine father/husband name based on relation type
                   String fatherName = '';
@@ -210,7 +232,7 @@ class PatientRegistrationForm extends StatelessWidget {
                     fullName: nameCtrl.text.trim(),
                     fatherName: fatherName,
                     husbandName: husbandName,
-                    ageGroup: selectedAg['id'],
+                    age: age.value,
                     gender: gender.value,
                     cnic: cnicCtrl.text.trim(),
                     contact: contactCtrl.text.trim(),

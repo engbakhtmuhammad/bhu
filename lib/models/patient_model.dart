@@ -5,7 +5,7 @@ class PatientModel {
   final String fullName;   // This corresponds to name in ApiPatientModel
   final String fatherName;
   final String? husbandName;
-  final int ageGroup;
+  final int age;
   final String gender;
   final String cnic;
   final int version;
@@ -25,7 +25,7 @@ class PatientModel {
     required this.fullName,
     required this.fatherName,
     this.husbandName,
-    required this.ageGroup,
+    required this.age,
     required this.gender,
     required this.cnic,
     this.version = 1,
@@ -45,7 +45,7 @@ class PatientModel {
     return {
       'id': patientId,
       'name': fullName,
-      'age': bloodGroup.toString(),
+      'age': age,
       'gender': gender,
       'relationCnic': cnic,
       'phoneNumber': contact,
@@ -65,7 +65,7 @@ class PatientModel {
       fullName: map['name'] ?? '',
       fatherName: map['fatherName'] ?? '',
       husbandName: map['husbandName'],
-      ageGroup: int.tryParse(map['ageGroup'] ?? '1') ?? 1, // Convert string to int
+      age: map['age'] ?? '1'?? 18, 
       gender: map['gender'] ?? '',
       cnic: map['relationCnic'] ?? '',
       version: map['version'] ?? 1,
@@ -90,7 +90,7 @@ class PatientModel {
       'name': fullName,
       'fatherName': fatherName,
       'husbandName': husbandName,
-      'ageGroup': ageGroup,
+      'age': age,
       'gender': gender,
       'cnic': cnic,
       'version': version,
@@ -110,7 +110,7 @@ class PatientModel {
       fullName: apiModel.name,
       fatherName: apiModel.fatherName,
       husbandName: apiModel.husbandName,
-      ageGroup: apiModel.ageGroup,
+      age: apiModel.age,
       gender: apiModel.gender,
       cnic: apiModel.cnic,
       version: apiModel.version,

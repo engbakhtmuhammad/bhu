@@ -527,7 +527,7 @@ class PatientFormData {
   final String address;
   final int gender;
   final int bloodGroup;
-  final int ageGroup;
+  final int age;
   final String medicalHistory;
   final bool immunized;
 
@@ -540,7 +540,7 @@ class PatientFormData {
     required this.address,
     required this.gender,
     required this.bloodGroup,
-    required this.ageGroup,
+    required this.age,
     required this.medicalHistory,
     required this.immunized,
   });
@@ -554,7 +554,7 @@ class PatientFormData {
     'address': address,
     'gender': gender,
     'bloodGroup': bloodGroup,
-    'ageGroup': ageGroup,
+    'age': age,
     'medicalHistory': medicalHistory,
     'immunized': immunized,
   };
@@ -566,14 +566,14 @@ class OpdFormData {
   final String visitDateTime;
   final bool reasonForVisit; // if obgyn then 0 else 1
   final bool isFollowUp;
-  final List<String> diagnosis;
+  final List<int> diagnosis;
   final List<String> prescriptions;
-  final List<String> labTests;
+  final List<int> labTests;
   final bool isReferred;
   final bool followUpAdvised;
   final int? followUpDays;
   final bool fpAdvised;
-  final List<String> fpList;
+  final List<int> fpList;
   final String? obgynData;
 
   OpdFormData({

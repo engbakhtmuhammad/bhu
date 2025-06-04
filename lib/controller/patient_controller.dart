@@ -37,6 +37,9 @@ class PatientController extends GetxController {
     } else if (relationType == "husband") {
       suffix = existing.length + 96;
       return "${cnic}${suffix.toString().padLeft(3, '0')}";
+    } else if (relationType == "mother") {
+      suffix = existing.length + 50;
+      return "${cnic}${suffix.toString().padLeft(3, '0')}";
     }
 
     return "${cnic}000"; // fallback

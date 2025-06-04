@@ -298,7 +298,7 @@ class SyncController extends GetxController {
       'id': 0, // New record
       'ticketNo': opdVisit.opdTicketNo,
       'visitDateTime': opdVisit.visitDateTime.toIso8601String(),
-      'reasonForVisit': opdVisit.reasonForVisit == 'General OPD', // Convert to boolean
+      'reasonForVisit': opdVisit.reasonForVisit == 'General OPD'?true:false, // Convert to boolean
       'followUps': opdVisit.isFollowUp,
       'followUpsAdvised': opdVisit.followUpAdvised,
       'fpAdvised': opdVisit.fpAdvised,
@@ -365,7 +365,7 @@ class SyncController extends GetxController {
       'address': patient.address,
       'gender': genderId,
       'bloodGroup': patient.bloodGroup,
-      'ageGroup': patient.ageGroup,
+      'age': patient.age,
       'medicalHistory': patient.medicalHistory,
       'immunized': patient.immunized,
     };
@@ -434,7 +434,7 @@ class SyncController extends GetxController {
           address: patient.address ?? '',
           gender: patient.gender == 'Male' ? 1 : 2,
           bloodGroup: patient.bloodGroup ?? 1,
-          ageGroup: patient.ageGroup ?? 1,
+          age: patient.age ?? 18,
           medicalHistory: patient.medicalHistory ?? '',
           immunized: patient.immunized ? true : false,
         );
@@ -468,8 +468,8 @@ class SyncController extends GetxController {
         }
         
         // Debug log the diagnosis and lab tests
-        debugPrint('Diagnosis: ${visit.diagnosis}');
-        debugPrint('Lab tests: ${visit.labTests}');
+        debugPrint('Diagnosis: ${visit.diagnosisIds}');
+        debugPrint('Lab tests: ${visit.labTestIds}');
         debugPrint('Prescriptions: $prescriptionTexts');
         
         // Convert reasonForVisit to boolean if it's a string
@@ -486,14 +486,14 @@ class SyncController extends GetxController {
           visitDateTime: visit.visitDateTime.toIso8601String(),
           reasonForVisit: isGeneralOPD,
           isFollowUp: visit.isFollowUp,
-          diagnosis: visit.diagnosis,
+          diagnosis: visit.diagnosisIds,
           prescriptions: prescriptionTexts,
-          labTests: visit.labTests,
+          labTests: visit.labTestIds,
           isReferred: visit.isReferred,
           followUpAdvised: visit.followUpAdvised,
           followUpDays: visit.followUpDays ?? 0,
           fpAdvised: visit.fpAdvised,
-          fpList: visit.fpList,
+          fpList: visit.fpIds,
           obgynData: visit.obgynData ?? '',
         );
         

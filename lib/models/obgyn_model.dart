@@ -22,6 +22,8 @@ class ObgynModel {
   // Post-Delivery fields
   final String? postpartumFollowup;
   final List<String> familyPlanningServices;
+  final String? babyGender;
+  final int? babyWeight;
 
   ObgynModel({
     required this.visitType,
@@ -39,11 +41,13 @@ class ObgynModel {
     this.referredToHigherTier,
     this.ttAdvised,
     this.deliveryMode,
+    this.babyGender,
+    this.babyWeight,
     this.postpartumFollowup,
     this.familyPlanningServices = const [],
   });
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'visitType': visitType,
       'ancCardAvailable': ancCardAvailable,
@@ -60,32 +64,36 @@ class ObgynModel {
       'referredToHigherTier': referredToHigherTier,
       'ttAdvised': ttAdvised,
       'deliveryMode': deliveryMode,
+      'babyGender': babyGender,
+      'babyWeight': babyWeight,
       'postpartumFollowup': postpartumFollowup,
-      'familyPlanningServices': familyPlanningServices.join(','),
+      'familyPlanningServices': familyPlanningServices,
     };
   }
 
-  factory ObgynModel.fromMap(Map<String, dynamic> map) {
+  factory ObgynModel.fromJson(Map<String, dynamic> json) {
     return ObgynModel(
-      visitType: map['visitType'] ?? '',
-      ancCardAvailable: map['ancCardAvailable'],
-      gestationalAge: map['gestationalAge'],
-      antenatalVisits: map['antenatalVisits'],
-      fundalHeight: map['fundalHeight'],
-      ultrasoundReports: map['ultrasoundReports'],
-      highRiskIndicators: map['highRiskIndicators'],
-      parity: map['parity'],
-      gravida: map['gravida'],
-      complications: map['complications'],
-      expectedDeliveryDate: map['expectedDeliveryDate'] != null 
-          ? DateTime.parse(map['expectedDeliveryDate']) 
+      visitType: json['visitType'] ?? '',
+      ancCardAvailable: json['ancCardAvailable'],
+      gestationalAge: json['gestationalAge'],
+      antenatalVisits: json['antenatalVisits'],
+      fundalHeight: json['fundalHeight'],
+      ultrasoundReports: json['ultrasoundReports'],
+      highRiskIndicators: json['highRiskIndicators'],
+      parity: json['parity'],
+      gravida: json['gravida'],
+      complications: json['complications'],
+      expectedDeliveryDate: json['expectedDeliveryDate'] != null 
+          ? DateTime.parse(json['expectedDeliveryDate']) 
           : null,
-      deliveryFacility: map['deliveryFacility'],
-      referredToHigherTier: map['referredToHigherTier'],
-      ttAdvised: map['ttAdvised'],
-      deliveryMode: map['deliveryMode'],
-      postpartumFollowup: map['postpartumFollowup'],
-      familyPlanningServices: map['familyPlanningServices']?.split(',') ?? [],
+      deliveryFacility: json['deliveryFacility'],
+      referredToHigherTier: json['referredToHigherTier'],
+      ttAdvised: json['ttAdvised'],
+      deliveryMode: json['deliveryMode'],
+      babyGender: json['babyGender'],
+      babyWeight: json['babyWeight'],
+      postpartumFollowup: json['postpartumFollowup'],
+      familyPlanningServices: json['familyPlanningServices']?.split(',') ?? [],
     );
   }
 }

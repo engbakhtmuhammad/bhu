@@ -90,6 +90,11 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
                   )),
             ),
 
+            // OBGYN Section (shown only if OBGYN is selected) - moved up
+            Obx(() => controller.reasonForVisit.value == 'OBGYN' 
+                ? _buildObgynSection() 
+                : SizedBox()),
+
             _label("FOLLOW-UP"),
             Obx(() => SwitchListTile(
                   value: controller.isFollowUp.value,
@@ -152,11 +157,6 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
 
             Obx(() => controller.fpAdvised.value ? _buildFpSection() : SizedBox()),
 
-            // OBGYN Section (shown only if OBGYN is selected)
-            Obx(() => controller.reasonForVisit.value == 'OBGYN' 
-                ? _buildObgynSection() 
-                : SizedBox()),
-                
             // Prescription Section
             _label("PRESCRIPTIONS"),
             _buildPrescriptionSection(),
@@ -203,7 +203,7 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
                   return CheckboxListTile(
                     title: Text(disease.name),
                     value: controller.selectedDiseases.contains(disease.name),
-                    onChanged: (val) => controller.toggleDiseaseSelection(disease.name),
+                    onChanged: (val) => controller.toggleDiseaseSelection(disease.name, disease.id),
                     dense: true,
                   );
                 }).toList(),
@@ -218,11 +218,13 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
   Widget _buildLabTestsSection() {
     return DropDownWidget(
       child: Obx(() => Column(
-            children: controller.labTestOptions.map((test) {
+            children: controller.labTestOptions.asMap().entries.map((entry) {
+              final index = entry.key;
+              final test = entry.value;
               return CheckboxListTile(
                 title: Text(test),
                 value: controller.selectedLabTests.contains(test),
-                onChanged: (val) => controller.toggleLabTestSelection(test),
+                onChanged: (val) => controller.toggleLabTestSelection(test, index + 1), // Use index+1 as ID
                 dense: true,
               );
             }).toList(),
@@ -237,11 +239,13 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
         _label("FAMILY PLANNING LIST"),
         DropDownWidget(
           child: Obx(() => Column(
-                children: controller.fpOptions.map((fp) {
+                children: controller.fpOptions.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final fp = entry.value;
                   return CheckboxListTile(
                     title: Text(fp),
                     value: controller.selectedFpList.contains(fp),
-                    onChanged: (val) => controller.toggleFpSelection(fp),
+                    onChanged: (val) => controller.toggleFpSelection(fp, index + 1), // Use index+1 as ID
                     dense: true,
                   );
                 }).toList(),
@@ -475,6 +479,42 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
                 ),
               )),
         ),
+        
+        // Show baby details only for normal delivery or neonatal death
+        Obx(() => (controller.deliveryMode.value.contains('Normal Delivery') || 
+                   controller.deliveryMode.value.contains('Neonatal Death')) 
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _label("BABY GENDER"),
+                  DropDownWidget(
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: controller.babyGender.value.isEmpty ? null : controller.babyGender.value,
+                        isExpanded: true,
+                        hint: Text("Select Baby Gender"),
+                        items: ['Male', 'Female']
+                            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                            .toList(),
+                        onChanged: (val) => controller.babyGender.value = val!,
+                        dropdownColor: Colors.white,
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                    ),
+                  ),
+                  
+                  _label("BABY WEIGHT (grams)"),
+                  InputField(
+                    hintText: "Enter baby weight in grams",
+                    inputType: TextInputType.number,
+                    onChanged: (val) {
+                      int weight = int.tryParse(val) ?? 0;
+                      controller.babyWeight.value = weight;
+                    },
+                  ),
+                ],
+              )
+            : SizedBox()),
       ],
     );
   }

@@ -82,7 +82,7 @@ class DatabaseHelper {
         phoneNumber TEXT,
         address TEXT,
         bloodGroup TEXT,
-        ageGroup TEXT DEFAULT '15-30',
+        age TEXT DEFAULT '15-30',
         isPregnant INTEGER DEFAULT 0,
         isLactating INTEGER DEFAULT 0,
         isSynced INTEGER DEFAULT 0,
@@ -569,14 +569,14 @@ class DatabaseHelper {
       'patient_id': visit.patientId,
       'visit_date': visit.visitDateTime.toIso8601String(),
       'chief_complaint': visit.reasonForVisit,
-      'diagnosis': visit.diagnosis.isNotEmpty ? visit.diagnosis.join(',') : '',
+      'diagnosis': visit.diagnosisIds.isNotEmpty ? visit.diagnosisIds.join(',') : '',
       'treatment': '', // Prescriptions will be stored in a separate table
-      'lab_tests': visit.labTests.isNotEmpty ? visit.labTests.join(',') : '',
+      'lab_tests': visit.labTestIds.isNotEmpty ? visit.labTestIds.join(',') : '',
       'is_referred': visit.isReferred ? 1 : 0,
       'follow_up_advised': visit.followUpAdvised ? 1 : 0,
       'follow_up_days': visit.followUpDays,
       'fp_advised': visit.fpAdvised ? 1 : 0,
-      'fp_list': visit.fpList.isNotEmpty ? visit.fpList.join(',') : '',
+      'fp_list': visit.fpIds.isNotEmpty ? visit.fpIds.join(',') : '',
       'obgyn_data': visit.obgynData,
       'is_synced': 0,
       'created_at': DateTime.now().toIso8601String(),
@@ -677,29 +677,17 @@ class DatabaseHelper {
               maps[i]['visit_date'] ?? DateTime.now().toIso8601String()),
           reasonForVisit: reasonForVisit=='General OPD'?true:false,
           isFollowUp: isFollowUp,
-          diagnosis: maps[i]['diagnosis']
-                  ?.toString()
-                  .split(',')
-                  .where((s) => s.isNotEmpty)
-                  .toList() ??
-              [],
+          diagnosisIds: _parseIds(maps[i]['diagnosis']),
+          diagnosisNames: _parseNames(maps[i]['diagnosis_names']),
           prescriptions: prescriptions,
-          labTests: maps[i]['lab_tests']
-                  ?.toString()
-                  .split(',')
-                  .where((s) => s.isNotEmpty)
-                  .toList() ??
-              [],
+          labTestIds: _parseIds(maps[i]['lab_tests']),
+          labTestNames: _parseNames(maps[i]['lab_test_names']),
           isReferred: isReferred,
           followUpAdvised: followUpAdvised,
           followUpDays: maps[i]['follow_up_days'],
           fpAdvised: fpAdvised,
-          fpList: maps[i]['fp_list']
-                  ?.toString()
-                  .split(',')
-                  .where((s) => s.isNotEmpty)
-                  .toList() ??
-              [],
+          fpIds: _parseIds(maps[i]['fp_list']),
+          fpNames: _parseNames(maps[i]['fp_names']),
           obgynData: maps[i]['obgyn_data'],
         );
       });
@@ -1354,5 +1342,51 @@ class DatabaseHelper {
     } catch (e) {
       print('Error adding sync columns: $e');
     }
+  }
+
+  // Helper method to parse IDs from JSON or comma-separated string
+  List<int> _parseIds(dynamic value) {
+    if (value == null) return [];
+    
+    try {
+      if (value is String) {
+        // Try to parse as JSON first
+        try {
+          final List<dynamic> parsed = json.decode(value);
+          return parsed.map((id) => int.tryParse(id.toString()) ?? 0).toList();
+        } catch (_) {
+          // If JSON parsing fails, try comma-separated string
+          return value.split(',')
+              .where((s) => s.isNotEmpty)
+              .map((s) => int.tryParse(s) ?? 0)
+              .toList();
+        }
+      } else if (value is List) {
+        return value.map((id) => int.tryParse(id.toString()) ?? 0).toList();
+      }
+    } catch (e) {
+      print('Error parsing IDs: $e');
+    }
+    
+    return [];
+  }
+
+  // Helper method to parse names from comma-separated string
+  List<String> _parseNames(dynamic value) {
+    if (value == null) return [];
+    
+    try {
+      if (value is String) {
+        return value.split(',')
+            .where((s) => s.isNotEmpty)
+            .toList();
+      } else if (value is List) {
+        return value.map((item) => item.toString()).toList();
+      }
+    } catch (e) {
+      print('Error parsing names: $e');
+    }
+    
+    return [];
   }
 }

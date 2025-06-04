@@ -32,14 +32,19 @@ class OpdController extends GetxController {
   var selectedPatient = Rx<PatientModel?>(null);
   var reasonForVisit = 'General OPD'.obs;
   var isFollowUp = false.obs;
-  var selectedDiseases = <String>[].obs;
-  var selectedLabTests = <String>[].obs;
+  var selectedDiseaseIds = <int>[].obs;  // Changed from selectedDiseases string list
+  var selectedLabTestIds = <int>[].obs;  // Changed from selectedLabTests string list
   var isReferred = false.obs;
   var followUpAdvised = false.obs;
   var followUpDays = 1.obs;
   var fpAdvised = false.obs;
+  var selectedFpIds = <int>[].obs;       // Changed from selectedFpList string list
+
+  // Keep the original lists for UI display purposes
+  var selectedDiseases = <String>[].obs;
+  var selectedLabTests = <String>[].obs;
   var selectedFpList = <String>[].obs;
-  
+
   // OBGYN variables
   var obgynVisitType = 'Pre-Delivery'.obs;
   var ancCardAvailable = false.obs;
@@ -58,6 +63,12 @@ class OpdController extends GetxController {
   var deliveryMode = 'Normal Delivery (Live Birth)'.obs;
   var postpartumFollowup = ''.obs;
   var familyPlanningServices = <String>[].obs;
+  var babyGender = ''.obs;
+  var babyWeight = 0.obs;
+
+  // Add maps to store ID-to-name mappings
+  var labTestMap = <int, String>{}.obs;
+  var fpMap = <int, String>{}.obs;
 
   @override
   void onInit() {
@@ -83,6 +94,14 @@ class OpdController extends GetxController {
       
       if (fpServices.isNotEmpty) {
         fpOptions.value = fpServices.map((e) => e['name'] as String).toList();
+        
+        // Create ID-to-name mapping
+        fpMap.clear();
+        for (var i = 0; i < fpServices.length; i++) {
+          int id = fpServices[i]['id'] ?? (i + 1);
+          String name = fpServices[i]['name'] as String;
+          fpMap[id] = name;
+        }
       } else {
         // Fallback data for family planning
         print('Using default family planning services');
@@ -96,11 +115,17 @@ class OpdController extends GetxController {
           'Sterilization'
         ];
         
+        // Create ID-to-name mapping for defaults
+        fpMap.clear();
+        for (var i = 0; i < fpOptions.length; i++) {
+          fpMap[i + 1] = fpOptions[i];
+        }
+        
         // Save default values to local table
-        for (var option in fpOptions) {
+        for (var i = 0; i < fpOptions.length; i++) {
           await db.database.then((dbClient) => dbClient.insert(
             'api_family_planning', 
-            {'name': option},
+            {'id': i + 1, 'name': fpOptions[i]},
             conflictAlgorithm: ConflictAlgorithm.ignore
           ));
         }
@@ -117,6 +142,14 @@ class OpdController extends GetxController {
       
       if (labTests.isNotEmpty) {
         labTestOptions.value = labTests.map((e) => e['name'] as String).toList();
+        
+        // Create ID-to-name mapping
+        labTestMap.clear();
+        for (var i = 0; i < labTests.length; i++) {
+          int id = labTests[i]['id'] ?? (i + 1);
+          String name = labTests[i]['name'] as String;
+          labTestMap[id] = name;
+        }
       } else {
         // Fallback data for lab tests
         print('Using default lab tests');
@@ -132,11 +165,17 @@ class OpdController extends GetxController {
           'Ultrasound'
         ];
         
+        // Create ID-to-name mapping for defaults
+        labTestMap.clear();
+        for (var i = 0; i < labTestOptions.length; i++) {
+          labTestMap[i + 1] = labTestOptions[i];
+        }
+        
         // Save default values to local table
-        for (var option in labTestOptions) {
+        for (var i = 0; i < labTestOptions.length; i++) {
           await db.database.then((dbClient) => dbClient.insert(
             'api_lab_tests', 
-            {'name': option},
+            {'id': i + 1, 'name': labTestOptions[i]},
             conflictAlgorithm: ConflictAlgorithm.ignore
           ));
         }
@@ -480,10 +519,12 @@ class OpdController extends GetxController {
         referredToHigherTier: referredToHigherTier.value,
         ttAdvised: ttAdvised.value,
         deliveryMode: deliveryMode.value,
+        babyGender: babyGender.value,
+        babyWeight: babyWeight.value,
         postpartumFollowup: postpartumFollowup.value,
         familyPlanningServices: familyPlanningServices,
       );
-      obgynData = jsonEncode(obgynModel.toMap());
+      obgynData = jsonEncode(obgynModel.toJson());
     }
 
     // Convert prescriptions to a list of maps
@@ -500,14 +541,17 @@ class OpdController extends GetxController {
       visitDateTime: DateTime.now(),
       reasonForVisit: reasonForVisit.value=='General OPD'?true:false,
       isFollowUp: isFollowUp.value,
-      diagnosis: selectedDiseases,
-      prescriptions: prescriptionMaps, // Use the converted prescriptions
-      labTests: selectedLabTests,
+      diagnosisIds: selectedDiseaseIds,  // Store IDs instead of names
+      diagnosisNames: selectedDiseases,  // Keep names for display
+      prescriptions: prescriptionMaps,
+      labTestIds: selectedLabTestIds,    // Store IDs instead of names
+      labTestNames: selectedLabTests,    // Keep names for display
       isReferred: isReferred.value,
       followUpAdvised: followUpAdvised.value,
       followUpDays: followUpAdvised.value ? followUpDays.value : null,
       fpAdvised: fpAdvised.value,
-      fpList: selectedFpList,
+      fpIds: selectedFpIds,              // Store IDs instead of names
+      fpNames: selectedFpList,           // Keep names for display
       obgynData: obgynData,
     );
 
@@ -529,13 +573,19 @@ class OpdController extends GetxController {
         visitMap['chief_complaint'] = visit.reasonForVisit;
       
       if (columns.contains('diagnosis')) 
-        visitMap['diagnosis'] = visit.diagnosis.join(',');
+        visitMap['diagnosis'] = jsonEncode(visit.diagnosisIds);  // Store IDs as JSON
+      
+      if (columns.contains('diagnosis_names')) 
+        visitMap['diagnosis_names'] = visit.diagnosisNames.join(',');  // Store names for display
       
       if (columns.contains('treatment')) 
-        visitMap['treatment'] = jsonEncode(visit.prescriptions); // Store prescriptions as JSON
+        visitMap['treatment'] = jsonEncode(visit.prescriptions);
       
       if (columns.contains('lab_tests')) 
-        visitMap['lab_tests'] = visit.labTests.join(',');
+        visitMap['lab_tests'] = jsonEncode(visit.labTestIds);  // Store IDs as JSON
+      
+      if (columns.contains('lab_test_names')) 
+        visitMap['lab_test_names'] = visit.labTestNames.join(',');  // Store names for display
       
       if (columns.contains('is_referred')) 
         visitMap['is_referred'] = visit.isReferred ? 1 : 0;
@@ -550,7 +600,10 @@ class OpdController extends GetxController {
         visitMap['fp_advised'] = visit.fpAdvised ? 1 : 0;
       
       if (columns.contains('fp_list')) 
-        visitMap['fp_list'] = visit.fpList.join(',');
+        visitMap['fp_list'] = jsonEncode(visit.fpIds);  // Store IDs as JSON
+      
+      if (columns.contains('fp_names')) 
+        visitMap['fp_names'] = visit.fpNames.join(',');  // Store names for display
       
       if (columns.contains('obgyn_data')) 
         visitMap['obgyn_data'] = visit.obgynData;
@@ -566,8 +619,6 @@ class OpdController extends GetxController {
       
       // Insert the visit with only the columns that exist
       int visitId = await dbClient.insert('opd_visits', visitMap);
-      
-      // No need to save prescriptions separately anymore
     });
     
     await loadOpdVisits();
@@ -580,12 +631,15 @@ class OpdController extends GetxController {
     reasonForVisit.value = 'General OPD';
     isFollowUp.value = false;
     selectedDiseases.clear();
+    selectedDiseaseIds.clear();  // Clear IDs
     selectedLabTests.clear();
+    selectedLabTestIds.clear();  // Clear IDs
     isReferred.value = false;
     followUpAdvised.value = false;
     followUpDays.value = 1;
     fpAdvised.value = false;
     selectedFpList.clear();
+    selectedFpIds.clear();  // Clear IDs
     
     // Clear OBGYN fields
     obgynVisitType.value = 'Pre-Delivery';
@@ -605,6 +659,8 @@ class OpdController extends GetxController {
     deliveryMode.value = 'Normal Delivery (Live Birth)';
     postpartumFollowup.value = '';
     familyPlanningServices.clear();
+    babyGender.value = '';
+    babyWeight.value = 0;
     
     // Clear prescriptions
     prescriptions.clear();
@@ -621,27 +677,33 @@ class OpdController extends GetxController {
     return grouped;
   }
 
-  void toggleDiseaseSelection(String diseaseName) {
+  void toggleDiseaseSelection(String diseaseName, int diseaseId) {
     if (selectedDiseases.contains(diseaseName)) {
       selectedDiseases.remove(diseaseName);
+      selectedDiseaseIds.remove(diseaseId);
     } else {
       selectedDiseases.add(diseaseName);
+      selectedDiseaseIds.add(diseaseId);
     }
   }
 
-  void toggleLabTestSelection(String labTest) {
+  void toggleLabTestSelection(String labTest, int labTestId) {
     if (selectedLabTests.contains(labTest)) {
       selectedLabTests.remove(labTest);
+      selectedLabTestIds.remove(labTestId);
     } else {
       selectedLabTests.add(labTest);
+      selectedLabTestIds.add(labTestId);
     }
   }
 
-  void toggleFpSelection(String fp) {
+  void toggleFpSelection(String fp, int fpId) {
     if (selectedFpList.contains(fp)) {
       selectedFpList.remove(fp);
+      selectedFpIds.remove(fpId);
     } else {
       selectedFpList.add(fp);
+      selectedFpIds.add(fpId);
     }
   }
 
