@@ -158,8 +158,8 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
             Obx(() => controller.fpAdvised.value ? _buildFpSection() : SizedBox()),
 
             // Prescription Section
-            _label("PRESCRIPTIONS"),
-            _buildPrescriptionSection(),
+            // _label("PRESCRIPTIONS"),
+            // _buildPrescriptionSection(),
 
             const SizedBox(height: 20),
             CustomBtn(

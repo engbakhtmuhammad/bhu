@@ -82,7 +82,6 @@ class DatabaseHelper {
         phoneNumber TEXT,
         address TEXT,
         bloodGroup TEXT,
-        age TEXT DEFAULT '15-30',
         isPregnant INTEGER DEFAULT 0,
         isLactating INTEGER DEFAULT 0,
         isSynced INTEGER DEFAULT 0,
