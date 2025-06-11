@@ -278,16 +278,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: patient.gender == 'Male'
+                            color: patient.gender == '1'
                               ? Colors.blue.withOpacity(0.1)
                               : Colors.pink.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            patient.gender,
+                            patient.gender== '1'?'Male':'Female',
                             style: TextStyle(
                               fontSize: 12,
-                              color: patient.gender == 'Male'
+                              color: patient.gender == '1'
                                 ? Colors.blue
                                 : Colors.pink,
                               fontWeight: FontWeight.w500,

@@ -520,28 +520,45 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Obx(() => DropdownButtonHideUnderline(
-                  child: DropdownButton<Map<String, dynamic>>(
-                    value: controller.selectedDeliveryMode.value,
-                    isExpanded: true,
-                    hint: Text("Select Delivery Mode"),
-                    items: controller.deliveryModeOptionsWithIds
-                        .map((mode) => DropdownMenuItem(
-                              value: mode,
-                              child: Text(mode['name']),
-                            ))
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        controller.selectedDeliveryMode.value = val;
-                        controller.deliveryModeId.value = val['id'];
-                        controller.deliveryMode.value = val['name'];
-                      }
-                    },
-                    dropdownColor: Colors.white,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                )),
+            child: Obx(() {
+              // Create dropdown items with unique keys
+              final items = controller.deliveryModeOptionsWithIds.map((mode) {
+                return DropdownMenuItem<Map<String, dynamic>>(
+                  key: ValueKey("delivery_${mode['id']}"),
+                  value: mode,
+                  child: Text(mode['name']),
+                );
+              }).toList();
+              
+              // Find the matching item based on ID
+              Map<String, dynamic>? selectedValue;
+              if (controller.selectedDeliveryMode.value != null) {
+                for (var item in controller.deliveryModeOptionsWithIds) {
+                  if (item['id'] == controller.selectedDeliveryMode.value!['id']) {
+                    selectedValue = item;
+                    break;
+                  }
+                }
+              }
+              
+              return DropdownButtonHideUnderline(
+                child: DropdownButton<Map<String, dynamic>>(
+                  value: selectedValue,
+                  isExpanded: true,
+                  hint: Text("Select Delivery Mode"),
+                  items: items,
+                  onChanged: (val) {
+                    if (val != null) {
+                      controller.selectedDeliveryMode.value = val;
+                      controller.deliveryModeId.value = val['id'];
+                      controller.deliveryMode.value = val['name'];
+                    }
+                  },
+                  dropdownColor: Colors.white,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              );
+            }),
           ),
         ),
         
@@ -559,29 +576,50 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
                     ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<Map<String, dynamic>>(
-                          value: controller.selectedBabyGender.value,
-                          isExpanded: true,
-                          hint: Text("Select Baby Gender"),
-                          items: [
-                            {'id': 1, 'name': 'Male'},
-                            {'id': 2, 'name': 'Female'}
-                          ].map((gender) => DropdownMenuItem(
-                                value: gender,
-                                child: Text(gender['name'].toString()),
-                              )).toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              controller.selectedBabyGender.value = val;
-                              controller.babyGenderId.value = val['id'];
-                              controller.babyGender.value = val['name'];
+                      child: Obx(() {
+                        final genderOptions = [
+                          {'id': 1, 'name': 'Male'},
+                          {'id': 2, 'name': 'Female'}
+                        ];
+                        
+                        // Create dropdown items with unique keys
+                        final items = genderOptions.map((gender) {
+                          return DropdownMenuItem<Map<String, dynamic>>(
+                            key: ValueKey("gender_${gender['id']}"),
+                            value: gender,
+                            child: Text(gender['name'].toString()),
+                          );
+                        }).toList();
+                        
+                        // Find the matching item based on ID
+                        Map<String, dynamic>? selectedValue;
+                        if (controller.selectedBabyGender.value != null) {
+                          for (var item in genderOptions) {
+                            if (item['id'] == controller.selectedBabyGender.value!['id']) {
+                              selectedValue = item;
+                              break;
                             }
-                          },
-                          dropdownColor: Colors.white,
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                      ),
+                          }
+                        }
+                        
+                        return DropdownButtonHideUnderline(
+                          child: DropdownButton<Map<String, dynamic>>(
+                            value: selectedValue,
+                            isExpanded: true,
+                            hint: Text("Select Baby Gender"),
+                            items: items,
+                            onChanged: (val) {
+                              if (val != null) {
+                                controller.selectedBabyGender.value = val;
+                                controller.babyGenderId.value = val['id'];
+                                controller.babyGender.value = val['name'];
+                              }
+                            },
+                            dropdownColor: Colors.white,
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                        );
+                      }),
                     ),
                   ),
                   
@@ -861,5 +899,12 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
         }),
       ],
     );
+  }
+
+  bool _mapEquals(Map<String, dynamic>? map1, Map<String, dynamic>? map2) {
+    if (map1 == null || map2 == null) return map1 == map2;
+    if (map1['id'] != map2['id']) return false;
+    if (map1['name'] != map2['name']) return false;
+    return true;
   }
 }

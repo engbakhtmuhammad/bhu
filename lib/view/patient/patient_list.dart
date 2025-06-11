@@ -390,7 +390,7 @@ class _AllPatientsScreenState extends State<AllPatientsScreen> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            patient.gender,
+                            patient.gender== '1'?'Male':'Female',
                             style: TextStyle(
                               fontSize: 12,
                               color: _getGenderColor(patient.gender),
@@ -432,7 +432,7 @@ class _AllPatientsScreenState extends State<AllPatientsScreen> {
   }
 
   Color _getGenderColor(String gender) {
-    return gender == 'Male' ? Colors.blue : Colors.pink;
+    return gender == '1' ? Colors.blue : Colors.pink;
   }
 
   Widget _buildEmptyState() {
