@@ -11,6 +11,7 @@ class PrescriptionController extends GetxController {
   // Observable lists for dropdown options
   final RxList<String> commonDrugs = <String>[].obs;
   final RxList<String> medicineDosages = <String>[].obs;
+  final RxList<Map<String, dynamic>> medicinesWithIds = <Map<String, dynamic>>[].obs;
   
   // Selected values
   final RxString selectedOpdTicket = ''.obs;
@@ -85,32 +86,39 @@ class PrescriptionController extends GetxController {
       
       if (medicines.isNotEmpty) {
         commonDrugs.value = medicines.map((e) => e['name'] as String).toList();
+        medicinesWithIds.value = medicines.map((e) => {
+          'id': e['id'],
+          'name': e['name']
+        }).toList();
       } else {
         // Fallback to default medicines only if both tables are empty
         print('Both API and local medicines tables are empty, using default list');
-        commonDrugs.value = [
-          'Paracetamol',
-          'Ibuprofen',
-          'Aspirin',
-          'Amoxicillin',
-          'Ciprofloxacin',
-          'Metronidazole',
-          'Omeprazole',
-          'Diazepam',
-          'Atenolol',
-          'Metformin',
-          'Salbutamol',
-          'Hydrocortisone',
-          'Chlorpheniramine',
-          'Albendazole',
-          'Artemether/Lumefantrine'
+        List<Map<String, dynamic>> defaultMedicines = [
+          {'id': 1, 'name': 'Paracetamol'},
+          {'id': 2, 'name': 'Ibuprofen'},
+          {'id': 3, 'name': 'Aspirin'},
+          {'id': 4, 'name': 'Amoxicillin'},
+          {'id': 5, 'name': 'Ciprofloxacin'},
+          {'id': 6, 'name': 'Metronidazole'},
+          {'id': 7, 'name': 'Omeprazole'},
+          {'id': 8, 'name': 'Diazepam'},
+          {'id': 9, 'name': 'Atenolol'},
+          {'id': 10, 'name': 'Metformin'},
+          {'id': 11, 'name': 'Salbutamol'},
+          {'id': 12, 'name': 'Hydrocortisone'},
+          {'id': 13, 'name': 'Chlorpheniramine'},
+          {'id': 14, 'name': 'Albendazole'},
+          {'id': 15, 'name': 'Artemether/Lumefantrine'}
         ];
         
+        commonDrugs.value = defaultMedicines.map((e) => e['name'] as String).toList();
+        medicinesWithIds.value = defaultMedicines;
+        
         // Save default medicines to database for future use
-        for (var drug in commonDrugs) {
+        for (var drug in defaultMedicines) {
           await db.database.then((dbClient) => dbClient.insert(
             'medicines', 
-            {'name': drug},
+            {'id': drug['id'], 'name': drug['name']},
             conflictAlgorithm: ConflictAlgorithm.ignore
           ));
         }

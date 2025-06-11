@@ -314,12 +314,9 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
     // Initialize controllers with current values
     final gestationalAgeCtrl = TextEditingController(text: controller.gestationalAge.value.toString());
     final fundalHeightCtrl = TextEditingController(text: controller.fundalHeight.value.toString());
-    final highRiskCtrl = TextEditingController(text: controller.highRiskIndicators.value);
     final parityCtrl = TextEditingController(text: controller.parity.value.toString());
     final gravidaCtrl = TextEditingController(text: controller.gravida.value.toString());
-    final complicationsCtrl = TextEditingController(text: controller.complications.value);
-    final facilityCtrl = TextEditingController(text: controller.deliveryFacility.value);
-
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -393,10 +390,36 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
             )),
 
         _label("HIGH-RISK PREGNANCY INDICATORS"),
-        InputField(
-          hintText: "Enter high-risk indicators",
-          controller: highRiskCtrl,
-          onChanged: (val) => controller.highRiskIndicators.value = val,
+        Container(
+          decoration: BoxDecoration(
+            color: greyColor,
+            borderRadius: BorderRadius.circular(containerRoundCorner),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Obx(() => DropdownButtonHideUnderline(
+                  child: DropdownButton<Map<String, dynamic>>(
+                    value: controller.selectedPregnancyIndicator.value,
+                    isExpanded: true,
+                    hint: Text("Select High-Risk Indicator"),
+                    items: controller.pregnancyIndicatorsWithIds
+                        .map((indicator) => DropdownMenuItem(
+                              value: indicator,
+                              child: Text(indicator['name']),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        controller.selectedPregnancyIndicator.value = val;
+                        controller.pregnancyIndicatorId.value = val['id'];
+                        controller.highRiskIndicators.value = val['name'];
+                      }
+                    },
+                    dropdownColor: Colors.white,
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                )),
+          ),
         ),
 
         _label("PARITY"),
@@ -424,7 +447,7 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
         _label("COMPLICATIONS"),
         InputField(
           hintText: "Enter complications",
-          controller: complicationsCtrl,
+          controller: TextEditingController(text: controller.complications.value),
           onChanged: (val) => controller.complications.value = val,
         ),
 
@@ -464,7 +487,7 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
         _label("DELIVERY FACILITY"),
         InputField(
           hintText: "Enter delivery facility",
-          controller: facilityCtrl,
+          controller: TextEditingController(text: controller.deliveryFacility.value),
           onChanged: (val) => controller.deliveryFacility.value = val,
         ),
 
@@ -490,19 +513,36 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _label("DELIVERY MODE"),
-        DropDownWidget(
-          child: Obx(() => DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: controller.deliveryMode.value,
-                  isExpanded: true,
-                  items: controller.deliveryModeOptions
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                      .toList(),
-                  onChanged: (val) => controller.deliveryMode.value = val!,
-                  dropdownColor: Colors.white,
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-              )),
+        Container(
+          decoration: BoxDecoration(
+            color: greyColor,
+            borderRadius: BorderRadius.circular(containerRoundCorner),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Obx(() => DropdownButtonHideUnderline(
+                  child: DropdownButton<Map<String, dynamic>>(
+                    value: controller.selectedDeliveryMode.value,
+                    isExpanded: true,
+                    hint: Text("Select Delivery Mode"),
+                    items: controller.deliveryModeOptionsWithIds
+                        .map((mode) => DropdownMenuItem(
+                              value: mode,
+                              child: Text(mode['name']),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        controller.selectedDeliveryMode.value = val;
+                        controller.deliveryModeId.value = val['id'];
+                        controller.deliveryMode.value = val['name'];
+                      }
+                    },
+                    dropdownColor: Colors.white,
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                )),
+          ),
         ),
         
         // Show baby details only for normal delivery or neonatal death
@@ -512,33 +552,46 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _label("BABY GENDER"),
-                  DropDownWidget(
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: controller.babyGender.value.isEmpty ? null : controller.babyGender.value,
-                        isExpanded: true,
-                        hint: Text("Select Baby Gender"),
-                        items: [
-                          {'id': 1, 'name': 'Male'},
-                          {'id': 2, 'name': 'Female'}
-                        ]
-                            .map((e) => DropdownMenuItem<String>(value: e['name'] as String, child: Text(e['name'] as String)))
-                            .toList(),
-                        onChanged: (val) {
-                          controller.babyGender.value = val!;
-                          // Set the gender ID: 1 for Male, 2 for Female
-                          controller.babyGenderId.value = val == 'Male' ? 1 : 2;
-                        },
-                        dropdownColor: Colors.white,
-                        borderRadius: BorderRadius.circular(8.0),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: greyColor,
+                      borderRadius: BorderRadius.circular(containerRoundCorner),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<Map<String, dynamic>>(
+                          value: controller.selectedBabyGender.value,
+                          isExpanded: true,
+                          hint: Text("Select Baby Gender"),
+                          items: [
+                            {'id': 1, 'name': 'Male'},
+                            {'id': 2, 'name': 'Female'}
+                          ].map((gender) => DropdownMenuItem(
+                                value: gender,
+                                child: Text(gender['name'].toString()),
+                              )).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              controller.selectedBabyGender.value = val;
+                              controller.babyGenderId.value = val['id'];
+                              controller.babyGender.value = val['name'];
+                            }
+                          },
+                          dropdownColor: Colors.white,
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
                       ),
                     ),
                   ),
                   
-                  _label("BABY WEIGHT (grams)"),
+                  _label("BABY WEIGHT (GRAMS)"),
                   InputField(
                     hintText: "Enter baby weight in grams",
                     inputType: TextInputType.number,
+                    controller: TextEditingController(text: controller.babyWeight.value > 0 
+                        ? controller.babyWeight.value.toString() 
+                        : ""),
                     onChanged: (val) {
                       int weight = int.tryParse(val) ?? 0;
                       controller.babyWeight.value = weight;
@@ -552,16 +605,40 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
   }
 
   Widget _buildPostDeliverySection() {
-    final postpartumCtrl = TextEditingController(text: controller.postpartumFollowup.value);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _label("POSTPARTUM FOLLOW-UP & NEONATAL HEALTH"),
-        InputField(
-          hintText: "Enter postpartum follow-up details",
-          controller: postpartumCtrl,
-          onChanged: (val) => controller.postpartumFollowup.value = val,
+        _label("POSTPARTUM"),
+        Container(
+          decoration: BoxDecoration(
+            color: greyColor,
+            borderRadius: BorderRadius.circular(containerRoundCorner),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Obx(() => DropdownButtonHideUnderline(
+                  child: DropdownButton<Map<String, dynamic>>(
+                    value: controller.selectedPostpartumStatus.value,
+                    isExpanded: true,
+                    hint: Text("Select Postpartum Status"),
+                    items: controller.postpartumStatusOptionsWithIds
+                        .map((status) => DropdownMenuItem(
+                              value: status,
+                              child: Text(status['name']),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        controller.selectedPostpartumStatus.value = val;
+                        controller.postpartumStatusId.value = val['id'];
+                        controller.postpartumFollowup.value = val['name'];
+                      }
+                    },
+                    dropdownColor: Colors.white,
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                )),
+          ),
         ),
 
         _label("FAMILY PLANNING SERVICES"),
@@ -595,21 +672,24 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: selectedDrug,
+              child: DropdownButton<Map<String, dynamic>>(
+                value: controller.selectedDrug.value,
                 hint: Text("Select Drug"),
                 isExpanded: true,
-                items: prescriptionController.commonDrugs
+                items: prescriptionController.medicinesWithIds
                     .map((drug) => DropdownMenuItem(
                           value: drug,
-                          child: Text(drug),
+                          child: Text(drug['name']),
                         ))
                     .toList(),
                 onChanged: (val) {
-                  setState(() {
-                    selectedDrug = val;
-                    drugNameCtrl.text = val ?? '';
-                  });
+                  if (val != null) {
+                    setState(() {
+                      controller.selectedDrug.value = val;
+                      controller.drugId.value = val['id'];
+                      drugNameCtrl.text = val['name'];
+                    });
+                  }
                 },
                 dropdownColor: Colors.white,
                 borderRadius: BorderRadius.circular(8.0),
@@ -624,7 +704,8 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
           controller: drugNameCtrl,
           onChanged: (val) {
             setState(() {
-              selectedDrug = null; // Clear dropdown selection when typing
+              controller.selectedDrug.value = null; // Clear dropdown selection when typing
+              controller.drugId.value = 0; // Reset drug ID when custom name is entered
             });
           },
         ),
@@ -692,6 +773,7 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
             // Create a new prescription
             final newPrescription = PrescriptionModel(
               drugName: drugNameCtrl.text.trim(),
+              id: controller.drugId.value, // Use the drug ID
               dosage: dosageCtrl.text.trim(),
               duration: durationCtrl.text.trim(),
               opdTicketNo: controller.selectedPatient.value?.patientId ?? '',
@@ -703,7 +785,8 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
             
             // Clear form
             setState(() {
-              selectedDrug = null;
+              controller.selectedDrug.value = null;
+              controller.drugId.value = 0;
               drugNameCtrl.clear();
               dosageCtrl.clear();
               durationCtrl.clear();

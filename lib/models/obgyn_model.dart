@@ -4,10 +4,10 @@ class ObgynModel {
   // Pre-Delivery fields
   final bool? ancCardAvailable;
   final int? gestationalAge;
-  final String? antenatalVisits;
+  final String? antenatalVisits; // Now stores ID as string
   final int? fundalHeight;
   final bool? ultrasoundReports;
-  final String? highRiskIndicators;
+  final String? highRiskIndicators; // Now stores ID as string
   final int? parity;
   final int? gravida;
   final String? complications;
@@ -17,14 +17,14 @@ class ObgynModel {
   final bool? ttAdvised;
   
   // Delivery fields
-  final String? deliveryMode;
+  final String? deliveryMode; // Now stores ID as string
   
   // Post-Delivery fields
-  final String? postpartumFollowup;
+  final String? postpartumFollowup; // Now stores ID as string
   final List<String> familyPlanningServices;
-  final String? babyGender;
+  final String? babyGender; // Now stores ID as string
   final int? babyWeight;
-
+  
   ObgynModel({
     required this.visitType,
     this.ancCardAvailable,
@@ -41,12 +41,12 @@ class ObgynModel {
     this.referredToHigherTier,
     this.ttAdvised,
     this.deliveryMode,
-    this.babyGender,
-    this.babyWeight,
     this.postpartumFollowup,
     this.familyPlanningServices = const [],
+    this.babyGender,
+    this.babyWeight,
   });
-
+  
   Map<String, dynamic> toJson() {
     return {
       'visitType': visitType,
@@ -64,16 +64,16 @@ class ObgynModel {
       'referredToHigherTier': referredToHigherTier,
       'ttAdvised': ttAdvised,
       'deliveryMode': deliveryMode,
-      'babyGender': babyGender,
-      'babyWeight': babyWeight,
       'postpartumFollowup': postpartumFollowup,
       'familyPlanningServices': familyPlanningServices,
+      'babyGender': babyGender,
+      'babyWeight': babyWeight,
     };
   }
-
+  
   factory ObgynModel.fromJson(Map<String, dynamic> json) {
     return ObgynModel(
-      visitType: json['visitType'] ?? '',
+      visitType: json['visitType'] ?? 'Pre-Delivery',
       ancCardAvailable: json['ancCardAvailable'],
       gestationalAge: json['gestationalAge'],
       antenatalVisits: json['antenatalVisits'],
@@ -90,10 +90,12 @@ class ObgynModel {
       referredToHigherTier: json['referredToHigherTier'],
       ttAdvised: json['ttAdvised'],
       deliveryMode: json['deliveryMode'],
+      postpartumFollowup: json['postpartumFollowup'],
+      familyPlanningServices: json['familyPlanningServices'] != null 
+          ? List<String>.from(json['familyPlanningServices']) 
+          : [],
       babyGender: json['babyGender'],
       babyWeight: json['babyWeight'],
-      postpartumFollowup: json['postpartumFollowup'],
-      familyPlanningServices: json['familyPlanningServices']?.split(',') ?? [],
     );
   }
 }

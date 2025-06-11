@@ -18,6 +18,8 @@ class OpdVisitModel {
   final List<int> fpIds;           // Store IDs
   final List<String> fpNames;      // Store names for display
   final String? obgynData;
+  final int? pregnancyIndicatorId;
+  final int? postpartumStatusId;
   
   OpdVisitModel({
     required this.opdTicketNo,
@@ -37,6 +39,8 @@ class OpdVisitModel {
     required this.fpIds,
     required this.fpNames,
     this.obgynData,
+    this.pregnancyIndicatorId,
+    this.postpartumStatusId,
   });
 
   Map<String, dynamic> toMap() {
@@ -55,6 +59,8 @@ class OpdVisitModel {
       'fpAdvised': fpAdvised ? 1 : 0,
       'fpList': fpIds.join(','),
       'obgynData': obgynData,
+      'pregnancy_indicator_id': pregnancyIndicatorId,
+      'postpartum_status_id': postpartumStatusId,
     };
   }
 
@@ -149,6 +155,8 @@ class OpdVisitModel {
       fpIds: fpIds,
       fpNames: fpNames,
       obgynData: map['obgyn_data'],
+      pregnancyIndicatorId: map['pregnancy_indicator_id'],
+      postpartumStatusId: map['postpartum_status_id'],
     );
   }
 }

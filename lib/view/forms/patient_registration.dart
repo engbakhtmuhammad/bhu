@@ -152,6 +152,18 @@ class PatientRegistrationForm extends StatelessWidget {
                     firstDate: DateTime(1900),
                     lastDate: DateTime.now(),
                     initialDatePickerMode: DatePickerMode.year,
+                    builder: (context, child) {
+                      return Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: ColorScheme.light(
+                            primary: primaryColor,
+                            onPrimary: whiteColor,
+                            surface: whiteColor,
+                          ),
+                        ),
+                        child: child!,
+                      );
+                    },
                   );
                   if (picked != null) {
                     yearOfBirth.value = picked.year;

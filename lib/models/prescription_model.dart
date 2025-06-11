@@ -1,5 +1,5 @@
 class PrescriptionModel {
-  final int? id; // Made nullable for auto-increment
+  final int? id;
   final String drugName;
   final String dosage;
   final String duration;
@@ -7,16 +7,17 @@ class PrescriptionModel {
   final int quantity;
 
   PrescriptionModel({
-    this.id, // Now nullable
+    this.id,
     required this.drugName,
-    required this.dosage,
-    required this.duration,
+    this.dosage = '',
+    this.duration = '',
     required this.opdTicketNo,
     this.quantity = 1,
   });
 
   Map<String, dynamic> toMap() {
-    final map = {
+    return {
+      'id': id,
       'drugName': drugName,
       'dosage': dosage,
       'duration': duration,
@@ -24,12 +25,6 @@ class PrescriptionModel {
       'quantity': quantity,
     };
     
-    // Only include id if it's not null (for updates)
-    if (id != null) {
-      map['id'] = id!;
-    }
-    
-    return map;
   }
 
   factory PrescriptionModel.fromMap(Map<String, dynamic> map) {

@@ -76,13 +76,28 @@ class OpdController extends GetxController {
   // Add this property for antenatal visit selection
   var selectedAntenatalVisit = Rx<Map<String, dynamic>?>(null);
 
+  // Add these new variables
+  var pregnancyIndicatorsWithIds = <Map<String, dynamic>>[].obs;
+  var postpartumStatusOptionsWithIds = <Map<String, dynamic>>[].obs;
+  var selectedPregnancyIndicator = Rx<Map<String, dynamic>?>(null);
+  var selectedPostpartumStatus = Rx<Map<String, dynamic>?>(null);
+  var pregnancyIndicatorId = 0.obs;
+  var postpartumStatusId = 0.obs;
+  var deliveryModeOptionsWithIds = <Map<String, dynamic>>[].obs;
+  var selectedDeliveryMode = Rx<Map<String, dynamic>?>(null);
+  var selectedBabyGender = Rx<Map<String, dynamic>?>(null);
+  var deliveryModeId = 0.obs;
+
+  // For prescription
+  var selectedDrug = Rx<Map<String, dynamic>?>(null);
+  var drugId = 0.obs;
+
   @override
   void onInit() {
-    loadOpdVisits();
+    super.onInit();
+    loadReferenceData();
     loadPatients();
     loadDiseases();
-    loadReferenceData();
-    super.onInit();
   }
 
   Future<void> loadReferenceData() async {
@@ -229,22 +244,31 @@ class OpdController extends GetxController {
       
       if (deliveryModes.isNotEmpty) {
         deliveryModeOptions.value = deliveryModes.map((e) => e['name'] as String).toList();
+        
+        // Create list with IDs for dropdown
+        deliveryModeOptionsWithIds.value = deliveryModes.map((e) => {
+          'id': e['id'] as int,
+          'name': e['name'] as String
+        }).toList();
       } else {
         // Fallback data for delivery modes
         print('Using default delivery modes');
-        deliveryModeOptions.value = [
-          'Normal Delivery (Live Birth)',
-          'C-Section (Live Birth)',
-          'Normal Delivery (Stillbirth)',
-          'C-Section (Stillbirth)',
-          'Assisted Delivery'
+        final defaultModes = [
+          {'id': 1, 'name': 'Normal Delivery (Live Birth)'},
+          {'id': 2, 'name': 'C-Section (Live Birth)'},
+          {'id': 3, 'name': 'Normal Delivery (Stillbirth)'},
+          {'id': 4, 'name': 'C-Section (Stillbirth)'},
+          {'id': 5, 'name': 'Assisted Delivery'}
         ];
         
+        deliveryModeOptions.value = defaultModes.map((e) => e['name'] as String).toList();
+        deliveryModeOptionsWithIds.value = defaultModes;
+        
         // Save default values to local table
-        for (var option in deliveryModeOptions) {
+        for (var option in defaultModes) {
           await db.database.then((dbClient) => dbClient.insert(
             'api_delivery_modes', 
-            {'name': option},
+            {'id': option['id'], 'name': option['name']},
             conflictAlgorithm: ConflictAlgorithm.ignore
           ));
         }
@@ -381,18 +405,72 @@ class OpdController extends GetxController {
         }
       }
       
+      // Load pregnancy indicators with IDs
+      final pregnancyIndicatorsWithIdsData = await db.getPregnancyIndicators();
+      if (pregnancyIndicatorsWithIdsData.isNotEmpty) {
+        pregnancyIndicatorsWithIds.value = pregnancyIndicatorsWithIdsData.map((e) => {
+          'id': e['id'] as int,
+          'name': e['name'] as String
+        }).toList();
+      } else {
+        // Fallback data for pregnancy indicators
+        print('Using default pregnancy indicators');
+        final defaultIndicators = [
+          {'id': 1, 'name': 'High'},
+          {'id': 2, 'name': 'Medium'},
+          {'id': 3, 'name': 'Low'},
+        ];
+        
+        pregnancyIndicatorsWithIds.value = defaultIndicators;
+        
+        // Save default values to local table
+        for (var option in defaultIndicators) {
+          await db.database.then((dbClient) => dbClient.insert(
+            'api_pregnancy_indicators', 
+            {'id': option['id'], 'name': option['name']},
+            conflictAlgorithm: ConflictAlgorithm.ignore
+          ));
+        }
+      }
+      
+      // Load postpartum statuses with IDs
+      final postpartumStatusesWithIdsData = await db.getPostpartumStatuses();
+      if (postpartumStatusesWithIdsData.isNotEmpty) {
+        postpartumStatusOptionsWithIds.value = postpartumStatusesWithIdsData.map((e) => {
+          'id': e['id'] as int,
+          'name': e['name'] as String
+        }).toList();
+      } else {
+        // Fallback data for postpartum statuses
+        print('Using default postpartum statuses');
+        final defaultStatuses = [
+          {'id': 1, 'name': 'Hight'},
+          {'id': 2, 'name': 'Medium'},
+          {'id': 3, 'name': 'Low'},
+        ];
+        
+        postpartumStatusOptionsWithIds.value = defaultStatuses;
+        
+        // Save default values to local table
+        for (var option in defaultStatuses) {
+          await db.database.then((dbClient) => dbClient.insert(
+            'api_postpartum_statuses', 
+            {'id': option['id'], 'name': option['name']},
+            conflictAlgorithm: ConflictAlgorithm.ignore
+          ));
+        }
+      }
+      
       print('Reference data loading completed');
     } catch (e) {
       print('Error loading reference data: $e');
       // Set fallback values if there's an error
       fpOptions.value = [
+        'Pills',
+        'Injections',
         'Condoms',
-        'Oral Contraceptive Pills',
-        'Injectable Contraceptives',
-        'IUD',
-        'Implants',
-        'Natural Family Planning',
-        'Sterilization'
+        'IUCD/Implants',
+        'FP Counseling',
       ];
       
       labTestOptions.value = [
@@ -408,35 +486,34 @@ class OpdController extends GetxController {
       ];
       
       antenatalVisitOptions.value = [
-        'ANC 1-4',
-        'ANC 5-8',
-        'ANC 9+',
-        'No ANC'
+        'ANC 1',
+        'ANC 2',
+        'ANC 3',
+        'ANC 4',
+        'ANC 5+',
+        'Additional Checkup',
       ];
       
       deliveryModeOptions.value = [
         'Normal Delivery (Live Birth)',
-        'C-Section (Live Birth)',
-        'Normal Delivery (Stillbirth)',
-        'C-Section (Stillbirth)',
-        'Assisted Delivery'
+        'Maternal Death',
+        'Still Birth',
+        'Neonatal Death (within 28 days)',
+        'Intra Uterine Death',
+        'Abortion'
       ];
       
       pregnancyIndicators.value = [
-        'Hypertension',
-        'Diabetes',
-        'Anemia',
-        'Previous C-Section',
-        'Multiple Pregnancy',
-        'Teenage Pregnancy',
-        'Advanced Maternal Age'
+        'High',
+        'Medium',
+        'Low'
       ];
       
       ttAdvisedOptions.value = [
-        'TT1',
-        'TT2',
-        'TT Booster',
-        'Not Advised'
+        'TT1 Advised',
+        'TT1 Given',
+        'TT2 Advised',
+        'TT2 Given',
       ];
       
       postPartumStatusOptions.value = [
@@ -444,6 +521,16 @@ class OpdController extends GetxController {
         'Complications Present',
         'Referred for Higher Care',
         'Follow-up Required'
+      ];
+      
+      // Add fallback for delivery modes with IDs
+      deliveryModeOptionsWithIds.value = [
+        {'id': 1, 'name': 'Normal Delivery (Live Birth)'},
+        {'id': 2, 'name': 'Maternal Death'},
+        {'id': 3, 'name': 'Still Birth'},
+        {'id': 4, 'name': 'Neonatal Death (within 28 days)'},
+        {'id': 5, 'name': 'Intra Uterine Death'},
+        {'id': 6, 'name': 'Abortion'}
       ];
     }
   }
@@ -588,10 +675,10 @@ class OpdController extends GetxController {
         deliveryFacility: deliveryFacility.value,
         referredToHigherTier: referredToHigherTier.value,
         ttAdvised: ttAdvised.value,
-        deliveryMode: deliveryMode.value,
+        deliveryMode: deliveryModeId.value.toString(), // Use ID instead of name
         babyGender: babyGenderId.value.toString(),
         babyWeight: babyWeight.value,
-        postpartumFollowup: postpartumFollowup.value,
+        postpartumFollowup: postpartumStatusId.value.toString(), // Use ID instead of name
         familyPlanningServices: familyPlanningServices,
       );
       obgynData = jsonEncode(obgynModel.toJson());
@@ -623,6 +710,8 @@ class OpdController extends GetxController {
       fpIds: selectedFpIds,              // Store IDs instead of names
       fpNames: selectedFpList,           // Keep names for display
       obgynData: obgynData,
+      pregnancyIndicatorId: pregnancyIndicatorId.value > 0 ? pregnancyIndicatorId.value : null,
+      postpartumStatusId: postpartumStatusId.value > 0 ? postpartumStatusId.value : null,
     );
 
     await db.database.then((dbClient) async {
@@ -734,6 +823,17 @@ class OpdController extends GetxController {
     
     // Clear prescriptions
     prescriptions.clear();
+    
+    // Clear new fields
+    selectedPregnancyIndicator.value = null;
+    selectedPostpartumStatus.value = null;
+    pregnancyIndicatorId.value = 0;
+    postpartumStatusId.value = 0;
+    
+    // Clear delivery mode fields
+    selectedDeliveryMode.value = null;
+    selectedBabyGender.value = null;
+    deliveryModeId.value = 0;
   }
 
   Map<String, List<DiseaseModel>> get groupedDiseases {

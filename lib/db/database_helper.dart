@@ -1017,7 +1017,7 @@ class DatabaseHelper {
     final db = await database;
     return await db.query('api_pregnancy_indicators');
   }
-
+  
   Future<List<Map<String, dynamic>>> getPostpartumStatuses() async {
     final db = await database;
     return await db.query('api_postpartum_statuses');

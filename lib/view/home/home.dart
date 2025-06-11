@@ -31,6 +31,14 @@ class _HomeScreenState extends State<HomeScreen> {
   final AuthController authController = Get.put(AuthController());
 
   @override
+  void initState() {
+    super.initState();
+    // Make sure to load OPD visits when the home screen initializes
+    patientController.loadPatients();
+    opdController.loadOpdVisits();
+  }
+
+  @override
   void dispose() {
     searchController.dispose();
     super.dispose();
@@ -38,6 +46,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Add debug print to check OPD visits count
+    print('OPD Visits count: ${opdController.opdVisits.length}');
+    
     return Scaffold(
       backgroundColor: whiteColor,
       body: ListView(
