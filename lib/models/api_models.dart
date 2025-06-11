@@ -347,12 +347,12 @@ class ApiPatient {
   final String address;
   final int version;
   final int age;
-  final String bloodGroup;
+  final int bloodGroup;
   final String cnic;
   final String contact;
   final String emergencyContact;
   final String fatherName;
-  final String gender;
+  final int gender;
   final String husbandName;
   final bool immunization;
   final String medicalHistory;
@@ -377,21 +377,21 @@ class ApiPatient {
   });
 
   factory ApiPatient.fromJson(Map<String, dynamic> json) => ApiPatient(
-    id: json['id'],
-    name: json['name'],
-    address: json['address'],
-    version: json['version'],
-    age: json['age'],
-    bloodGroup: json['bloodGroup'],
-    cnic: json['cnic'],
-    contact: json['contact'],
-    emergencyContact: json['emergencyContact'],
-    fatherName: json['fatherName'],
-    gender: json['gender'],
-    husbandName: json['husbandName'],
-    immunization: json['immunization'],
-    medicalHistory: json['medicalHistory'],
-    uniqueId: json['uniqueId'],
+    id: json['id'] ?? 0,
+    name: json['name'] ?? '',
+    address: json['address'] ?? '',
+    version: json['version'] ?? 0,
+    age: json['age'] ?? 0,
+    bloodGroup: json['bloodGroup'] ?? 1,
+    cnic: json['cnic'] ?? '',
+    contact: json['contact'] ?? '',
+    emergencyContact: json['emergencyContact'] ?? '',
+    fatherName: json['fatherName'] ?? '',
+    gender: json['gender'] ?? '',
+    husbandName: json['husbandName'] ?? '',
+    immunization: json['immunization'] ?? false,
+    medicalHistory: json['medicalHistory'] ?? '',
+    uniqueId: json['uniqueId'] ?? '',
   );
 
   Map<String, dynamic> toJson() => {

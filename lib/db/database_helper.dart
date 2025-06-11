@@ -1,6 +1,7 @@
 import 'package:bhu/models/prescription_model.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import '../models/api_patient_models.dart';
 import '../models/disease_model.dart';
 import '../models/patient_model.dart';
 import '../models/opd_visit_model.dart';
@@ -909,6 +910,33 @@ class DatabaseHelper {
             conflictAlgorithm: ConflictAlgorithm.replace);
       }
 
+      // Store patients if available
+      if (data.patients != null && data.patients!.isNotEmpty) {
+        print('Storing ${data.patients!.length} patients from reference data');
+        
+        // First clear existing patients if needed
+        // Uncomment the next line if you want to clear existing patients
+        // await db.delete('patients');
+        
+        for (var patientData in data.patients!) {
+          try {
+            // Convert to PatientModel
+            final patient = PatientModel.fromApiModel(
+              ApiPatientModel.fromJson(patientData)
+            );
+            
+            // Insert into database
+            await db.insert(
+              'patients',
+              patient.toMap(),
+              conflictAlgorithm: ConflictAlgorithm.replace
+            );
+          } catch (e) {
+            print('Error storing patient: $e');
+          }
+        }
+      }
+
       // Execute all inserts as a batch
       await batch.commit();
       print('Reference data stored successfully');
@@ -979,6 +1007,7 @@ class DatabaseHelper {
     await db.execute('CREATE TABLE IF NOT EXISTS api_medicines (id INTEGER PRIMARY KEY, name TEXT, code TEXT, version INTEGER DEFAULT 0)');
     await db.execute('CREATE TABLE IF NOT EXISTS api_health_facilities (id INTEGER PRIMARY KEY, name TEXT)');
     await db.execute('CREATE TABLE IF NOT EXISTS api_user_roles (id INTEGER PRIMARY KEY, name TEXT)');
+    await db.execute('CREATE TABLE IF NOT EXISTS api_patients (id INTEGER PRIMARY KEY, name TEXT, address TEXT, version INTEGER DEFAULT 0, age INTEGER DEFAULT 0, bloodGroup INTEGER DEFAULT 1, cnic TEXT, contact TEXT, emergencyContact TEXT, fatherName TEXT, gender INTEGER DEFAULT 1, husbandName TEXT, immunization INTEGER DEFAULT 0, medicalHistory TEXT, uniqueId TEXT)');
   }
 
   // Method to check if tables exist and print their schema

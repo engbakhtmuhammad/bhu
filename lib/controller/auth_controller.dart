@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
 import '../models/api_models.dart';
+import '../models/patient_model.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 
@@ -256,9 +258,43 @@ class AuthController extends GetxController {
       currentUser.value = user;
       await prefs.setString(_userKey, jsonEncode(user.toJson()));
 
+      // Store patients from decrypted data if available
+      if (decryptedData?.patients != null && decryptedData!.patients!.isNotEmpty) {
+        await _storeDecryptedPatients(decryptedData.patients!);
+      }
+
     } catch (e) {
       print('Error storing auth data: $e');
       throw Exception('Failed to store authentication data');
+    }
+  }
+
+  /// Store decrypted patients in the local database
+  Future<void> _storeDecryptedPatients(List<dynamic> patients) async {
+    try {
+      final dbHelper = DatabaseHelper();
+      final db = await dbHelper.database;
+      int storedCount = 0;
+
+      // Begin transaction for better performance
+      await db.transaction((txn) async {
+        for (var patient in patients) {
+          // Convert API patient model to local patient model
+          final patientModel = PatientModel.fromApiModel(patient);
+          
+          // Insert into database with conflict resolution
+          await txn.insert(
+            'patients',
+            patientModel.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+          storedCount++;
+        }
+      });
+
+      print('Successfully stored $storedCount patients in local database');
+    } catch (e) {
+      print('Error storing decrypted patients: $e');
     }
   }
 

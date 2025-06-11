@@ -15,7 +15,8 @@ class AppUserData {
   final List<PregnancyIndicator>? pregnancyIndicators;
   final List<PostPartumStatus>? postPartumStatuses;
   final List<MedicineDosage>? medicineDosages;
-  final List<FamilyPlanningService>? familyPlanning; // Changed from familyPlanningServices to match API
+  final List<FamilyPlanningService>? familyPlanning;
+  final List<dynamic>? patients; // Add this field for patients
 
   AppUserData({
     this.userInfo,
@@ -33,54 +34,72 @@ class AppUserData {
     this.pregnancyIndicators,
     this.postPartumStatuses,
     this.medicineDosages,
-    this.familyPlanning, // Changed from familyPlanningServices
+    this.familyPlanning,
+    this.patients, // Include in constructor
   });
 
   factory AppUserData.fromJson(Map<String, dynamic> json) {
     return AppUserData(
-      userInfo: json['userInfo'] != null ? UserInfo.fromJson(json['userInfo']) : null,
+      userInfo:
+          json['userInfo'] != null ? UserInfo.fromJson(json['userInfo']) : null,
       token: json['token'],
       districts: json['districts'] != null
-          ? List<District>.from(json['districts'].map((x) => District.fromJson(x)))
+          ? List<District>.from(
+              json['districts'].map((x) => District.fromJson(x)))
           : null,
       healthFacilities: json['healthFacilities'] != null
-          ? List<HealthFacility>.from(json['healthFacilities'].map((x) => HealthFacility.fromJson(x)))
+          ? List<HealthFacility>.from(
+              json['healthFacilities'].map((x) => HealthFacility.fromJson(x)))
           : null,
       diseases: json['diseases'] != null
           ? List<Disease>.from(json['diseases'].map((x) => Disease.fromJson(x)))
           : null,
       subDiseases: json['subDiseases'] != null
-          ? List<SubDisease>.from(json['subDiseases'].map((x) => SubDisease.fromJson(x)))
+          ? List<SubDisease>.from(
+              json['subDiseases'].map((x) => SubDisease.fromJson(x)))
           : null,
       medicines: json['medicines'] != null
-          ? List<Medicine>.from(json['medicines'].map((x) => Medicine.fromJson(x)))
+          ? List<Medicine>.from(
+              json['medicines'].map((x) => Medicine.fromJson(x)))
           : null,
       bloodGroups: json['bloodGroups'] != null
-          ? List<BloodGroup>.from(json['bloodGroups'].map((x) => BloodGroup.fromJson(x)))
+          ? List<BloodGroup>.from(
+              json['bloodGroups'].map((x) => BloodGroup.fromJson(x)))
           : null,
       deliveryTypes: json['deliveryTypes'] != null
-          ? List<DeliveryType>.from(json['deliveryTypes'].map((x) => DeliveryType.fromJson(x)))
+          ? List<DeliveryType>.from(
+              json['deliveryTypes'].map((x) => DeliveryType.fromJson(x)))
           : null,
       deliveryModes: json['deliveryModes'] != null
-          ? List<DeliveryMode>.from(json['deliveryModes'].map((x) => DeliveryMode.fromJson(x)))
+          ? List<DeliveryMode>.from(
+              json['deliveryModes'].map((x) => DeliveryMode.fromJson(x)))
           : null,
       antenatalVisits: json['antenatalVisits'] != null
-          ? List<AntenatalVisit>.from(json['antenatalVisits'].map((x) => AntenatalVisit.fromJson(x)))
+          ? List<AntenatalVisit>.from(
+              json['antenatalVisits'].map((x) => AntenatalVisit.fromJson(x)))
           : null,
       tTAdvisedList: json['tTAdvisedList'] != null
-          ? List<TTAdvised>.from(json['tTAdvisedList'].map((x) => TTAdvised.fromJson(x)))
+          ? List<TTAdvised>.from(
+              json['tTAdvisedList'].map((x) => TTAdvised.fromJson(x)))
           : null,
       pregnancyIndicators: json['pregnancyIndicators'] != null
-          ? List<PregnancyIndicator>.from(json['pregnancyIndicators'].map((x) => PregnancyIndicator.fromJson(x)))
+          ? List<PregnancyIndicator>.from(json['pregnancyIndicators']
+              .map((x) => PregnancyIndicator.fromJson(x)))
           : null,
       postPartumStatuses: json['postPartumStatuses'] != null
-          ? List<PostPartumStatus>.from(json['postPartumStatuses'].map((x) => PostPartumStatus.fromJson(x)))
+          ? List<PostPartumStatus>.from(json['postPartumStatuses']
+              .map((x) => PostPartumStatus.fromJson(x)))
           : null,
       medicineDosages: json['medicineDosages'] != null
-          ? List<MedicineDosage>.from(json['medicineDosages'].map((x) => MedicineDosage.fromJson(x)))
+          ? List<MedicineDosage>.from(
+              json['medicineDosages'].map((x) => MedicineDosage.fromJson(x)))
           : null,
       familyPlanning: json['familyPlanning'] != null
-          ? List<FamilyPlanningService>.from(json['familyPlanning'].map((x) => FamilyPlanningService.fromJson(x)))
+          ? List<FamilyPlanningService>.from(json['familyPlanning']
+              .map((x) => FamilyPlanningService.fromJson(x)))
+          : null,
+          patients: json['patients'] != null
+          ? List<dynamic>.from(json['patients'])
           : null,
     );
   }

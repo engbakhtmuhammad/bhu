@@ -40,6 +40,7 @@ class OpdController extends GetxController {
   var followUpDays = 1.obs;
   var fpAdvised = false.obs;
   var selectedFpIds = <int>[].obs;       // Changed from selectedFpList string list
+  var opdTicketNo = ''.obs;
 
   // Keep the original lists for UI display purposes
   var selectedDiseases = <String>[].obs;
@@ -656,6 +657,7 @@ class OpdController extends GetxController {
     }
 
     final ticketNo = await db.generateOpdTicketNo();
+    opdTicketNo.value = ticketNo; // Store the ticket number
     
     // Prepare OBGYN data if needed
     String? obgynData;

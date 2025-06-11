@@ -83,16 +83,16 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
                           Container(
                             padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: widget.patient.gender == 'Male' 
+                              color: widget.patient.gender == '1' 
                                 ? Colors.blue.withOpacity(0.1) 
                                 : Colors.pink.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              widget.patient.gender,
+                              widget.patient.gender== '1'?'Male':'Female',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: widget.patient.gender == 'Male' 
+                                color: widget.patient.gender == '1' 
                                   ? Colors.blue 
                                   : Colors.pink,
                                 fontWeight: FontWeight.w600,

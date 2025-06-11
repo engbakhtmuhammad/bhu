@@ -296,19 +296,19 @@ class SyncController extends GetxController {
   Map<String, dynamic> _convertOpdVisitToApiFormat(opdVisit) {
     return {
       'id': 0, // New record
-      'ticketNo': opdVisit.opdTicketNo,
+      'ticketNo': opdVisit.opdTicketNo, // This should now be the actual ticket number
       'visitDateTime': opdVisit.visitDateTime.toIso8601String(),
-      'reasonForVisit': opdVisit.reasonForVisit == 'General OPD'?true:false, // Convert to boolean
+      'reasonForVisit': opdVisit.reasonForVisit == 'General OPD'?true:false,
       'followUps': opdVisit.isFollowUp,
       'followUpsAdvised': opdVisit.followUpAdvised,
       'fpAdvised': opdVisit.fpAdvised,
       'referred': opdVisit.isReferred,
-      'prescription': opdVisit.prescriptions.join(', '), // Join prescriptions
+      'prescription': opdVisit.prescriptions.join(', '),
       'patientId': int.tryParse(opdVisit.patientId) ?? 0,
-      'subDiseases': opdVisit.diagnosis.join(','), // Assuming diagnosis contains disease IDs
+      'subDiseases': opdVisit.diagnosis.join(','),
       'labTests': opdVisit.labTests.join(','),
       'familyPlannings': opdVisit.fpList.join(','),
-      'medicineDosages': opdVisit.prescriptions.join(','), // Assuming prescriptions contain medicine IDs
+      'medicineDosages': opdVisit.prescriptions.join(','),
     };
   }
 
@@ -360,7 +360,7 @@ class SyncController extends GetxController {
       'patientId': patient.patientId,
       'fullName': patient.fullName,
       'relationCnic': patient.cnic,
-      'relationType': patient.fatherName,
+      'relationType': patient.relationType,
       'contact': patient.contact,
       'address': patient.address,
       'gender': genderId,
@@ -429,7 +429,7 @@ class SyncController extends GetxController {
           patientId: patient.patientId,
           fullName: patient.fullName,
           relationCnic: patient.cnic ?? '',
-          relationType: patient.fatherName ?? '',
+          relationType: patient.relationType.toString(),
           contact: patient.contact ?? '',
           address: patient.address ?? '',
           gender: patient.gender == 'Male' ? 1 : 2,
@@ -452,19 +452,20 @@ class SyncController extends GetxController {
         final prescriptions = await _dbHelper.getPrescriptionsByTicket(visit.opdTicketNo);
         debugPrint('Found ${prescriptions.length} prescriptions for visit ${visit.opdTicketNo}');
         
-        // If no prescriptions found in the prescriptions table, try to extract from the visit.prescriptions field
+        // Format prescriptions properly with medicine name and quantity
         List<String> prescriptionTexts = [];
         if (prescriptions.isEmpty && visit.prescriptions.isNotEmpty) {
           debugPrint('Using prescriptions from OPD visit record');
           prescriptionTexts = visit.prescriptions.map((p) {
             if (p is Map<String, dynamic>) {
-              return "${p['drugName'] ?? ''} - ${p['dosage'] ?? ''} - ${p['duration'] ?? ''}";
+              // Format as "Medicine Name - Quantity"
+              return "${p['drugName'] ?? 'Unknown'}, ${p['quantity'] ?? '1'}";
             }
             return p.toString();
           }).toList();
         } else {
           prescriptionTexts = prescriptions.map((p) => 
-            "${(p as PrescriptionModel).drugName} - ${(p as PrescriptionModel).dosage} - ${(p as PrescriptionModel).duration}").toList();
+            "${(p as PrescriptionModel).drugName}, ${(p as PrescriptionModel).quantity}").toList();
         }
         
         // Debug log the diagnosis and lab tests

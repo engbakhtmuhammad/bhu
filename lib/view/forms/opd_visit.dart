@@ -33,6 +33,9 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
     super.initState();
     print('Initializing OpdVisitForm');
     
+    // Generate OPD ticket number at form initialization
+    _generateOpdTicketNumber();
+    
     // Load prescription data immediately
     prescriptionController.loadMedicines().then((_) {
       // Force UI update after data is loaded
@@ -45,7 +48,18 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
       print('Dosage list size: ${prescriptionController.medicineDosages.length}');
       print('Lab test options size: ${controller.labTestOptions.length}');
       print('FP options size: ${controller.fpOptions.length}');
+      print('Current OPD Ticket Number: ${controller.opdTicketNo.value}');
     });
+  }
+  
+  // Add this method to generate the OPD ticket number
+  Future<void> _generateOpdTicketNumber() async {
+    if (controller.opdTicketNo.value.isEmpty) {
+      final db = DatabaseHelper();
+      final ticketNo = await db.generateOpdTicketNo();
+      controller.opdTicketNo.value = ticketNo;
+      print('Generated OPD Ticket Number: ${controller.opdTicketNo.value}');
+    }
   }
 
   @override
@@ -809,6 +823,11 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
               return;
             }
 
+            // Ensure we have a valid OPD ticket number
+            if (controller.opdTicketNo.value.isEmpty) {
+              await _generateOpdTicketNumber();
+            }
+
             // Save to database
             final dbHelper = DatabaseHelper();
             final now = DateTime.now().toIso8601String();
@@ -822,12 +841,15 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
               'medicine': controller.drugId.value.toString(),
               'dosage': dosageCtrl.text.trim(),
               'duration': durationCtrl.text.trim(),
-              'opdTicketNo': controller.selectedPatient.value?.patientId ?? '',
+              'opdTicketNo': controller.opdTicketNo.value, // Use the generated ticket number
               'quantity': int.tryParse(quantityCtrl.text) ?? 1,
               'is_synced': 0,
               'created_at': now,
               'updated_at': now,
             };
+            
+            // Debug log
+            print('Adding prescription with OPD Ticket: ${controller.opdTicketNo.value}');
             
             // Insert into database
             final db = await dbHelper.database;
@@ -835,12 +857,12 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
             print('Inserted prescription with ID: $newId');
             
             // Create a new prescription with the ID from the database
-             final newPrescription = PrescriptionModel(
+            final newPrescription = PrescriptionModel(
               id: newId,
               drugName: drugNameCtrl.text.trim(),
               dosage: dosageCtrl.text.trim(),
               duration: durationCtrl.text.trim(),
-              opdTicketNo: controller.selectedPatient.value?.patientId ?? '',
+              opdTicketNo: controller.opdTicketNo.value,
               quantity: int.tryParse(quantityCtrl.text) ?? 1,
               createdAt: now,
               updatedAt: now,
@@ -858,8 +880,6 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
               durationCtrl.clear();
               quantityCtrl.text = "1";
             });
-            
-            // Get.snackbar("Success", "Prescription added successfully (ID: $newId)");
           },
         ),
         

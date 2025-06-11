@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import '../models/api_models.dart' as api_models;
+import '../models/api_patient_models.dart';
 import '../models/app_user_data.dart';
 import 'encryption_service.dart';
 
@@ -167,7 +168,7 @@ class ApiService {
                   postPartumStatuses: appUserData.postPartumStatuses?.map((pps) => api_models.PostPartumStatus(id: pps.id, name: pps.name)).toList() ?? [],
                   medicineDosages: appUserData.medicineDosages?.map((md) => api_models.MedicineDosage(id: md.id, name: md.name)).toList() ?? [],
                   districts: appUserData.districts?.map((d) => api_models.District(id: d.id ?? 0, name: d.name ?? '', version: 1)).toList() ?? [],
-                  patients: [], // AppUserData doesn't have patients property
+                  patients: appUserData.patients?.map((p) => api_models.ApiPatient.fromJson(p)).toList() ?? [], // Convert patients data
                   diseases: appUserData.diseases?.map((d) => api_models.Disease(
                     id: d.id ?? 0, 
                     name: d.name ?? '', 
@@ -197,7 +198,7 @@ class ApiService {
               } catch (decryptError) {
                 return ApiResponse<LoginResponse>(
                   success: false,
-                  message: 'Failed to decrypt login response: $decryptError',
+                  message: 'Failed to decrypt login response: $decryptError\nCheck patient data for null values',
                   statusCode: response.statusCode,
                 );
               }
