@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:flutter_iconly/flutter_iconly.dart';
 import '../../controller/opd_controller.dart';
 import '../../controller/prescription_controller.dart';
+import '../../db/database_helper.dart';
 import '../../models/disease_model.dart';
 import '../../models/prescription_model.dart';
 import '../../utils/constants.dart';
@@ -802,23 +803,50 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
         CustomBtn(
           icon: IconlyLight.plus,
           text: "Add Prescription",
-          onPressed: () {
+          onPressed: () async {
             if (drugNameCtrl.text.trim().isEmpty) {
               Get.snackbar("Error", "Please enter drug name");
               return;
             }
+
+            // Save to database
+            final dbHelper = DatabaseHelper();
+            final now = DateTime.now().toIso8601String();
             
-            // Create a new prescription
-            final newPrescription = PrescriptionModel(
+            // Ensure the quantity column exists
+            await dbHelper.addQuantityColumnToPrescriptions();
+            
+            // Create a map that matches the database schema
+            final Map<String, dynamic> prescriptionMap = {
+              // Don't include id to let SQLite auto-generate it
+              'medicine': controller.drugId.value.toString(),
+              'dosage': dosageCtrl.text.trim(),
+              'duration': durationCtrl.text.trim(),
+              'opdTicketNo': controller.selectedPatient.value?.patientId ?? '',
+              'quantity': int.tryParse(quantityCtrl.text) ?? 1,
+              'is_synced': 0,
+              'created_at': now,
+              'updated_at': now,
+            };
+            
+            // Insert into database
+            final db = await dbHelper.database;
+            final newId = await db.insert('prescriptions', prescriptionMap);
+            print('Inserted prescription with ID: $newId');
+            
+            // Create a new prescription with the ID from the database
+             final newPrescription = PrescriptionModel(
+              id: newId,
               drugName: drugNameCtrl.text.trim(),
-              id: controller.drugId.value, // Use the drug ID
               dosage: dosageCtrl.text.trim(),
               duration: durationCtrl.text.trim(),
               opdTicketNo: controller.selectedPatient.value?.patientId ?? '',
               quantity: int.tryParse(quantityCtrl.text) ?? 1,
+              createdAt: now,
+              updatedAt: now,
             );
             
-            // Add to the list
+            // Add to the controller's list
             controller.prescriptions.add(newPrescription);
             
             // Clear form
@@ -830,6 +858,8 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
               durationCtrl.clear();
               quantityCtrl.text = "1";
             });
+            
+            // Get.snackbar("Success", "Prescription added successfully (ID: $newId)");
           },
         ),
         

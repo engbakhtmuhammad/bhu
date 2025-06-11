@@ -92,6 +92,7 @@ class PatientModel {
       'id': 0, // New record for API
       'uniqueId': patientId,
       'name': fullName,
+      'relationType': relationType,
       'fatherName': fatherName,
       'husbandName': husbandName,
       'age': age,

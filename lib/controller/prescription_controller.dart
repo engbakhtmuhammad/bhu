@@ -47,15 +47,25 @@ class PrescriptionController extends GetxController {
       return;
     }
 
+    // Create a timestamp for created_at and updated_at
+    final now = DateTime.now().toIso8601String();
+
     final newPrescription = prescription.PrescriptionModel(
       // Don't specify id - let SQLite auto-generate it
       drugName: drugName,
       dosage: dosage,
       duration: duration,
       opdTicketNo: selectedOpdTicket.value,
+      // Add created_at and updated_at fields
+      createdAt: now,
+      updatedAt: now,
     );
 
     int newId = await db.insertPrescription(newPrescription);
+    
+    // Debug log to verify prescription was added
+    print('Added prescription with ID: $newId, OPD Ticket: ${selectedOpdTicket.value}');
+    
     await loadPrescriptions(selectedOpdTicket.value);
     Get.snackbar("Success", "Prescription added successfully (ID: $newId)");
   }

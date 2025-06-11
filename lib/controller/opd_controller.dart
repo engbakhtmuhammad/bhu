@@ -686,6 +686,7 @@ class OpdController extends GetxController {
 
     // Convert prescriptions to a list of maps
     List<Map<String, dynamic>> prescriptionMaps = prescriptions.map((p) => {
+      'id': p.id,  // Store the prescription ID
       'drugName': p.drugName,
       'dosage': p.dosage,
       'duration': p.duration,

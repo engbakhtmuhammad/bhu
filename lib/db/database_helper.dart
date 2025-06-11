@@ -721,10 +721,30 @@ class DatabaseHelper {
   }
 
   // Prescription methods
-  Future<int> insertPrescription(
-      PrescriptionModel prescription) async {
+  Future<int> insertPrescription(PrescriptionModel prescription) async {
     final db = await database;
-    return await db.insert('prescriptions', prescription.toMap());
+    
+    // Ensure the quantity column exists
+    await addQuantityColumnToPrescriptions();
+    
+    // Create a map that matches the database schema
+    final Map<String, dynamic> prescriptionMap = {
+      // Don't include id to let SQLite auto-generate it
+      'medicine': prescription.drugName,  // Use 'medicine' field as in the schema
+      'dosage': prescription.dosage,
+      'duration': prescription.duration,
+      'opdTicketNo': prescription.opdTicketNo,
+      'quantity': prescription.quantity,
+      'is_synced': 0,
+      'created_at': prescription.createdAt ?? DateTime.now().toIso8601String(),
+      'updated_at': prescription.updatedAt ?? DateTime.now().toIso8601String(),
+    };
+    
+    // Debug log
+    print('Inserting prescription: $prescriptionMap');
+    
+    // Insert and return the new ID
+    return await db.insert('prescriptions', prescriptionMap);
   }
 
   Future<List<PrescriptionModel>> getPrescriptionsByOpdTicket(String opdTicketNo) async {
@@ -1255,52 +1275,40 @@ class DatabaseHelper {
   Future<List<PrescriptionModel>> getPrescriptionsByTicket(String opdTicketNo) async {
     final db = await database;
     try {
+      // Debug log
+      print('Fetching prescriptions for ticket: $opdTicketNo');
+      
+      // Get table info to check column names
+      var tableInfo = await db.rawQuery("PRAGMA table_info(prescriptions)");
+      List<String> columns = tableInfo.map((col) => col['name'] as String).toList();
+      print('Prescription table columns: $columns');
+      
+      // Determine which column name to use for the query
+      String ticketColumn = columns.contains('opdTicketNo') ? 'opdTicketNo' : 'opdTicketNo';
+      String drugColumn = columns.contains('drugName') ? 'drugName' : 'medicine';
+      
       final List<Map<String, dynamic>> maps = await db.query(
         'prescriptions',
-        where: 'opdTicketNo = ?',  // Changed from 'opd_ticket_no' to 'opdTicketNo'
+        where: '$ticketColumn = ?',
         whereArgs: [opdTicketNo],
       );
       
       print('Found ${maps.length} prescriptions for ticket $opdTicketNo in database');
       
-      if (maps.isEmpty) {
-        // Check if prescriptions are stored in the OPD visit record
-        final opdVisits = await db.query(
-          'opd_visits',
-          where: 'opdTicketNo = ?',  // Changed from 'opd_ticket_no' to 'opdTicketNo'
-          whereArgs: [opdTicketNo],
-        );
-        
-        if (opdVisits.isNotEmpty && opdVisits[0]['prescriptions'] != null) {
-          print('Found prescriptions in OPD visit record');
-          try {
-            final dynamic prescData = opdVisits[0]['prescriptions'];
-            if (prescData is String) {
-              final List<dynamic> prescList = json.decode(prescData);
-              return prescList.map((p) => PrescriptionModel(
-                id: p['id'] ?? 0,
-                drugName: p['drugName'] ?? '',
-                dosage: p['dosage'] ?? '',
-                duration: p['duration'] ?? '',
-                opdTicketNo: opdTicketNo,
-                quantity: p['quantity'] ?? 1,
-              )).toList();
-            }
-          } catch (e) {
-            print('Error parsing prescriptions from OPD visit: $e');
-          }
-        }
-      }
-      
       return List.generate(maps.length, (i) {
-        return PrescriptionModel(
-          id: maps[i]['id'],
-          drugName: maps[i]['drugName'],  // Changed from 'drug_name' to 'drugName'
-          dosage: maps[i]['dosage'],
-          duration: maps[i]['duration'],
-          opdTicketNo: maps[i]['opdTicketNo'],  // Changed from 'opd_ticket_no' to 'opdTicketNo'
-          quantity: maps[i]['quantity'] ?? 1,
-        );
+        // Create a normalized map with consistent keys
+        Map<String, dynamic> normalizedMap = {
+          'id': maps[i]['id'],
+          'drugName': maps[i][drugColumn],
+          'dosage': maps[i]['dosage'],
+          'duration': maps[i]['duration'],
+          'opdTicketNo': maps[i][ticketColumn],
+          'quantity': maps[i]['quantity'] ?? 1,
+          'created_at': maps[i]['created_at'],
+          'updated_at': maps[i]['updated_at'],
+        };
+        
+        return PrescriptionModel.fromMap(normalizedMap);
       });
     } catch (e) {
       print('Error getting prescriptions by ticket: $e');
@@ -1361,6 +1369,26 @@ class DatabaseHelper {
       }
     } catch (e) {
       print('Error adding relationType column: $e');
+    }
+  }
+
+  // Add this method to add the quantity column to the prescriptions table
+  Future<void> addQuantityColumnToPrescriptions() async {
+    final db = await database;
+    try {
+      // Check if column exists before adding it
+      var prescriptionsInfo = await db.rawQuery('PRAGMA table_info(prescriptions)');
+      
+      // Extract column names
+      List<String> prescriptionColumns = prescriptionsInfo.map((col) => col['name'].toString()).toList();
+      
+      // Add quantity column to prescriptions if it doesn't exist
+      if (!prescriptionColumns.contains('quantity')) {
+        await db.execute('ALTER TABLE prescriptions ADD COLUMN quantity INTEGER DEFAULT 1');
+        print('Added quantity column to prescriptions table');
+      }
+    } catch (e) {
+      print('Error adding quantity column: $e');
     }
   }
 
