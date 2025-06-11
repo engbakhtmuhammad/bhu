@@ -1,12 +1,12 @@
 // API Request Models
 class LoginRequest {
-  final String email;
+  final String cnic;
   final String password;
 
-  LoginRequest({required this.email, required this.password});
+  LoginRequest({required this.cnic, required this.password});
 
   Map<String, dynamic> toJson() => {
-    'email': email,
+    'cnic': cnic,
     'password': password,
   };
 }
@@ -14,6 +14,7 @@ class LoginRequest {
 class RegisterRequest {
   final String userName;
   final String email;
+  final String cnic;
   final String designation;
   final String password;
   final String phoneNo;
@@ -29,7 +30,8 @@ class RegisterRequest {
     required this.phoneNo,
     required this.healthFacilityId,
     required this.userRoleId,
-    required this.isActive
+    required this.isActive,
+    required this.cnic
   });
 
   Map<String, dynamic> toJson() => {
@@ -41,6 +43,7 @@ class RegisterRequest {
     'healthFacilityId': healthFacilityId,
     'userRoleId': userRoleId,
     'isActive': isActive,
+    'cnic': cnic,
   };
 }
 

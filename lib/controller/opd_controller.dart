@@ -9,7 +9,6 @@ import 'dart:convert';
 
 import '../models/prescription_model.dart';
 
-
 class OpdController extends GetxController {
   final db = DatabaseHelper();
   
@@ -17,12 +16,14 @@ class OpdController extends GetxController {
   var patients = <PatientModel>[].obs;
   var diseases = <DiseaseModel>[].obs;
   var prescriptions = <PrescriptionModel>[].obs;
+  var subdiseases = <SubDiseaseModel>[].obs;
   
   // Reference data from SQLite
-  var diseasesByCategory = <String, List<DiseaseModel>>{}.obs;
+  var diseasesByCategory = <String, List<SubDiseaseModel>>{}.obs;
   var labTestOptions = <String>[].obs;
   var fpOptions = <String>[].obs;
   var antenatalVisitOptions = <String>[].obs;
+  var antenatalVisitOptionsWithIds = <Map<String, dynamic>>[].obs;
   var deliveryModeOptions = <String>[].obs;
   var pregnancyIndicators = <String>[].obs;
   var ttAdvisedOptions = <String>[].obs;
@@ -65,10 +66,15 @@ class OpdController extends GetxController {
   var familyPlanningServices = <String>[].obs;
   var babyGender = ''.obs;
   var babyWeight = 0.obs;
+  var antenatalVisitId = 0.obs;
+  var babyGenderId = 0.obs;
 
   // Add maps to store ID-to-name mappings
   var labTestMap = <int, String>{}.obs;
   var fpMap = <int, String>{}.obs;
+
+  // Add this property for antenatal visit selection
+  var selectedAntenatalVisit = Rx<Map<String, dynamic>?>(null);
 
   @override
   void onInit() {
@@ -340,6 +346,41 @@ class OpdController extends GetxController {
         }
       }
       
+      // Load subdiseases
+      final subDiseasesList = await db.getAllSubDiseases();
+      if (subDiseasesList.isNotEmpty) {
+        subdiseases.value = subDiseasesList;
+      }
+      
+      // Load antenatal visits with IDs
+      final antenatalVisitsWithIds = await db.getAntenatalVisits();
+      if (antenatalVisitsWithIds.isNotEmpty) {
+        antenatalVisitOptionsWithIds.value = antenatalVisitsWithIds.map((e) => {
+          'id': e['id'] as int,
+          'name': e['name'] as String
+        }).toList();
+      } else {
+        // Fallback data for antenatal visits
+        print('Using default antenatal visits');
+        final defaultVisits = [
+          {'id': 1, 'name': 'ANC 1-4'},
+          {'id': 2, 'name': 'ANC 5-8'},
+          {'id': 3, 'name': 'ANC 9+'},
+          {'id': 4, 'name': 'No ANC'}
+        ];
+        
+        antenatalVisitOptionsWithIds.value = defaultVisits;
+        
+        // Save default values to local table
+        for (var option in defaultVisits) {
+          await db.database.then((dbClient) => dbClient.insert(
+            'api_antenatal_visits', 
+            {'id': option['id'], 'name': option['name']},
+            conflictAlgorithm: ConflictAlgorithm.ignore
+          ));
+        }
+      }
+      
       print('Reference data loading completed');
     } catch (e) {
       print('Error loading reference data: $e');
@@ -434,61 +475,90 @@ class OpdController extends GetxController {
             DiseaseModel(
               id: d['id'], 
               name: d['name'], 
-              category: d['category'] ?? 'Uncategorized', 
-              categoryId: d['category_id'] ?? 0
+              version: d['version'] ?? 1
             )
           ).toList();
         } else {
           // Fallback data
           diseases.value = [
-            DiseaseModel(id: 1, name: 'Common Cold', category: 'Respiratory diseases', categoryId: 1),
-            DiseaseModel(id: 2, name: 'Pneumonia', category: 'Respiratory diseases', categoryId: 1),
-            DiseaseModel(id: 3, name: 'Asthma', category: 'Respiratory diseases', categoryId: 1),
-            DiseaseModel(id: 4, name: 'Hypertension', category: 'Cardiovascular diseases', categoryId: 2),
-            DiseaseModel(id: 5, name: 'Diabetes', category: 'Endocrine diseases', categoryId: 3),
-            DiseaseModel(id: 6, name: 'Malaria', category: 'Infectious diseases', categoryId: 4),
-            DiseaseModel(id: 7, name: 'Typhoid', category: 'Infectious diseases', categoryId: 4),
-            DiseaseModel(id: 8, name: 'Diarrhea', category: 'Gastrointestinal diseases', categoryId: 5),
-            DiseaseModel(id: 9, name: 'Anemia', category: 'Hematological diseases', categoryId: 6),
-            DiseaseModel(id: 10, name: 'Arthritis', category: 'Musculoskeletal diseases', categoryId: 7),
+            DiseaseModel(id: 1, name: 'Common Cold', version: 1),
+            DiseaseModel(id: 2, name: 'Pneumonia', version: 1),
+            DiseaseModel(id: 3, name: 'Asthma', version: 1),
+            DiseaseModel(id: 4, name: 'Hypertension', version: 1),
+            DiseaseModel(id: 5, name: 'Diabetes', version: 1),
+            DiseaseModel(id: 6, name: 'Malaria', version: 1),
+            DiseaseModel(id: 7, name: 'Typhoid', version: 1),
           ];
         }
       }
       
-      // Populate diseasesByCategory
-      Map<String, List<DiseaseModel>> grouped = {};
-      for (var disease in diseases) {
-        if (!grouped.containsKey(disease.category)) {
-          grouped[disease.category] = [];
-        }
-        grouped[disease.category]!.add(disease);
+      // Load subdiseases
+      final subDiseasesList = await db.getAllSubDiseases();
+      if (subDiseasesList.isNotEmpty) {
+        subdiseases.value = subDiseasesList;
       }
+      
+      // Group subdiseases by their parent disease
+      Map<String, List<SubDiseaseModel>> grouped = {};
+      for (var disease in diseases) {
+        // Create an entry for each disease with its subdiseases
+        grouped[disease.name] = subdiseases
+            .where((sd) => sd.disease_id == disease.id)
+            .toList();
+      }
+      
+      // If there are any orphaned subdiseases, add them to "Other Diseases"
+      var orphanedSubdiseases = subdiseases
+          .where((sd) => !diseases.any((d) => d.id == sd.disease_id))
+          .toList();
+      
+      if (orphanedSubdiseases.isNotEmpty) {
+        grouped["Other Diseases"] = orphanedSubdiseases;
+      }
+      
+      // If we have no categories with subdiseases, create a default structure
+      if (grouped.isEmpty) {
+        grouped = {
+          "Respiratory Diseases": [
+            SubDiseaseModel(id: 1, name: 'Common Cold', disease_id: 1, version: 1),
+            SubDiseaseModel(id: 2, name: 'Pneumonia', disease_id: 1, version: 1),
+            SubDiseaseModel(id: 3, name: 'Asthma', disease_id: 1, version: 1),
+          ],
+          "Cardiovascular Diseases": [
+            SubDiseaseModel(id: 4, name: 'Hypertension', disease_id: 2, version: 1),
+          ],
+          "Endocrine Diseases": [
+            SubDiseaseModel(id: 5, name: 'Diabetes', disease_id: 3, version: 1),
+          ],
+          "Infectious Diseases": [
+            SubDiseaseModel(id: 6, name: 'Malaria', disease_id: 4, version: 1),
+            SubDiseaseModel(id: 7, name: 'Typhoid', disease_id: 4, version: 1),
+          ],
+        };
+      }
+      
+      // Assign the grouped map directly without casting
       diseasesByCategory.value = grouped;
     } catch (e) {
       print('Error loading diseases: $e');
-      // Provide fallback diseases if there's an error
-      diseases.value = [
-        DiseaseModel(id: 1, name: 'Common Cold', category: 'Respiratory diseases', categoryId: 1),
-        DiseaseModel(id: 2, name: 'Pneumonia', category: 'Respiratory diseases', categoryId: 1),
-        DiseaseModel(id: 3, name: 'Asthma', category: 'Respiratory diseases', categoryId: 1),
-        DiseaseModel(id: 4, name: 'Hypertension', category: 'Cardiovascular diseases', categoryId: 2),
-        DiseaseModel(id: 5, name: 'Diabetes', category: 'Endocrine diseases', categoryId: 3),
-        DiseaseModel(id: 6, name: 'Malaria', category: 'Infectious diseases', categoryId: 4),
-        DiseaseModel(id: 7, name: 'Typhoid', category: 'Infectious diseases', categoryId: 4),
-        DiseaseModel(id: 8, name: 'Diarrhea', category: 'Gastrointestinal diseases', categoryId: 5),
-        DiseaseModel(id: 9, name: 'Anemia', category: 'Hematological diseases', categoryId: 6),
-        DiseaseModel(id: 10, name: 'Arthritis', category: 'Musculoskeletal diseases', categoryId: 7),
-      ];
-      
-      // Populate diseasesByCategory with fallback data
-      Map<String, List<DiseaseModel>> grouped = {};
-      for (var disease in diseases) {
-        if (!grouped.containsKey(disease.category)) {
-          grouped[disease.category] = [];
-        }
-        grouped[disease.category]!.add(disease);
-      }
-      diseasesByCategory.value = grouped;
+      // Provide fallback structure if there's an error
+      diseasesByCategory.value = {
+        "Respiratory Diseases": [
+          SubDiseaseModel(id: 1, name: 'Common Cold', disease_id: 1, version: 1),
+          SubDiseaseModel(id: 2, name: 'Pneumonia', disease_id: 1, version: 1),
+          SubDiseaseModel(id: 3, name: 'Asthma', disease_id: 1, version: 1),
+        ],
+        "Cardiovascular Diseases": [
+          SubDiseaseModel(id: 4, name: 'Hypertension', disease_id: 2, version: 1),
+        ],
+        "Endocrine Diseases": [
+          SubDiseaseModel(id: 5, name: 'Diabetes', disease_id: 3, version: 1),
+        ],
+        "Infectious Diseases": [
+          SubDiseaseModel(id: 6, name: 'Malaria', disease_id: 4, version: 1),
+          SubDiseaseModel(id: 7, name: 'Typhoid', disease_id: 4, version: 1),
+        ],
+      };
     }
   }
 
@@ -507,7 +577,7 @@ class OpdController extends GetxController {
         visitType: obgynVisitType.value,
         ancCardAvailable: ancCardAvailable.value,
         gestationalAge: gestationalAge.value,
-        antenatalVisits: antenatalVisits.value,
+        antenatalVisits: antenatalVisitId.value.toString(),
         fundalHeight: fundalHeight.value,
         ultrasoundReports: ultrasoundReports.value,
         highRiskIndicators: highRiskIndicators.value,
@@ -519,7 +589,7 @@ class OpdController extends GetxController {
         referredToHigherTier: referredToHigherTier.value,
         ttAdvised: ttAdvised.value,
         deliveryMode: deliveryMode.value,
-        babyGender: babyGender.value,
+        babyGender: babyGenderId.value.toString(),
         babyWeight: babyWeight.value,
         postpartumFollowup: postpartumFollowup.value,
         familyPlanningServices: familyPlanningServices,
@@ -669,15 +739,15 @@ class OpdController extends GetxController {
   Map<String, List<DiseaseModel>> get groupedDiseases {
     Map<String, List<DiseaseModel>> grouped = {};
     for (var disease in diseases) {
-      if (!grouped.containsKey(disease.category)) {
-        grouped[disease.category] = [];
+      if (!grouped.containsKey(disease.name)) {
+        grouped[disease.name] = [];
       }
-      grouped[disease.category]!.add(disease);
+      grouped[disease.name]!.add(disease);
     }
     return grouped;
   }
 
-  void toggleDiseaseSelection(String diseaseName, int diseaseId) {
+  void toggleDiseaseSelection(String diseaseName, int diseaseId, {bool isSubdisease = true, int? parentDiseaseId}) {
     if (selectedDiseases.contains(diseaseName)) {
       selectedDiseases.remove(diseaseName);
       selectedDiseaseIds.remove(diseaseId);
@@ -718,5 +788,9 @@ class OpdController extends GetxController {
   // Add this method to reload patients from the database
   Future<void> refreshPatients() async {
     await loadPatients();
+  }
+
+  List<SubDiseaseModel> getSubdiseasesForDisease(int diseaseId) {
+    return subdiseases.where((sd) => sd.disease_id == diseaseId).toList();
   }
 }

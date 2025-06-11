@@ -6,6 +6,7 @@ class PatientModel {
   final String fatherName;
   final String? husbandName;
   final int age;
+  final int relationType;
   final String gender;
   final String cnic;
   final int version;
@@ -24,6 +25,7 @@ class PatientModel {
     required this.patientId,
     required this.fullName,
     required this.fatherName,
+    required this.relationType,
     this.husbandName,
     required this.age,
     required this.gender,
@@ -48,6 +50,7 @@ class PatientModel {
       'age': age,
       'gender': gender,
       'relationCnic': cnic,
+      'relationType': relationType,
       'phoneNumber': contact,
       'address': address,
       'bloodGroup': bloodGroup.toString(), // Convert int to string for storage
@@ -68,6 +71,7 @@ class PatientModel {
       age: map['age'] ?? '1'?? 18, 
       gender: map['gender'] ?? '',
       cnic: map['relationCnic'] ?? '',
+      relationType: map['relationType'] ?? 1,
       version: map['version'] ?? 1,
       contact: map['phoneNumber'] ?? '',
       emergencyContact: map['emergencyContact'] ?? map['phoneNumber'] ?? '',
@@ -111,6 +115,7 @@ class PatientModel {
       fatherName: apiModel.fatherName,
       husbandName: apiModel.husbandName,
       age: apiModel.age,
+      relationType: apiModel.relationType, // Default relation type, adjust as needed
       gender: apiModel.gender,
       cnic: apiModel.cnic,
       version: apiModel.version,

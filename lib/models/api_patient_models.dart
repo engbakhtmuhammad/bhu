@@ -7,6 +7,7 @@ class ApiPatientModel {
   final String fatherName;
   final String? husbandName;
   final int age;
+  final int relationType;
   final String gender;
   final String cnic;
   final int version;
@@ -24,6 +25,7 @@ class ApiPatientModel {
     required this.fatherName,
     this.husbandName,
     required this.age,
+    required this.relationType,
     required this.gender,
     required this.cnic,
     required this.version,
@@ -43,6 +45,7 @@ class ApiPatientModel {
       fatherName: json['fatherName'] ?? '',
       husbandName: json['husbandName'],
       age: json['age'] ?? 18,
+      relationType: json['relationType'] ?? 1,
       gender: json['gender'] ?? '',
       cnic: json['cnic'] ?? '',
       version: json['version'] ?? 1,
@@ -65,6 +68,7 @@ class ApiPatientModel {
       'age': age,
       'gender': gender,
       'cnic': cnic,
+      'relationType': relationType,
       'version': version,
       'contact': contact,
       'emergencyContact': emergencyContact,

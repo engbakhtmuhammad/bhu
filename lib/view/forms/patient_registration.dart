@@ -117,7 +117,7 @@ class PatientRegistrationForm extends StatelessWidget {
                     child: DropdownButton<String>(
                       value: gender.value == '' ? null : gender.value,
                       hint: Text("Select Gender"),
-                      items: ['Male', 'Female', 'Transgender']
+                      items: ['Male', 'Female', 'Transgender', 'Other']
                           .map((e) =>
                               DropdownMenuItem(value: e, child: Text(e)))
                           .toList(),
@@ -207,8 +207,8 @@ class PatientRegistrationForm extends StatelessWidget {
                     return;
                   }
                   
-                  String id = await controller.generatePatientId(
-                      cnicCtrl.text.trim(), relationType.value);
+                  // Use CNIC as patient ID without concatenating relation type
+                  String id = cnicCtrl.text.trim();
                   
                   // Get blood group ID from selected blood group name
                   int bloodGroupId = 1; // Default to A+ (ID: 1)
@@ -216,6 +216,25 @@ class PatientRegistrationForm extends StatelessWidget {
                     (bg) => bg['name'] == bloodGroup.value,
                     orElse: () => {'id': 1, 'name': 'A+'},
                   );
+                  
+                  // Map relation type to correct integer values
+                  int relationTypeId;
+                  switch (relationType.value) {
+                    case 'own': relationTypeId = 1; break;
+                    case 'father': relationTypeId = 2; break;
+                    case 'mother': relationTypeId = 3; break;
+                    case 'husband': relationTypeId = 4; break;
+                    default: relationTypeId = 5; // other
+                  }
+                  
+                  // Map gender to correct integer values
+                  int genderId;
+                  switch (gender.value) {
+                    case 'Male': genderId = 1; break;
+                    case 'Female': genderId = 2; break;
+                    case 'Transgender': genderId = 3; break;
+                    default: genderId = 4; // other
+                  }
                   
                   // Determine father/husband name based on relation type
                   String fatherName = '';
@@ -233,7 +252,8 @@ class PatientRegistrationForm extends StatelessWidget {
                     fatherName: fatherName,
                     husbandName: husbandName,
                     age: age.value,
-                    gender: gender.value,
+                    relationType: relationTypeId,
+                    gender: genderId.toString(), // Pass the gender ID
                     cnic: cnicCtrl.text.trim(),
                     contact: contactCtrl.text.trim(),
                     emergencyContact: contactCtrl.text.trim(),

@@ -26,6 +26,7 @@ class _SignupScreenState extends State<SignupScreen> {
   // Text controllers for form fields
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
+  final TextEditingController cnicController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
@@ -83,6 +84,7 @@ class _SignupScreenState extends State<SignupScreen> {
   void dispose() {
     nameController.dispose();
     emailController.dispose();
+    cnicController.dispose();
     phoneController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
@@ -109,6 +111,7 @@ class _SignupScreenState extends State<SignupScreen> {
     final success = await authController.registerUser(
       userName: nameController.text.trim(),
       email: emailController.text.trim(),
+      cnic: cnicController.text.trim(),
       designation: designationController.text.trim(),
       password: passwordController.text,
       phoneNo: phoneController.text.trim(),
@@ -191,7 +194,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                       InputField(
                         hintText: "Enter your CNIC (e.g., 3520112345678)",
-                        controller: emailController, // We'll keep using emailController for backend compatibility
+                        controller: cnicController, // We'll keep using emailController for backend compatibility
                         inputType: TextInputType.number,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -199,6 +202,26 @@ class _SignupScreenState extends State<SignupScreen> {
                           }
                           if (value.length != 13) {
                             return 'CNIC must be 13 digits';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 15),
+                      Text(
+                        "EMAIL",
+                        style: subTitleTextStyle(color: blackColor, size: 15),
+                      ),
+                      InputField(
+                        hintText: "Enter your email",
+                        controller: emailController, // We'll keep using emailController for backend compatibility
+                        inputType: TextInputType.emailAddress,
+                        validator: (value) {
+                          if (value != null && value.isNotEmpty) {
+                            final emailPattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$';
+                            final regex = RegExp(emailPattern);
+                            if (!regex.hasMatch(value)) {
+                              return 'Please enter a valid email address';
+                            }
                           }
                           return null;
                         },

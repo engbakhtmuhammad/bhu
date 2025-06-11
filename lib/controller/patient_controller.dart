@@ -21,6 +21,10 @@ class PatientController extends GetxController {
   }
 
   Future<void> savePatient(PatientModel patient) async {
+    // First ensure the relationType column exists
+    await db.addRelationTypeColumn();
+    
+    // Then insert the patient
     await db.insertPatient(patient);
     await loadPatients(); // Refresh list after insert
   }

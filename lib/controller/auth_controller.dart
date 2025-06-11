@@ -27,6 +27,7 @@ class AuthController extends GetxController {
   static const String _rememberMeKey = 'remember_me';
   static const String _savedEmailKey = 'saved_email';
   static const String _savedPasswordKey = 'saved_password';
+  static const String _savedCnicKey = 'saved_cnic';
 
   @override
   void onInit() {
@@ -75,6 +76,7 @@ class AuthController extends GetxController {
     required String phoneNo,
     required int healthFacilityId,
     required int userRoleId,
+    required String cnic,
   }) async {
     try {
       isLoading.value = true;
@@ -87,7 +89,8 @@ class AuthController extends GetxController {
         phoneNo: phoneNo,
         healthFacilityId: healthFacilityId,
         userRoleId: userRoleId,
-        isActive: 1
+        isActive: 2,
+        cnic: cnic
       );
 
       final response = await _apiService.registerUser(request);
@@ -135,7 +138,7 @@ class AuthController extends GetxController {
       isLoading.value = true;
 
       final request = LoginRequest(
-        email: cnic,
+        cnic: cnic,
         password: password,
       );
 
@@ -313,6 +316,7 @@ class AuthController extends GetxController {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_rememberMeKey, true);
       await prefs.setString(_savedEmailKey, email);
+      await prefs.setString(_savedCnicKey, email);
       await prefs.setString(_savedPasswordKey, password); // In production, consider encrypting this
     } catch (e) {
       debugPrint('Error saving credentials: $e');
@@ -325,6 +329,7 @@ class AuthController extends GetxController {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_rememberMeKey, false);
       await prefs.remove(_savedEmailKey);
+      await prefs.remove(_savedCnicKey);
       await prefs.remove(_savedPasswordKey);
     } catch (e) {
       debugPrint('Error clearing credentials: $e');
@@ -340,6 +345,7 @@ class AuthController extends GetxController {
       if (rememberMe) {
         return {
           'email': prefs.getString(_savedEmailKey),
+          'cnic': prefs.getString(_savedCnicKey),
           'password': prefs.getString(_savedPasswordKey),
         };
       }

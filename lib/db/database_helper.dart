@@ -71,7 +71,7 @@ class DatabaseHelper {
   Future<void> _onCreate(Database db, int version) async {
     print('Creating database tables for version $version');
 
-    // Create patients table
+    // Create patients table with relationType column
     await db.execute('''
       CREATE TABLE patients (
         id TEXT PRIMARY KEY,
@@ -79,6 +79,7 @@ class DatabaseHelper {
         age INTEGER,
         gender TEXT,
         relationCnic TEXT,
+        relationType INTEGER DEFAULT 1,
         phoneNumber TEXT,
         address TEXT,
         bloodGroup TEXT,
@@ -1343,6 +1344,26 @@ class DatabaseHelper {
     }
   }
 
+  // Add this method to add the relationType column to the patients table
+  Future<void> addRelationTypeColumn() async {
+    final db = await database;
+    try {
+      // Check if column exists before adding it
+      var patientsInfo = await db.rawQuery('PRAGMA table_info(patients)');
+      
+      // Extract column names
+      List<String> patientColumns = patientsInfo.map((col) => col['name'].toString()).toList();
+      
+      // Add relationType column to patients if it doesn't exist
+      if (!patientColumns.contains('relationType')) {
+        await db.execute('ALTER TABLE patients ADD COLUMN relationType INTEGER DEFAULT 1');
+        print('Added relationType column to patients table');
+      }
+    } catch (e) {
+      print('Error adding relationType column: $e');
+    }
+  }
+
   // Helper method to parse IDs from JSON or comma-separated string
   List<int> _parseIds(dynamic value) {
     if (value == null) return [];
@@ -1387,5 +1408,17 @@ class DatabaseHelper {
     }
     
     return [];
+  }
+
+  // Get all sub-diseases
+  Future<List<SubDiseaseModel>> getAllSubDiseases() async {
+    final db = await database;
+    try {
+      final result = await db.query('api_sub_diseases');
+      return result.map((e) => SubDiseaseModel.fromMap(e)).toList();
+    } catch (e) {
+      print('Error getting sub-diseases: $e');
+      return [];
+    }
   }
 }

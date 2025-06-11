@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:flutter_iconly/flutter_iconly.dart';
 import '../../controller/opd_controller.dart';
 import '../../controller/prescription_controller.dart';
+import '../../models/disease_model.dart';
 import '../../models/prescription_model.dart';
 import '../../utils/constants.dart';
 import '../../utils/style.dart';
@@ -158,8 +159,8 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
             Obx(() => controller.fpAdvised.value ? _buildFpSection() : SizedBox()),
 
             // Prescription Section
-            // _label("PRESCRIPTIONS"),
-            // _buildPrescriptionSection(),
+            _label("PRESCRIPTIONS"),
+            _buildPrescriptionSection(),
 
             const SizedBox(height: 20),
             CustomBtn(
@@ -194,16 +195,25 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
         padding: const EdgeInsets.all(15),
         child: Obx(() {
           final diseasesByCategory = controller.diseasesByCategory;
+          // Filter out any "Uncategorized" category
+          final filteredCategories = Map<String, List<SubDiseaseModel>>.from(diseasesByCategory)
+            ..removeWhere((key, value) => key.toLowerCase() == "uncategorized" || value.isEmpty);
+          
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: diseasesByCategory.entries.map((entry) {
+            children: filteredCategories.entries.map((entry) {
               return ExpansionTile(
                 title: Text(entry.key, style: TextStyle(fontWeight: FontWeight.bold)),
-                children: entry.value.map((disease) {
+                children: entry.value.map((subdisease) {
                   return CheckboxListTile(
-                    title: Text(disease.name),
-                    value: controller.selectedDiseases.contains(disease.name),
-                    onChanged: (val) => controller.toggleDiseaseSelection(disease.name, disease.id),
+                    title: Text(subdisease.name),
+                    value: controller.selectedDiseases.contains(subdisease.name),
+                    onChanged: (val) => controller.toggleDiseaseSelection(
+                      subdisease.name, 
+                      subdisease.id,
+                      isSubdisease: true,
+                      parentDiseaseId: subdisease.disease_id
+                    ),
                     dense: true,
                   );
                 }).toList(),
@@ -332,21 +342,36 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
         ),
 
         _label("ANTENATAL VISITS"),
-        DropDownWidget(
-          child: Obx(() => DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: controller.antenatalVisitOptions.contains(controller.antenatalVisits.value) 
-                      ? controller.antenatalVisits.value 
-                      : controller.antenatalVisitOptions.first,
-                  isExpanded: true,
-                  items: controller.antenatalVisitOptions
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                      .toList(),
-                  onChanged: (val) => controller.antenatalVisits.value = val!,
-                  dropdownColor: Colors.white,
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-              )),
+        Container(
+          decoration: BoxDecoration(
+            color: greyColor,
+            borderRadius: BorderRadius.circular(containerRoundCorner),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Obx(() => DropdownButtonHideUnderline(
+                  child: DropdownButton<Map<String, dynamic>>(
+                    value: controller.selectedAntenatalVisit.value,
+                    isExpanded: true,
+                    hint: Text("Select Antenatal Visits"),
+                    items: controller.antenatalVisitOptionsWithIds
+                        .map((visit) => DropdownMenuItem(
+                              value: visit,
+                              child: Text(visit['name']),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        controller.selectedAntenatalVisit.value = val;
+                        controller.antenatalVisitId.value = val['id'];
+                        controller.antenatalVisits.value = val['name'];
+                      }
+                    },
+                    dropdownColor: Colors.white,
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                )),
+          ),
         ),
 
         _label("FUNDAL HEIGHT"),
@@ -493,10 +518,17 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
                         value: controller.babyGender.value.isEmpty ? null : controller.babyGender.value,
                         isExpanded: true,
                         hint: Text("Select Baby Gender"),
-                        items: ['Male', 'Female']
-                            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        items: [
+                          {'id': 1, 'name': 'Male'},
+                          {'id': 2, 'name': 'Female'}
+                        ]
+                            .map((e) => DropdownMenuItem<String>(value: e['name'] as String, child: Text(e['name'] as String)))
                             .toList(),
-                        onChanged: (val) => controller.babyGender.value = val!,
+                        onChanged: (val) {
+                          controller.babyGender.value = val!;
+                          // Set the gender ID: 1 for Male, 2 for Female
+                          controller.babyGenderId.value = val == 'Male' ? 1 : 2;
+                        },
                         dropdownColor: Colors.white,
                         borderRadius: BorderRadius.circular(8.0),
                       ),
@@ -597,48 +629,48 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
           },
         ),
 
-        _label("DOSAGE"),
-        Container(
-          decoration: BoxDecoration(
-            color: greyColor,
-            borderRadius: BorderRadius.circular(containerRoundCorner),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: dosageCtrl.text.isEmpty ? null : dosageCtrl.text,
-                hint: Text("Select Dosage"),
-                isExpanded: true,
-                items: prescriptionController.medicineDosages
-                    .map((dosage) => DropdownMenuItem(
-                          value: dosage,
-                          child: Text(dosage),
-                        ))
-                    .toList(),
-                onChanged: (val) {
-                  setState(() {
-                    dosageCtrl.text = val ?? '';
-                  });
-                },
-                dropdownColor: Colors.white,
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-            ),
-          ),
-        ),
+        // _label("DOSAGE"),
+        // Container(
+        //   decoration: BoxDecoration(
+        //     color: greyColor,
+        //     borderRadius: BorderRadius.circular(containerRoundCorner),
+        //   ),
+        //   child: Padding(
+        //     padding: const EdgeInsets.symmetric(horizontal: 20.0),
+        //     child: DropdownButtonHideUnderline(
+        //       child: DropdownButton<String>(
+        //         value: dosageCtrl.text.isEmpty ? null : dosageCtrl.text,
+        //         hint: Text("Select Dosage"),
+        //         isExpanded: true,
+        //         items: prescriptionController.medicineDosages
+        //             .map((dosage) => DropdownMenuItem(
+        //                   value: dosage,
+        //                   child: Text(dosage),
+        //                 ))
+        //             .toList(),
+        //         onChanged: (val) {
+        //           setState(() {
+        //             dosageCtrl.text = val ?? '';
+        //           });
+        //         },
+        //         dropdownColor: Colors.white,
+        //         borderRadius: BorderRadius.circular(8.0),
+        //       ),
+        //     ),
+        //   ),
+        // ),
 
-        const SizedBox(height: 10),
-        InputField(
-          hintText: "Or enter custom dosage",
-          controller: dosageCtrl,
-        ),
+        // const SizedBox(height: 10),
+        // InputField(
+        //   hintText: "Or enter custom dosage",
+        //   controller: dosageCtrl,
+        // ),
 
-        _label("DURATION OF MEDICATION"),
-        InputField(
-          hintText: "e.g., 7 days, 2 weeks",
-          controller: durationCtrl,
-        ),
+        // _label("DURATION OF MEDICATION"),
+        // InputField(
+        //   hintText: "e.g., 7 days, 2 weeks",
+        //   controller: durationCtrl,
+        // ),
         
         _label("QUANTITY"),
         InputField(
@@ -719,14 +751,14 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
                             prescription.drugName,
                             style: titleTextStyle(size: 16),
                           ),
-                          Text(
-                            "Dosage: ${prescription.dosage}",
-                            style: descriptionTextStyle(size: 14),
-                          ),
-                          Text(
-                            "Duration: ${prescription.duration}",
-                            style: descriptionTextStyle(size: 14),
-                          ),
+                          // Text(
+                          //   "Dosage: ${prescription.dosage}",
+                          //   style: descriptionTextStyle(size: 14),
+                          // ),
+                          // Text(
+                          //   "Duration: ${prescription.duration}",
+                          //   style: descriptionTextStyle(size: 14),
+                          // ),
                           Text(
                             "Quantity: ${prescription.quantity}",
                             style: descriptionTextStyle(size: 14),

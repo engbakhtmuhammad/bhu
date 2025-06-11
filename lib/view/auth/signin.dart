@@ -44,9 +44,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final credentials = await authController.getSavedCredentials();
     final isRememberMeEnabled = await authController.isRememberMeEnabled();
 
-    if (isRememberMeEnabled && credentials['email'] != null) {
+    if (isRememberMeEnabled && credentials['cnic'] != null) {
       setState(() {
-        emailController.text = credentials['email']!;
+        emailController.text = credentials['cnic']!;
         passwordController.text = credentials['password'] ?? '';
         rememberMe = true;
       });
