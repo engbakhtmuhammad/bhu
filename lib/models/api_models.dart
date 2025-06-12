@@ -570,7 +570,7 @@ class OpdFormData {
   final bool reasonForVisit; // if obgyn then 0 else 1
   final bool isFollowUp;
   final List<int> diagnosis;
-  final List<String> prescriptions;
+  final String prescriptions;
   final List<int> labTests;
   final bool isReferred;
   final bool followUpAdvised;

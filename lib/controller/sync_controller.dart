@@ -452,26 +452,34 @@ class SyncController extends GetxController {
         final prescriptions = await _dbHelper.getPrescriptionsByTicket(visit.opdTicketNo);
         debugPrint('Found ${prescriptions.length} prescriptions for visit ${visit.opdTicketNo}');
         
-        // Format prescriptions properly with medicine name and quantity
-        List<String> prescriptionTexts = [];
+        // Format prescriptions properly with medicine ID and quantity
+        List<Map<String, dynamic>> prescriptionData = [];
         if (prescriptions.isEmpty && visit.prescriptions.isNotEmpty) {
           debugPrint('Using prescriptions from OPD visit record');
-          prescriptionTexts = visit.prescriptions.map((p) {
+          prescriptionData = visit.prescriptions.map((p) {
             if (p is Map<String, dynamic>) {
-              // Format as "Medicine Name - Quantity"
-              return "${p['drugName'] ?? 'Unknown'}, ${p['quantity'] ?? '1'}";
+              // Create object with medicineId and quantity
+              return {
+                "medicineId": p['id'] ?? 0,
+                "quantity": p['quantity'] ?? 1
+              };
             }
-            return p.toString();
+            return {"medicineId": 0, "quantity": 1}; // Fallback
           }).toList();
         } else {
-          prescriptionTexts = prescriptions.map((p) => 
-            "${(p as PrescriptionModel).drugName}, ${(p as PrescriptionModel).quantity}").toList();
+          prescriptionData = prescriptions.map((p) => {
+            "medicineId": (p as PrescriptionModel).id ?? 0,
+            "quantity": (p as PrescriptionModel).quantity
+          }).toList();
         }
+        
+        // Convert to JSON string for storage
+        final prescriptionJson = json.encode(prescriptionData);
         
         // Debug log the diagnosis and lab tests
         debugPrint('Diagnosis: ${visit.diagnosisIds}');
         debugPrint('Lab tests: ${visit.labTestIds}');
-        debugPrint('Prescriptions: $prescriptionTexts');
+        debugPrint('Prescriptions: $prescriptionJson');
         
         // Convert reasonForVisit to boolean if it's a string
         bool isGeneralOPD = true;
@@ -488,7 +496,7 @@ class SyncController extends GetxController {
           reasonForVisit: isGeneralOPD,
           isFollowUp: visit.isFollowUp,
           diagnosis: visit.diagnosisIds,
-          prescriptions: prescriptionTexts,
+          prescriptions: prescriptionJson, // Use the JSON string here
           labTests: visit.labTestIds,
           isReferred: visit.isReferred,
           followUpAdvised: visit.followUpAdvised,
