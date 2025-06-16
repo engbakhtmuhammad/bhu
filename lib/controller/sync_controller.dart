@@ -376,14 +376,14 @@ class SyncController extends GetxController {
       'patientId': patient.patientId,
       'fullName': patient.fullName,
       'relationCnic': patient.cnic,
+      // 'bloodGroup': patient.bloodGroup.toString(), // Convert int to string for API
       'relationType': patient.relationType.toString(), // Convert int to string for API
       'contact': patient.contact,
       'address': patient.address,
       'gender': genderId,
-      'bloodGroup': patient.bloodGroup,
       'age': patient.age,
-      'medicalHistory': patient.medicalHistory,
-      'immunized': patient.immunized,
+      // 'medicalHistory': patient.medicalHistory,
+      // 'immunized': patient.immunized,
     };
   }
 
