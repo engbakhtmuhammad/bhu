@@ -31,11 +31,14 @@ class PatientRegistrationForm extends StatelessWidget {
   final ages = <Map<String, dynamic>>[].obs;
   final immunized = false.obs;
   final relationType = 'own'.obs;
+  final selectedRelationType = Rx<Map<String, dynamic>?>(null);
+  final relationTypes = <Map<String, dynamic>>[].obs;
   final yearOfBirth = Rx<int?>(null);
   
   PatientRegistrationForm() {
     _loadBloodGroups();
     _loadGenders();
+    _loadRelationTypes();
   }
   
   Future<void> _loadBloodGroups() async {
@@ -99,6 +102,38 @@ class PatientRegistrationForm extends StatelessWidget {
     }
   }
 
+  Future<void> _loadRelationTypes() async {
+    try {
+      final relationTypeList = await db.getRelationTypes();
+      if (relationTypeList.isNotEmpty) {
+        relationTypes.value = relationTypeList;
+        // Set default selection to first item (Self)
+        selectedRelationType.value = relationTypeList.first;
+        relationType.value = relationTypeList.first['name'].toString().toLowerCase();
+      } else {
+        // Fallback to default relation types
+        relationTypes.value = [
+          {'id': 1, 'name': 'Self'},
+          {'id': 2, 'name': 'Father'},
+          {'id': 3, 'name': 'Mother'},
+          {'id': 4, 'name': 'Husband'},
+        ];
+        selectedRelationType.value = relationTypes.first;
+        relationType.value = 'self';
+      }
+    } catch (e) {
+      // Fallback to default relation types
+      relationTypes.value = [
+        {'id': 1, 'name': 'Self'},
+        {'id': 2, 'name': 'Father'},
+        {'id': 3, 'name': 'Mother'},
+        {'id': 4, 'name': 'Husband'},
+      ];
+      selectedRelationType.value = relationTypes.first;
+      relationType.value = 'self';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -139,21 +174,48 @@ class PatientRegistrationForm extends StatelessWidget {
                 },
               ),
               _label("RELATION TYPE"),
-              DropDownWidget(child: Obx(() => DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  isExpanded: true,
-                  value: relationType.value,
-                  items: ['own', 'father', 'husband', 'mother']
-                      .map((e) => DropdownMenuItem(
-                            value: e,
-                            child: Text(e.toUpperCase()),
-                          ))
-                      .toList(),
-                  onChanged: (val) => relationType.value = val!,
-                  dropdownColor: Colors.white,
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-              )),),
+              DropDownWidget(child: Obx(() {
+                // Create unique instances for this dropdown
+                final relationTypeOptions = relationTypes.map((relationType) {
+                  return Map<String, dynamic>.from(relationType);
+                }).toList();
+
+                // Find matching value
+                Map<String, dynamic>? selectedValue;
+                if (selectedRelationType.value != null) {
+                  final selectedId = selectedRelationType.value!['id'];
+                  for (var item in relationTypeOptions) {
+                    if (item['id'] == selectedId) {
+                      selectedValue = item;
+                      break;
+                    }
+                  }
+                }
+
+                return DropdownButtonHideUnderline(
+                  child: DropdownButton<Map<String, dynamic>>(
+                    value: selectedValue,
+                    hint: Text("Select Relation Type"),
+                    items: relationTypeOptions.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final relationType = entry.value;
+                      return DropdownMenuItem<Map<String, dynamic>>(
+                        key: ValueKey("patient_relation_${relationType['id']}_$index"),
+                        value: relationType,
+                        child: Text(relationType['name']),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        selectedRelationType.value = val;
+                        relationType.value = val['name'].toString().toLowerCase();
+                      }
+                    },
+                    dropdownColor: Colors.white,
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                );
+              })),
               _label("CONTACT"),
               InputField(
                 hintText: "+923001234567",
@@ -352,15 +414,8 @@ class PatientRegistrationForm extends StatelessWidget {
                       )
                     : {'id': 1, 'name': 'A+'}; // Default blood group
                   
-                  // Map relation type to correct integer values
-                  int relationTypeId;
-                  switch (relationType.value) {
-                    case 'own': relationTypeId = 1; break;
-                    case 'father': relationTypeId = 2; break;
-                    case 'mother': relationTypeId = 3; break;
-                    case 'husband': relationTypeId = 4; break;
-                    default: relationTypeId = 5; // other
-                  }
+                  // Get relation type ID from selected relation type
+                  int relationTypeId = selectedRelationType.value?['id'] ?? 1; // Default to Self (ID: 1)
                   
                   // Get gender ID from selected gender
                   int genderId = selectedGender.value?['id'] ?? 1; // Default to Male (ID: 1)

@@ -958,11 +958,30 @@ class DatabaseHelper {
       }
 
       // Store relation types
-      if (data.relationTypes != null) {
+      if (data.relationTypes != null && data.relationTypes!.isNotEmpty) {
+        print('Storing ${data.relationTypes!.length} relation types from API');
         for (final item in data.relationTypes!) {
+          print('Storing relation type: ${item.id} - ${item.name}');
           batch.insert(
               'api_relation_types', {'id': item.id, 'name': item.name},
               conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      } else {
+        print('No relation types in API response, storing default relation types');
+        final defaultRelationTypes = [
+          {'id': 1, 'name': 'Self'},
+          {'id': 2, 'name': 'Father'},
+          {'id': 3, 'name': 'Mother'},
+          {'id': 4, 'name': 'Husband'},
+          {'id': 5, 'name': 'Wife'},
+          {'id': 6, 'name': 'Son'},
+          {'id': 7, 'name': 'Daughter'},
+          {'id': 8, 'name': 'Brother'},
+          {'id': 9, 'name': 'Sister'},
+          {'id': 10, 'name': 'Other'}
+        ];
+        for (final relationType in defaultRelationTypes) {
+          batch.insert('api_relation_types', relationType, conflictAlgorithm: ConflictAlgorithm.replace);
         }
       }
 

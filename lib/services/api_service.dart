@@ -169,6 +169,13 @@ class ApiService {
                 }
 
                 debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> PARSED APP USER DATA: ${appUserData.token}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> RELATION TYPES COUNT: ${appUserData.relationTypes?.length ?? 0}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> GENDERS COUNT: ${appUserData.genders?.length ?? 0}');
+                if (appUserData.relationTypes != null) {
+                  for (var rt in appUserData.relationTypes!) {
+                    debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> RELATION TYPE: ${rt.id} - ${rt.name}');
+                  }
+                }
 
                 // Store the decrypted/parsed data for later use
                 _lastDecryptedData = appUserData;
