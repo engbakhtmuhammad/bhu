@@ -560,9 +560,26 @@ class DatabaseHelper {
     return result.map((e) => PatientModel.fromMap(e)).toList();
   }
 
+  /// Get only unsynced patients for incremental sync
+  Future<List<PatientModel>> getUnsyncedPatients() async {
+    final db = await database;
+    // Ensure sync columns exist
+    await addSyncColumns();
+
+    final result = await db.query(
+      'patients',
+      where: 'is_synced = ? OR is_synced IS NULL',
+      whereArgs: [0]
+    );
+    return result.map((e) => PatientModel.fromMap(e)).toList();
+  }
+
   // OPD Visit methods
   Future<void> insertOpdVisit(OpdVisitModel visit) async {
     final db = await database;
+
+    // Ensure the opdTicketNo column exists
+    await addSyncColumns();
 
     // Convert the OpdVisitModel to a map that matches the database schema
     final Map<String, dynamic> visitMap = {
@@ -579,19 +596,38 @@ class DatabaseHelper {
       'fp_advised': visit.fpAdvised ? 1 : 0,
       'fp_list': visit.fpIds.isNotEmpty ? visit.fpIds.join(',') : '',
       'obgyn_data': visit.obgynData,
+      'opdTicketNo': visit.opdTicketNo, // Store the ticket number
       'is_synced': 0,
       'created_at': DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     };
 
+    // Debug log what we're inserting
+    print('Inserting OPD visit with ticket: ${visitMap['opdTicketNo']}');
+    print('Visit map: $visitMap');
+
     await db.insert('opd_visits', visitMap,
         conflictAlgorithm: ConflictAlgorithm.replace);
+
+    // Verify the insert by querying back
+    final verifyResult = await db.query(
+      'opd_visits',
+      where: 'patient_id = ? AND visit_date = ?',
+      whereArgs: [visit.patientId, visit.visitDateTime.toIso8601String()],
+      orderBy: 'id DESC',
+      limit: 1,
+    );
+    if (verifyResult.isNotEmpty) {
+      print('Verified insert - opdTicketNo in DB: ${verifyResult.first['opdTicketNo']}');
+    } else {
+      print('ERROR: Could not verify OPD visit insert');
+    }
   }
 
   Future<List<OpdVisitModel>> getOpdVisitsByPatient(String patientId) async {
     final db = await database;
     final result = await db
-        .query('opd_visits', where: 'patientId = ?', whereArgs: [patientId]);
+        .query('opd_visits', where: 'patient_id = ?', whereArgs: [patientId]);
     return result.map((e) => OpdVisitModel.fromMap(e)).toList();
   }
 
@@ -603,7 +639,7 @@ class DatabaseHelper {
       
       return List.generate(maps.length, (i) {
         // Generate a ticket number if it doesn't exist
-        String ticketNo = maps[i]['opd_ticket_no'] ?? 
+        String ticketNo = maps[i]['opdTicketNo'] ??
                           'OPD${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}${(i + 1).toString().padLeft(4, '0')}';
         
         // Handle prescriptions
@@ -694,6 +730,87 @@ class DatabaseHelper {
       });
     } catch (e) {
       print('Error getting OPD visits: $e');
+      return [];
+    }
+  }
+
+  /// Get only unsynced OPD visits for incremental sync
+  Future<List<OpdVisitModel>> getUnsyncedOpdVisits() async {
+    try {
+      final db = await database;
+      // Ensure sync columns exist
+      await addSyncColumns();
+
+      final List<Map<String, dynamic>> maps = await db.query(
+        'opd_visits',
+        where: 'is_synced = ? OR is_synced IS NULL',
+        whereArgs: [0],
+        orderBy: 'visit_date DESC'
+      );
+
+      if (maps.isEmpty) {
+        return [];
+      }
+
+      return List.generate(maps.length, (i) {
+        // Get ticket number from database or generate if not present
+        String ticketNo = maps[i]['opdTicketNo'] ??
+            'OPD${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}${(i + 1).toString().padLeft(4, '0')}';
+
+        // Parse prescriptions
+        List<Map<String, dynamic>> prescriptions = [];
+        if (maps[i]['treatment'] != null && maps[i]['treatment'].toString().isNotEmpty) {
+          try {
+            final prescData = maps[i]['treatment'];
+            if (prescData is String) {
+              try {
+                prescriptions = List<Map<String, dynamic>>.from(
+                    json.decode(prescData) as List);
+              } catch (e) {
+                print('Error parsing prescriptions JSON: $e');
+                prescriptions = [];
+              }
+            } else if (prescData is List) {
+              prescriptions = List<Map<String, dynamic>>.from(prescData);
+            }
+          } catch (e) {
+            print('Error processing prescriptions: $e');
+            prescriptions = [];
+          }
+        }
+
+        // Parse boolean fields
+        bool isFollowUp = maps[i]['is_follow_up'] == 1;
+        bool isReferred = maps[i]['is_referred'] == 1;
+        bool followUpAdvised = maps[i]['follow_up_advised'] == 1;
+        bool fpAdvised = maps[i]['fp_advised'] == 1;
+
+        // Parse reason for visit
+        String reasonForVisit = maps[i]['chief_complaint'] ?? 'General OPD';
+
+        return OpdVisitModel(
+          opdTicketNo: ticketNo,
+          patientId: maps[i]['patient_id']?.toString() ?? '',
+          visitDateTime: DateTime.parse(
+              maps[i]['visit_date'] ?? DateTime.now().toIso8601String()),
+          reasonForVisit: reasonForVisit=='General OPD'?true:false,
+          isFollowUp: isFollowUp,
+          diagnosisIds: _parseIds(maps[i]['diagnosis']),
+          diagnosisNames: _parseNames(maps[i]['diagnosis_names']),
+          prescriptions: prescriptions,
+          labTestIds: _parseIds(maps[i]['lab_tests']),
+          labTestNames: _parseNames(maps[i]['lab_test_names']),
+          isReferred: isReferred,
+          followUpAdvised: followUpAdvised,
+          followUpDays: maps[i]['follow_up_days'],
+          fpAdvised: fpAdvised,
+          fpIds: _parseIds(maps[i]['fp_list']),
+          fpNames: _parseNames(maps[i]['fp_names']),
+          obgynData: maps[i]['obgyn_data'],
+        );
+      });
+    } catch (e) {
+      print('Error getting unsynced OPD visits: $e');
       return [];
     }
   }
@@ -836,6 +953,15 @@ class DatabaseHelper {
         for (final item in data.medicineDosages!) {
           batch.insert(
               'api_medicine_dosages', {'id': item.id, 'name': item.name},
+              conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+
+      // Store relation types
+      if (data.relationTypes != null) {
+        for (final item in data.relationTypes!) {
+          batch.insert(
+              'api_relation_types', {'id': item.id, 'name': item.name},
               conflictAlgorithm: ConflictAlgorithm.replace);
         }
       }
@@ -1008,6 +1134,8 @@ class DatabaseHelper {
     await db.execute('CREATE TABLE IF NOT EXISTS api_health_facilities (id INTEGER PRIMARY KEY, name TEXT)');
     await db.execute('CREATE TABLE IF NOT EXISTS api_user_roles (id INTEGER PRIMARY KEY, name TEXT)');
     await db.execute('CREATE TABLE IF NOT EXISTS api_patients (id INTEGER PRIMARY KEY, name TEXT, address TEXT, version INTEGER DEFAULT 0, age INTEGER DEFAULT 0, bloodGroup INTEGER DEFAULT 1, cnic TEXT, contact TEXT, emergencyContact TEXT, fatherName TEXT, gender INTEGER DEFAULT 1, husbandName TEXT, immunization INTEGER DEFAULT 0, medicalHistory TEXT, uniqueId TEXT)');
+    await db.execute('CREATE TABLE IF NOT EXISTS api_relation_types (id INTEGER PRIMARY KEY, name TEXT NOT NULL)');
+    await db.execute('CREATE TABLE IF NOT EXISTS api_genders (id INTEGER PRIMARY KEY, name TEXT NOT NULL)');
   }
 
   // Method to check if tables exist and print their schema
@@ -1132,7 +1260,9 @@ class DatabaseHelper {
       'api_lab_tests',
       'api_medicines',
       'api_health_facilities',
-      'api_user_roles'
+      'api_user_roles',
+      'api_relation_types',
+      'api_genders'
     ];
 
     for (final table in tables) {
@@ -1300,6 +1430,86 @@ class DatabaseHelper {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getApiGenders() async {
+    final db = await database;
+    try {
+      return await db.query('api_genders');
+    } catch (e) {
+      print('Error getting API genders: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getGenders() async {
+    final db = await database;
+    try {
+      // First try to get from API table
+      var genders = await getApiGenders();
+
+      // If empty, provide fallback default values
+      if (genders.isEmpty) {
+        print('API genders empty, using default genders');
+        final defaultGenders = [
+          {'id': 1, 'name': 'Male'},
+          {'id': 2, 'name': 'Female'}
+        ];
+
+        // Insert default values
+        for (var gender in defaultGenders) {
+          await db.insert('api_genders', gender, conflictAlgorithm: ConflictAlgorithm.ignore);
+        }
+
+        return defaultGenders;
+      }
+
+      return genders;
+    } catch (e) {
+      print('Error getting genders: $e');
+      return [
+        {'id': 1, 'name': 'Male'},
+        {'id': 2, 'name': 'Female'}
+      ];
+    }
+  }
+
+  /// Get relation type options from the database (fetched from API)
+  Future<List<Map<String, dynamic>>> getRelationTypes() async {
+    final db = await database;
+    try {
+      // First try to get from API table
+      var relationTypes = await db.query('api_relation_types');
+
+      // If empty, provide fallback default values
+      if (relationTypes.isEmpty) {
+        print('API relation types empty, using default relation types');
+        final defaultRelationTypes = [
+          {'id': 1, 'name': 'Self'},
+          {'id': 2, 'name': 'Father'},
+          {'id': 3, 'name': 'Mother'},
+          {'id': 4, 'name': 'Husband'},
+          {'id': 5, 'name': 'Wife'},
+          {'id': 6, 'name': 'Son'},
+          {'id': 7, 'name': 'Daughter'},
+          {'id': 8, 'name': 'Brother'},
+          {'id': 9, 'name': 'Sister'},
+          {'id': 10, 'name': 'Other'}
+        ];
+
+        // Insert default values
+        for (var relationType in defaultRelationTypes) {
+          await db.insert('api_relation_types', relationType, conflictAlgorithm: ConflictAlgorithm.ignore);
+        }
+
+        return defaultRelationTypes;
+      }
+
+      return relationTypes;
+    } catch (e) {
+      print('Error getting relation types: $e');
+      return [];
+    }
+  }
+
   // Add this method to get prescriptions by ticket number
   Future<List<PrescriptionModel>> getPrescriptionsByTicket(String opdTicketNo) async {
     final db = await database;
@@ -1353,24 +1563,33 @@ class DatabaseHelper {
       var patientsInfo = await db.rawQuery('PRAGMA table_info(patients)');
       var opdVisitsInfo = await db.rawQuery('PRAGMA table_info(opd_visits)');
       var prescriptionsInfo = await db.rawQuery('PRAGMA table_info(prescriptions)');
-      
+
       // Extract column names
       List<String> patientColumns = patientsInfo.map((col) => col['name'].toString()).toList();
       List<String> opdVisitColumns = opdVisitsInfo.map((col) => col['name'].toString()).toList();
       List<String> prescriptionColumns = prescriptionsInfo.map((col) => col['name'].toString()).toList();
-      
+
       // Add is_synced column to patients if it doesn't exist
       if (!patientColumns.contains('is_synced')) {
         await db.execute('ALTER TABLE patients ADD COLUMN is_synced INTEGER DEFAULT 0');
         print('Added is_synced column to patients table');
       }
-      
+
       // Add is_synced column to opd_visits if it doesn't exist
       if (!opdVisitColumns.contains('is_synced')) {
         await db.execute('ALTER TABLE opd_visits ADD COLUMN is_synced INTEGER DEFAULT 0');
         print('Added is_synced column to opd_visits table');
       }
-      
+
+      // Add opdTicketNo column to opd_visits if it doesn't exist
+      if (!opdVisitColumns.contains('opdTicketNo')) {
+        await db.execute('ALTER TABLE opd_visits ADD COLUMN opdTicketNo TEXT');
+        print('Added opdTicketNo column to opd_visits table');
+
+        // Populate existing records with generated ticket numbers
+        await _populateOpdTicketNumbers(db);
+      }
+
       // Add is_synced column to prescriptions if it doesn't exist
       if (!prescriptionColumns.contains('is_synced')) {
         await db.execute('ALTER TABLE prescriptions ADD COLUMN is_synced INTEGER DEFAULT 0');
@@ -1378,6 +1597,51 @@ class DatabaseHelper {
       }
     } catch (e) {
       print('Error adding sync columns: $e');
+    }
+  }
+
+  /// Populate existing OPD visits with generated ticket numbers
+  Future<void> _populateOpdTicketNumbers(Database db) async {
+    try {
+      // Get all OPD visits without ticket numbers
+      final visits = await db.query(
+        'opd_visits',
+        where: 'opdTicketNo IS NULL OR opdTicketNo = ""',
+        orderBy: 'id ASC',
+      );
+
+      if (visits.isNotEmpty) {
+        print('Populating ${visits.length} OPD visits with ticket numbers');
+
+        for (int i = 0; i < visits.length; i++) {
+          final visit = visits[i];
+          final visitId = visit['id'];
+
+          // Generate ticket number based on visit date or current date
+          String visitDate;
+          try {
+            final visitDateTime = DateTime.parse(visit['visit_date'].toString());
+            visitDate = '${visitDateTime.year}${visitDateTime.month.toString().padLeft(2, '0')}${visitDateTime.day.toString().padLeft(2, '0')}';
+          } catch (e) {
+            final now = DateTime.now();
+            visitDate = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+          }
+
+          final ticketNo = 'OPD$visitDate${(i + 1).toString().padLeft(4, '0')}';
+
+          // Update the record with the generated ticket number
+          await db.update(
+            'opd_visits',
+            {'opdTicketNo': ticketNo},
+            where: 'id = ?',
+            whereArgs: [visitId],
+          );
+
+          print('Updated OPD visit ID $visitId with ticket number: $ticketNo');
+        }
+      }
+    } catch (e) {
+      print('Error populating OPD ticket numbers: $e');
     }
   }
 

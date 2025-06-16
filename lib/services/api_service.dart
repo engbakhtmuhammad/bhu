@@ -168,6 +168,7 @@ class ApiService {
                   postPartumStatuses: appUserData.postPartumStatuses?.map((pps) => api_models.PostPartumStatus(id: pps.id, name: pps.name)).toList() ?? [],
                   medicineDosages: appUserData.medicineDosages?.map((md) => api_models.MedicineDosage(id: md.id, name: md.name)).toList() ?? [],
                   districts: appUserData.districts?.map((d) => api_models.District(id: d.id ?? 0, name: d.name ?? '', version: 1)).toList() ?? [],
+                  relationTypes: appUserData.relationTypes?.map((rt) => api_models.RelationType(id: rt.id, name: rt.name)).toList() ?? [],
                   patients: appUserData.patients?.map((p) => api_models.ApiPatient.fromJson(p)).toList() ?? [], // Convert patients data
                   diseases: appUserData.diseases?.map((d) => api_models.Disease(
                     id: d.id ?? 0, 
@@ -586,6 +587,20 @@ class ApiService {
         );
       }
     } on DioException catch (e) {
+      debugPrint('API: DioException [bad response]: ${e.message}');
+      debugPrint('API: uri: ${e.requestOptions.uri}');
+      debugPrint('API: statusCode: ${e.response?.statusCode}');
+      debugPrint('API: headers:');
+      e.response?.headers.forEach((name, values) {
+        debugPrint('API:  $name: ${values.join(', ')}');
+      });
+      debugPrint('API: Response Text:');
+      debugPrint('API: ${e.response?.data}');
+      debugPrint('API: Request Data Length: ${encryptedData.length}');
+      debugPrint('API: Request Data (first 200 chars): ${encryptedData.substring(0, encryptedData.length > 200 ? 200 : encryptedData.length)}');
+      debugPrint('API: ');
+      debugPrint('API Error: ${e.message}');
+
       return ApiResponse<String>(
         success: false,
         message: _handleDioError(e),

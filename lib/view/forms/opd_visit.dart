@@ -6,6 +6,7 @@ import '../../controller/opd_controller.dart';
 import '../../controller/prescription_controller.dart';
 import '../../db/database_helper.dart';
 import '../../models/disease_model.dart';
+import '../../models/patient_model.dart';
 import '../../models/prescription_model.dart';
 import '../../utils/constants.dart';
 import '../../utils/style.dart';
@@ -71,23 +72,93 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
         child: ListView(
           children: [
             _label("SELECT PATIENT"),
-            DropDownWidget(
-              child: Obx(() => DropdownButtonHideUnderline(
-                    child: DropdownButton(
-                      value: controller.selectedPatient.value,
-                      hint: Text("Select Patient"),
-                      isExpanded: true,
-                      items: controller.patients
-                          .map((patient) => DropdownMenuItem(
-                                value: patient,
-                                child: Text("${patient.fullName} (${patient.patientId})"),
-                              ))
-                          .toList(),
-                      onChanged: (val) => controller.selectedPatient.value = val,
-                      dropdownColor: Colors.white,
-                      borderRadius: BorderRadius.circular(8.0),
+            Container(
+              decoration: BoxDecoration(
+                color: greyColor,
+                borderRadius: BorderRadius.circular(containerRoundCorner),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Column(
+                  children: [
+                    // Search field inside the dropdown container
+                    TextField(
+                      controller: controller.patientSearchController,
+                      decoration: InputDecoration(
+                        hintText: "Search patient by name, CNIC, or contact...",
+                        hintStyle: descriptionTextStyle(),
+                        border: InputBorder.none,
+                        prefixIcon: Icon(Icons.search, color: primaryColor),
+                        suffixIcon: Obx(() => controller.searchText.value.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(Icons.clear, color: primaryColor),
+                                onPressed: () {
+                                  controller.patientSearchController.clear();
+                                  controller.filterPatients('');
+                                },
+                              )
+                            : SizedBox()),
+                      ),
+                      onChanged: (value) => controller.filterPatients(value),
                     ),
-                  )),
+
+                    // Divider between search and dropdown
+                    Divider(color: Colors.grey[300], height: 1),
+
+                    // Patient dropdown
+                    Obx(() {
+                      // Find th matching patient in filtered list to avoid assertion error
+                      PatientModel? selectedValue;
+                      if (controller.selectedPatient.value != null) {
+                        for (var patient in controller.filteredPatients) {
+                          if (patient.patientId == controller.selectedPatient.value!.patientId) {
+                            selectedValue = patient;
+                            break;
+                          }
+                        }
+                      }
+
+                      return DropdownButtonHideUnderline(
+                        child: DropdownButton<PatientModel>(
+                          value: selectedValue,
+                          hint: Text(controller.filteredPatients.isEmpty
+                              ? "No patients found"
+                              : "Select Patient (${controller.filteredPatients.length} found)"),
+                          isExpanded: true,
+                          items: controller.filteredPatients
+                              .map((patient) => DropdownMenuItem<PatientModel>(
+                                    key: ValueKey("patient_${patient.patientId}"),
+                                    value: patient,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          patient.fullName,
+                                          style: TextStyle(fontWeight: FontWeight.bold),
+                                        ),
+                                        Text(
+                                          "CNIC: ${patient.cnic} | Contact: ${patient.contact}",
+                                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                        ),
+                                      ],
+                                    ),
+                                  ))
+                              .toList(),
+                          onChanged: (PatientModel? val) {
+                            controller.selectedPatient.value = val;
+                            // Clear search when patient is selected
+                            controller.patientSearchController.clear();
+                            controller.filterPatients('');
+                          },
+                          dropdownColor: Colors.white,
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
             ),
 
             _label("REASON FOR VISIT"),
@@ -361,28 +432,50 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Obx(() => DropdownButtonHideUnderline(
-                  child: DropdownButton<Map<String, dynamic>>(
-                    value: controller.selectedAntenatalVisit.value,
-                    isExpanded: true,
-                    hint: Text("Select Antenatal Visits"),
-                    items: controller.antenatalVisitOptionsWithIds
-                        .map((visit) => DropdownMenuItem(
-                              value: visit,
-                              child: Text(visit['name']),
-                            ))
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        controller.selectedAntenatalVisit.value = val;
-                        controller.antenatalVisitId.value = val['id'];
-                        controller.antenatalVisits.value = val['name'];
-                      }
-                    },
-                    dropdownColor: Colors.white,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                )),
+            child: Obx(() {
+              // Create unique instances for this dropdown
+              final antenatalOptions = controller.antenatalVisitOptionsWithIds.map((visit) {
+                return Map<String, dynamic>.from(visit);
+              }).toList();
+
+              // Find matching value
+              Map<String, dynamic>? selectedValue;
+              if (controller.selectedAntenatalVisit.value != null) {
+                final selectedId = controller.selectedAntenatalVisit.value!['id'];
+                for (var item in antenatalOptions) {
+                  if (item['id'] == selectedId) {
+                    selectedValue = item;
+                    break;
+                  }
+                }
+              }
+
+              return DropdownButtonHideUnderline(
+                child: DropdownButton<Map<String, dynamic>>(
+                  value: selectedValue,
+                  isExpanded: true,
+                  hint: Text("Select Antenatal Visits"),
+                  items: antenatalOptions.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final visit = entry.value;
+                    return DropdownMenuItem<Map<String, dynamic>>(
+                      key: ValueKey("antenatal_${visit['id']}_$index"),
+                      value: visit,
+                      child: Text(visit['name']),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      controller.selectedAntenatalVisit.value = val;
+                      controller.antenatalVisitId.value = val['id'];
+                      controller.antenatalVisits.value = val['name'];
+                    }
+                  },
+                  dropdownColor: Colors.white,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              );
+            }),
           ),
         ),
 
@@ -514,11 +607,60 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
             )),
 
         _label("TT ADVISED/VACCINATED"),
-        Obx(() => SwitchListTile(
-              value: controller.ttAdvised.value,
-              onChanged: (val) => controller.ttAdvised.value = val,
-              title: Text("TT Advised/Vaccinated?"),
-            )),
+        Container(
+          decoration: BoxDecoration(
+            color: greyColor,
+            borderRadius: BorderRadius.circular(containerRoundCorner),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Obx(() {
+              // Create unique instances for this dropdown to avoid conflicts
+              final ttOptions = controller.ttAdvisedOptionsWithIds.map((option) {
+                return Map<String, dynamic>.from(option);
+              }).toList();
+
+              // Find the matching item based on ID to avoid assertion error
+              Map<String, dynamic>? selectedValue;
+              if (controller.selectedTTAdvised.value != null) {
+                final selectedId = controller.selectedTTAdvised.value!['id'];
+                final selectedName = controller.selectedTTAdvised.value!['name'];
+
+                for (var item in ttOptions) {
+                  if (item['id'] == selectedId && item['name'] == selectedName) {
+                    selectedValue = item;
+                    break;
+                  }
+                }
+              }
+
+              return DropdownButtonHideUnderline(
+                child: DropdownButton<Map<String, dynamic>>(
+                  value: selectedValue,
+                  isExpanded: true,
+                  hint: Text("Select TT Advised Option"),
+                  items: ttOptions.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final option = entry.value;
+                    return DropdownMenuItem<Map<String, dynamic>>(
+                      key: ValueKey("tt_advised_main_${option['id']}_${option['name']}_$index"),
+                      value: option,
+                      child: Text(option['name'] ?? ''),
+                    );
+                  }).toList(),
+                  onChanged: (Map<String, dynamic>? newValue) {
+                    if (newValue != null) {
+                      controller.selectedTTAdvised.value = newValue;
+                      controller.ttAdvisedId.value = newValue['id'] ?? 0;
+                    }
+                  },
+                  dropdownColor: Colors.white,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              );
+            }),
+          ),
+        ),
       ],
     );
   }
@@ -536,25 +678,33 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Obx(() {
-              // Create dropdown items with unique keys
-              final items = controller.deliveryModeOptionsWithIds.map((mode) {
-                return DropdownMenuItem<Map<String, dynamic>>(
-                  key: ValueKey("delivery_${mode['id']}"),
-                  value: mode,
-                  child: Text(mode['name']),
-                );
+              // Create unique instances for this dropdown
+              final deliveryOptions = controller.deliveryModeOptionsWithIds.map((mode) {
+                return Map<String, dynamic>.from(mode);
               }).toList();
-              
+
               // Find the matching item based on ID
               Map<String, dynamic>? selectedValue;
               if (controller.selectedDeliveryMode.value != null) {
-                for (var item in controller.deliveryModeOptionsWithIds) {
-                  if (item['id'] == controller.selectedDeliveryMode.value!['id']) {
+                final selectedId = controller.selectedDeliveryMode.value!['id'];
+                for (var item in deliveryOptions) {
+                  if (item['id'] == selectedId) {
                     selectedValue = item;
                     break;
                   }
                 }
               }
+
+              // Create dropdown items with unique keys
+              final items = deliveryOptions.asMap().entries.map((entry) {
+                final index = entry.key;
+                final mode = entry.value;
+                return DropdownMenuItem<Map<String, dynamic>>(
+                  key: ValueKey("delivery_${mode['id']}_$index"),
+                  value: mode,
+                  child: Text(mode['name']),
+                );
+              }).toList();
               
               return DropdownButtonHideUnderline(
                 child: DropdownButton<Map<String, dynamic>>(
@@ -592,30 +742,33 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20.0),
                       child: Obx(() {
-                        final genderOptions = [
-                          {'id': 1, 'name': 'Male'},
-                          {'id': 2, 'name': 'Female'}
-                        ];
-                        
-                        // Create dropdown items with unique keys
-                        final items = genderOptions.map((gender) {
-                          return DropdownMenuItem<Map<String, dynamic>>(
-                            key: ValueKey("gender_${gender['id']}"),
-                            value: gender,
-                            child: Text(gender['name'].toString()),
-                          );
+                        // Create unique instances for this dropdown
+                        final genderOptions = controller.genderOptions.map((gender) {
+                          return Map<String, dynamic>.from(gender);
                         }).toList();
-                        
+
                         // Find the matching item based on ID
                         Map<String, dynamic>? selectedValue;
                         if (controller.selectedBabyGender.value != null) {
+                          final selectedId = controller.selectedBabyGender.value!['id'];
                           for (var item in genderOptions) {
-                            if (item['id'] == controller.selectedBabyGender.value!['id']) {
+                            if (item['id'] == selectedId) {
                               selectedValue = item;
                               break;
                             }
                           }
                         }
+
+                        // Create dropdown items with unique keys
+                        final items = genderOptions.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final gender = entry.value;
+                          return DropdownMenuItem<Map<String, dynamic>>(
+                            key: ValueKey("baby_gender_${gender['id']}_$index"),
+                            value: gender,
+                            child: Text(gender['name'].toString()),
+                          );
+                        }).toList();
                         
                         return DropdownButtonHideUnderline(
                           child: DropdownButton<Map<String, dynamic>>(
@@ -669,28 +822,50 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Obx(() => DropdownButtonHideUnderline(
-                  child: DropdownButton<Map<String, dynamic>>(
-                    value: controller.selectedPostpartumStatus.value,
-                    isExpanded: true,
-                    hint: Text("Select Postpartum Status"),
-                    items: controller.postpartumStatusOptionsWithIds
-                        .map((status) => DropdownMenuItem(
-                              value: status,
-                              child: Text(status['name']),
-                            ))
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        controller.selectedPostpartumStatus.value = val;
-                        controller.postpartumStatusId.value = val['id'];
-                        controller.postpartumFollowup.value = val['name'];
-                      }
-                    },
-                    dropdownColor: Colors.white,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                )),
+            child: Obx(() {
+              // Create unique instances for this dropdown
+              final postpartumOptions = controller.postpartumStatusOptionsWithIds.map((status) {
+                return Map<String, dynamic>.from(status);
+              }).toList();
+
+              // Find matching value
+              Map<String, dynamic>? selectedValue;
+              if (controller.selectedPostpartumStatus.value != null) {
+                final selectedId = controller.selectedPostpartumStatus.value!['id'];
+                for (var item in postpartumOptions) {
+                  if (item['id'] == selectedId) {
+                    selectedValue = item;
+                    break;
+                  }
+                }
+              }
+
+              return DropdownButtonHideUnderline(
+                child: DropdownButton<Map<String, dynamic>>(
+                  value: selectedValue,
+                  isExpanded: true,
+                  hint: Text("Select Postpartum Status"),
+                  items: postpartumOptions.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final status = entry.value;
+                    return DropdownMenuItem<Map<String, dynamic>>(
+                      key: ValueKey("postpartum_${status['id']}_$index"),
+                      value: status,
+                      child: Text(status['name']),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      controller.selectedPostpartumStatus.value = val;
+                      controller.postpartumStatusId.value = val['id'];
+                      controller.postpartumFollowup.value = val['name'];
+                    }
+                  },
+                  dropdownColor: Colors.white,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              );
+            }),
           ),
         ),
 

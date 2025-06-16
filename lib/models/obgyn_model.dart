@@ -14,7 +14,7 @@ class ObgynModel {
   final DateTime? expectedDeliveryDate;
   final String? deliveryFacility;
   final bool? referredToHigherTier;
-  final bool? ttAdvised;
+  final String? ttAdvised; // Now stores ID as string instead of boolean
   
   // Delivery fields
   final String? deliveryMode; // Now stores ID as string

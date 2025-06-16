@@ -7,7 +7,7 @@ import '../controller/auth_controller.dart';
 import '../db/database_helper.dart';
 import '../models/api_models.dart';
 import '../models/patient_model.dart';
-import '../models/prescription_model.dart';
+
 import '../services/api_service.dart';
 import '../utils/encryption_helper.dart';
 
@@ -59,13 +59,15 @@ class SyncController extends GetxController {
   /// Check if there's unsynced data in local database
   Future<void> _checkUnsyncedData() async {
     try {
-      // Check for unsynced patients and OPD visits
-      final patients = await _dbHelper.getAllPatients();
-      final opdVisits = await _dbHelper.getAllOpdVisits();
+      // Ensure sync columns exist
+      await _ensureSyncColumns();
 
-      // For now, assume all local data needs to be synced
-      // You can add sync status fields to your database tables
-      hasUnsyncedData.value = patients.isNotEmpty || opdVisits.isNotEmpty;
+      // Check for unsynced patients and OPD visits
+      final unsyncedPatients = await _dbHelper.getUnsyncedPatients();
+      final unsyncedOpdVisits = await _dbHelper.getUnsyncedOpdVisits();
+
+      // Check if there's any unsynced data
+      hasUnsyncedData.value = unsyncedPatients.isNotEmpty || unsyncedOpdVisits.isNotEmpty;
 
       await _saveSyncStatus();
     } catch (e) {
@@ -119,16 +121,30 @@ class SyncController extends GetxController {
       // Submit all data together using form submission
       syncStatus.value = 'Preparing data for submission...';
       syncProgress.value = 0.2;
-      
+
       final success = await submitFormData();
-      
-      if (success) {
+
+      if (success == null) {
+        // No data to sync
+        syncProgress.value = 1.0;
+        syncStatus.value = 'No data to sync';
+
+        Get.snackbar(
+          'No Data to Sync',
+          'All data is already synchronized',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+
+        return true; // Return true since this is not an error
+      } else if (success) {
         syncProgress.value = 1.0;
         syncStatus.value = 'Sync completed successfully';
         lastSyncTime.value = DateTime.now();
         hasUnsyncedData.value = false;
         await _saveSyncStatus();
-        
+
         Get.snackbar(
           'Sync Complete',
           'Data synchronized successfully',
@@ -136,7 +152,7 @@ class SyncController extends GetxController {
           backgroundColor: Colors.green,
           colorText: Colors.white,
         );
-        
+
         return true;
       } else {
         throw Exception('Form submission failed');
@@ -303,7 +319,7 @@ class SyncController extends GetxController {
       'followUpsAdvised': opdVisit.followUpAdvised,
       'fpAdvised': opdVisit.fpAdvised,
       'referred': opdVisit.isReferred,
-      'prescription': opdVisit.prescriptions.join(', '),
+      // 'prescription': opdVisit.prescriptions.join(', '),
       'patientId': int.tryParse(opdVisit.patientId) ?? 0,
       'subDiseases': opdVisit.diagnosis.join(','),
       'labTests': opdVisit.labTests.join(','),
@@ -360,7 +376,7 @@ class SyncController extends GetxController {
       'patientId': patient.patientId,
       'fullName': patient.fullName,
       'relationCnic': patient.cnic,
-      'relationType': patient.relationType,
+      'relationType': patient.relationType.toString(), // Convert int to string for API
       'contact': patient.contact,
       'address': patient.address,
       'gender': genderId,
@@ -372,7 +388,8 @@ class SyncController extends GetxController {
   }
 
   /// Submit form data to the server using models
-  Future<bool> submitFormData() async {
+  /// Returns true if successful, false if failed, null if no data to sync
+  Future<bool?> submitFormData() async {
     if (!_authController.isAuthenticated) {
       Get.snackbar(
         'Authentication Required',
@@ -390,23 +407,34 @@ class SyncController extends GetxController {
       // Ensure sync columns exist
       await _ensureSyncColumns();
       
-      // Get all patients and OPD visits
-      final patients = await _dbHelper.getAllPatients();
-      final opdVisits = await _dbHelper.getAllOpdVisits();
-      
+      // Get only unsynced patients and OPD visits for incremental sync
+      final patients = await _dbHelper.getUnsyncedPatients();
+      final opdVisits = await _dbHelper.getUnsyncedOpdVisits();
+
       // Debug logging
       debugPrint('Found ${patients.length} patients to sync');
       debugPrint('Found ${opdVisits.length} OPD visits to sync');
+
+      // Debug log each OPD visit sync status by checking database directly using patient_id and visit_date
+      final db = await _dbHelper.database;
+      for (var visit in opdVisits) {
+        final result = await db.query(
+          'opd_visits',
+          columns: ['is_synced', 'opdTicketNo', 'patient_id', 'visit_date'],
+          where: 'patient_id = ? AND visit_date = ?',
+          whereArgs: [visit.patientId, visit.visitDateTime.toIso8601String()],
+        );
+        final syncStatus = result.isNotEmpty ? result.first['is_synced'] : 'NOT_FOUND';
+        final dbTicketNo = result.isNotEmpty ? result.first['opdTicketNo'] : 'NOT_FOUND';
+        final dbPatientId = result.isNotEmpty ? result.first['patient_id'] : 'NOT_FOUND';
+        final dbVisitDate = result.isNotEmpty ? result.first['visit_date'] : 'NOT_FOUND';
+        debugPrint('OPD Visit: ${visit.opdTicketNo} - Patient: $dbPatientId - Visit Date: $dbVisitDate - DB Ticket: $dbTicketNo - DB Sync Status: $syncStatus');
+      }
       
       if (patients.isEmpty && opdVisits.isEmpty) {
-        Get.snackbar(
-          'No Data to Sync',
-          'There are no patients or OPD visits to synchronize',
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-        );
-        return false;
+        syncStatus.value = 'No data to sync';
+        debugPrint('No unsynced data found');
+        return null; // Return null to indicate no data to sync
       }
       
       // Reset counters
@@ -428,15 +456,15 @@ class SyncController extends GetxController {
         final patientData = PatientFormData(
           patientId: patient.patientId,
           fullName: patient.fullName,
-          relationCnic: patient.cnic ?? '',
-          relationType: patient.relationType.toString(),
-          contact: patient.contact ?? '',
-          address: patient.address ?? '',
+          relationCnic: patient.cnic,
+          relationType: patient.relationType.toString(), // Pass relationType ID as string
+          contact: patient.contact,
+          address: patient.address,
           gender: patient.gender == 'Male' ? 1 : 2,
-          bloodGroup: patient.bloodGroup ?? 1,
-          age: patient.age ?? 18,
-          medicalHistory: patient.medicalHistory ?? '',
-          immunized: patient.immunized ? true : false,
+          bloodGroup: patient.bloodGroup,
+          age: patient.age, // Age is now properly included
+          medicalHistory: patient.medicalHistory,
+          immunized: patient.immunized,
         );
         
         patientFormData.add(patientData);
@@ -457,52 +485,50 @@ class SyncController extends GetxController {
         if (prescriptions.isEmpty && visit.prescriptions.isNotEmpty) {
           debugPrint('Using prescriptions from OPD visit record');
           prescriptionData = visit.prescriptions.map((p) {
-            if (p is Map<String, dynamic>) {
-              // Create object with medicineId and quantity
-              return {
-                "medicineId": p['id'] ?? 0,
-                "quantity": p['quantity'] ?? 1
-              };
-            }
-            return {"medicineId": 0, "quantity": 1}; // Fallback
+            // Create object with medicineId and quantity
+            return {
+              "medicineId": p['id'] ?? 0,
+              "quantity": p['quantity'] ?? 1
+            };
           }).toList();
         } else {
-          prescriptionData = prescriptions.map((p) => {
-            "medicineId": (p as PrescriptionModel).id ?? 0,
-            "quantity": (p as PrescriptionModel).quantity
+          // Get prescriptions from database with raw query to access medicine field
+          final db = await _dbHelper.database;
+          final rawPrescriptions = await db.query(
+            'prescriptions',
+            where: 'opdTicketNo = ?',
+            whereArgs: [visit.opdTicketNo],
+          );
+
+          prescriptionData = rawPrescriptions.map((p) => {
+            // The medicine field contains the medicine ID as string
+            "medicineId": int.tryParse(p['medicine']?.toString() ?? '0') ?? 0,
+            "quantity": p['quantity'] ?? 1
           }).toList();
         }
-        
-        // Convert to JSON string for storage
-        final prescriptionJson = json.encode(prescriptionData);
         
         // Debug log the diagnosis and lab tests
         debugPrint('Diagnosis: ${visit.diagnosisIds}');
         debugPrint('Lab tests: ${visit.labTestIds}');
-        debugPrint('Prescriptions: $prescriptionJson');
-        
-        // Convert reasonForVisit to boolean if it's a string
-        bool isGeneralOPD = true;
-        if (visit.reasonForVisit is bool) {
-          isGeneralOPD = visit.reasonForVisit;
-        } else if (visit.reasonForVisit is String) {
-          isGeneralOPD = visit.reasonForVisit == 'General OPD';
-        }
-        
+        debugPrint('Prescriptions: ${json.encode(prescriptionData)}');
+
+        // reasonForVisit is already a boolean in OpdVisitModel
+        bool isGeneralOPD = visit.reasonForVisit;
+
         final visitData = OpdFormData(
           opdTicketNo: visit.opdTicketNo,
           patientId: visit.patientId,
-          visitDateTime: visit.visitDateTime.toIso8601String(),
+          visitDateTime: visit.visitDateTime.toIso8601String().split('.')[0], // Remove microseconds
           reasonForVisit: isGeneralOPD,
           isFollowUp: visit.isFollowUp,
-          diagnosis: visit.diagnosisIds,
-          prescriptions: prescriptionJson, // Use the JSON string here
-          labTests: visit.labTestIds,
+          diagnosis: visit.diagnosisIds.isNotEmpty ? visit.diagnosisIds : [0], // Send [0] instead of empty array
+          prescriptions: prescriptionData, // Pass the array directly, not JSON string
+          labTests: visit.labTestIds.isNotEmpty ? visit.labTestIds : [0], // Send [0] instead of empty array
           isReferred: visit.isReferred,
           followUpAdvised: visit.followUpAdvised,
           followUpDays: visit.followUpDays ?? 0,
           fpAdvised: visit.fpAdvised,
-          fpList: visit.fpIds,
+          fpList: visit.fpIds.isNotEmpty ? visit.fpIds : [0], // Send [0] instead of empty array
           obgynData: visit.obgynData ?? '',
         );
         
@@ -525,8 +551,31 @@ class SyncController extends GetxController {
       // Convert to JSON string
       final jsonString = json.encode(formSubmission.toJson());
       
-      // Debug log the JSON string (truncated for readability)
-      debugPrint('Form submission JSON (first 500 chars): ${jsonString.substring(0, jsonString.length > 500 ? 500 : jsonString.length)}...');
+      // Debug log the full JSON string for debugging
+      debugPrint('=== FULL FORM SUBMISSION JSON ===');
+      debugPrint(jsonString);
+      debugPrint('=== END FORM SUBMISSION JSON ===');
+
+      // Debug log individual OPD visit data
+      for (int i = 0; i < opdFormData.length; i++) {
+        final visit = opdFormData[i];
+        debugPrint('=== OPD VISIT $i DETAILS ===');
+        debugPrint('Ticket: ${visit.opdTicketNo}');
+        debugPrint('Patient ID: ${visit.patientId}');
+        debugPrint('Visit DateTime: ${visit.visitDateTime}');
+        debugPrint('Reason for Visit: ${visit.reasonForVisit}');
+        debugPrint('Is Follow Up: ${visit.isFollowUp}');
+        debugPrint('Diagnosis: ${visit.diagnosis}');
+        debugPrint('Prescriptions: ${visit.prescriptions}');
+        debugPrint('Lab Tests: ${visit.labTests}');
+        debugPrint('Is Referred: ${visit.isReferred}');
+        debugPrint('Follow Up Advised: ${visit.followUpAdvised}');
+        debugPrint('Follow Up Days: ${visit.followUpDays}');
+        debugPrint('FP Advised: ${visit.fpAdvised}');
+        debugPrint('FP List: ${visit.fpList}');
+        debugPrint('OBGYN Data: ${visit.obgynData}');
+        debugPrint('=== END OPD VISIT $i DETAILS ===');
+      }
       
       // Encrypt the JSON string
       final encryptedString = EncryptionHelper.encryptText(jsonString);
@@ -546,7 +595,7 @@ class SyncController extends GetxController {
         downloadedData.value = 1; // Mark as processed
         
         // Mark all data as synced in the database
-        await _markDataAsSynced();
+        await _markDataAsSynced(opdFormData);
         
         return true;
       } else {
@@ -556,38 +605,52 @@ class SyncController extends GetxController {
     } catch (e) {
       debugPrint('Exception during form submission: $e');
       syncStatus.value = 'Form submission failed: $e';
-      Get.snackbar(
-        'Submission Failed',
-        'Failed to submit form data: $e',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      // Don't show snackbar here, let the main sync method handle it
       return false;
     }
   }
 
-  /// Mark all data as synced in the database
-  Future<void> _markDataAsSynced() async {
+  /// Mark only the synced data as synced in the database
+  Future<void> _markDataAsSynced(List<OpdFormData> opdFormData) async {
     try {
       // Ensure sync columns exist
       await _ensureSyncColumns();
-      
+
       final db = await _dbHelper.database;
-      
-      // Mark patients as synced
-      await db.update('patients', {'is_synced': 1});
-      debugPrint('Marked patients as synced');
-      
-      // Mark OPD visits as synced
-      await db.update('opd_visits', {'is_synced': 1});
-      debugPrint('Marked OPD visits as synced');
-      
-      // Mark prescriptions as synced
-      await db.update('prescriptions', {'is_synced': 1});
-      debugPrint('Marked prescriptions as synced');
-      
-      debugPrint('All data marked as synced in the database');
+
+      // Mark only unsynced patients as synced (the ones that were just uploaded)
+      await db.update(
+        'patients',
+        {'is_synced': 1},
+        where: 'is_synced = ? OR is_synced IS NULL',
+        whereArgs: [0]
+      );
+      debugPrint('Marked unsynced patients as synced');
+
+      // Mark only the specific OPD visits that were just uploaded as synced
+      int opdUpdateCount = 0;
+      for (var visitData in opdFormData) {
+        final updateCount = await db.update(
+          'opd_visits',
+          {'is_synced': 1},
+          where: 'patient_id = ? AND visit_date = ?',
+          whereArgs: [visitData.patientId, visitData.visitDateTime]
+        );
+        opdUpdateCount += updateCount;
+        debugPrint('Marked OPD visit for patient ${visitData.patientId} on ${visitData.visitDateTime} as synced');
+      }
+      debugPrint('Marked $opdUpdateCount OPD visits as synced');
+
+      // Mark only unsynced prescriptions as synced
+      await db.update(
+        'prescriptions',
+        {'is_synced': 1},
+        where: 'is_synced = ? OR is_synced IS NULL',
+        whereArgs: [0]
+      );
+      debugPrint('Marked unsynced prescriptions as synced');
+
+      debugPrint('All unsynced data marked as synced in the database');
     } catch (e) {
       debugPrint('Error marking data as synced: $e');
     }

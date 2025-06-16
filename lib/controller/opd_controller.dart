@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import '../db/database_helper.dart';
 import '../models/disease_model.dart';
@@ -31,6 +32,9 @@ class OpdController extends GetxController {
   
   // Form reactive variables
   var selectedPatient = Rx<PatientModel?>(null);
+  var patientSearchController = TextEditingController();
+  var filteredPatients = <PatientModel>[].obs;
+  var searchText = ''.obs; // Reactive variable to track search text
   var reasonForVisit = 'General OPD'.obs;
   var isFollowUp = false.obs;
   var selectedDiseaseIds = <int>[].obs;  // Changed from selectedDiseases string list
@@ -69,6 +73,7 @@ class OpdController extends GetxController {
   var babyWeight = 0.obs;
   var antenatalVisitId = 0.obs;
   var babyGenderId = 0.obs;
+  var ttAdvisedId = 0.obs; // Add ID for TT advised
 
   // Add maps to store ID-to-name mappings
   var labTestMap = <int, String>{}.obs;
@@ -80,6 +85,7 @@ class OpdController extends GetxController {
   // Add these new variables
   var pregnancyIndicatorsWithIds = <Map<String, dynamic>>[].obs;
   var postpartumStatusOptionsWithIds = <Map<String, dynamic>>[].obs;
+  var genderOptions = <Map<String, dynamic>>[].obs;
   var selectedPregnancyIndicator = Rx<Map<String, dynamic>?>(null);
   var selectedPostpartumStatus = Rx<Map<String, dynamic>?>(null);
   var pregnancyIndicatorId = 0.obs;
@@ -88,6 +94,8 @@ class OpdController extends GetxController {
   var selectedDeliveryMode = Rx<Map<String, dynamic>?>(null);
   var selectedBabyGender = Rx<Map<String, dynamic>?>(null);
   var deliveryModeId = 0.obs;
+  var ttAdvisedOptionsWithIds = <Map<String, dynamic>>[].obs;
+  var selectedTTAdvised = Rx<Map<String, dynamic>?>(null);
 
   // For prescription
   var selectedDrug = Rx<Map<String, dynamic>?>(null);
@@ -320,21 +328,25 @@ class OpdController extends GetxController {
       
       if (ttAdvisedOptions.isNotEmpty) {
         this.ttAdvisedOptions.value = ttAdvisedOptions.map((e) => e['name'] as String).toList();
+        ttAdvisedOptionsWithIds.value = ttAdvisedOptions;
       } else {
         // Fallback data for TT advised
         print('Using default TT advised options');
-        this.ttAdvisedOptions.value = [
-          'TT1',
-          'TT2',
-          'TT Booster',
-          'Not Advised'
+        final defaultTTOptions = [
+          {'id': 1, 'name': 'TT1'},
+          {'id': 2, 'name': 'TT2'},
+          {'id': 3, 'name': 'TT Booster'},
+          {'id': 4, 'name': 'Not Advised'}
         ];
-        
+
+        this.ttAdvisedOptions.value = defaultTTOptions.map((e) => e['name'] as String).toList();
+        ttAdvisedOptionsWithIds.value = defaultTTOptions;
+
         // Save default values to local table
-        for (var option in ttAdvisedOptions) {
+        for (var option in defaultTTOptions) {
           await db.database.then((dbClient) => dbClient.insert(
-            'api_tt_advised', 
-            {'name': option},
+            'api_tt_advised',
+            {'id': option['id'], 'name': option['name']},
             conflictAlgorithm: ConflictAlgorithm.ignore
           ));
         }
@@ -462,6 +474,19 @@ class OpdController extends GetxController {
         }
       }
       
+      // Load genders
+      var genders = await db.getGenders();
+      if (genders.isNotEmpty) {
+        genderOptions.value = genders;
+      } else {
+        // Fallback data for genders
+        print('Using default genders');
+        genderOptions.value = [
+          {'id': 1, 'name': 'Male'},
+          {'id': 2, 'name': 'Female'}
+        ];
+      }
+
       print('Reference data loading completed');
     } catch (e) {
       print('Error loading reference data: $e');
@@ -548,6 +573,27 @@ class OpdController extends GetxController {
 
   Future<void> loadPatients() async {
     patients.value = await db.getAllPatients();
+    filteredPatients.assignAll(patients); // Initialize filtered list
+  }
+
+  /// Filter patients based on search query
+  void filterPatients(String query) {
+    searchText.value = query; // Update reactive search text
+    if (query.isEmpty) {
+      filteredPatients.assignAll(patients);
+    } else {
+      final filtered = patients.where((patient) {
+        final name = patient.fullName.toLowerCase();
+        final cnic = patient.cnic.toLowerCase();
+        final contact = patient.contact.toLowerCase();
+        final searchQuery = query.toLowerCase();
+
+        return name.contains(searchQuery) ||
+               cnic.contains(searchQuery) ||
+               contact.contains(searchQuery);
+      }).toList();
+      filteredPatients.assignAll(filtered);
+    }
   }
 
   Future<void> loadDiseases() async {
@@ -676,7 +722,7 @@ class OpdController extends GetxController {
         expectedDeliveryDate: expectedDeliveryDate.value,
         deliveryFacility: deliveryFacility.value,
         referredToHigherTier: referredToHigherTier.value,
-        ttAdvised: ttAdvised.value,
+        ttAdvised: ttAdvisedId.value.toString(), // Use ID instead of boolean
         deliveryMode: deliveryModeId.value.toString(), // Use ID instead of name
         babyGender: babyGenderId.value.toString(),
         babyWeight: babyWeight.value,
@@ -721,6 +767,9 @@ class OpdController extends GetxController {
       // First, check if the table has the required columns
       var tableInfo = await dbClient.rawQuery("PRAGMA table_info(opd_visits)");
       List<String> columns = tableInfo.map((col) => col['name'] as String).toList();
+
+      // Debug log available columns
+      print('Available columns in opd_visits table: $columns');
       
       // Create a map with only the columns that exist in the table
       Map<String, dynamic> visitMap = {};
@@ -767,10 +816,13 @@ class OpdController extends GetxController {
       if (columns.contains('fp_names')) 
         visitMap['fp_names'] = visit.fpNames.join(',');  // Store names for display
       
-      if (columns.contains('obgyn_data')) 
+      if (columns.contains('obgyn_data'))
         visitMap['obgyn_data'] = visit.obgynData;
-      
-      if (columns.contains('is_synced')) 
+
+      if (columns.contains('opdTicketNo'))
+        visitMap['opdTicketNo'] = visit.opdTicketNo;
+
+      if (columns.contains('is_synced'))
         visitMap['is_synced'] = 0;
       
       if (columns.contains('created_at')) 
@@ -779,8 +831,23 @@ class OpdController extends GetxController {
       if (columns.contains('updated_at')) 
         visitMap['updated_at'] = DateTime.now().toIso8601String();
       
+      // Debug log what we're about to insert
+      print('Visit map to insert: $visitMap');
+
       // Insert the visit with only the columns that exist
       int visitId = await dbClient.insert('opd_visits', visitMap);
+
+      // Verify the insert by querying back
+      final verifyResult = await dbClient.query(
+        'opd_visits',
+        where: 'id = ?',
+        whereArgs: [visitId],
+      );
+      if (verifyResult.isNotEmpty) {
+        print('Verified insert - opdTicketNo in DB: ${verifyResult.first['opdTicketNo']}');
+      } else {
+        print('ERROR: Could not verify OPD visit insert');
+      }
     });
     
     await loadOpdVisits();
@@ -790,6 +857,9 @@ class OpdController extends GetxController {
 
   void clearForm() {
     selectedPatient.value = null;
+    patientSearchController.clear();
+    searchText.value = '';
+    filteredPatients.assignAll(patients);
     reasonForVisit.value = 'General OPD';
     isFollowUp.value = false;
     selectedDiseases.clear();
@@ -818,6 +888,8 @@ class OpdController extends GetxController {
     deliveryFacility.value = '';
     referredToHigherTier.value = false;
     ttAdvised.value = false;
+    ttAdvisedId.value = 0;
+    selectedTTAdvised.value = null;
     deliveryMode.value = 'Normal Delivery (Live Birth)';
     postpartumFollowup.value = '';
     familyPlanningServices.clear();

@@ -23,6 +23,8 @@ class PatientRegistrationForm extends StatelessWidget {
   final historyCtrl = TextEditingController();
 
   final gender = ''.obs;
+  final selectedGender = Rx<Map<String, dynamic>?>(null);
+  final genders = <Map<String, dynamic>>[].obs;
   final bloodGroup = ''.obs;
   final age = 0.obs;
   final bloodGroups = <Map<String, dynamic>>[].obs;
@@ -33,6 +35,7 @@ class PatientRegistrationForm extends StatelessWidget {
   
   PatientRegistrationForm() {
     _loadBloodGroups();
+    _loadGenders();
   }
   
   Future<void> _loadBloodGroups() async {
@@ -75,6 +78,27 @@ class PatientRegistrationForm extends StatelessWidget {
 
   }
 
+  Future<void> _loadGenders() async {
+    try {
+      final genderList = await db.getGenders();
+      if (genderList.isNotEmpty) {
+        genders.value = genderList;
+      } else {
+        // Fallback to default genders
+        genders.value = [
+          {'id': 1, 'name': 'Male'},
+          {'id': 2, 'name': 'Female'}
+        ];
+      }
+    } catch (e) {
+      // Fallback to default genders
+      genders.value = [
+        {'id': 1, 'name': 'Male'},
+        {'id': 2, 'name': 'Female'}
+      ];
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -86,9 +110,34 @@ class PatientRegistrationForm extends StatelessWidget {
           child: ListView(
             children: [
               _label("FULL NAME"),
-              InputField(hintText: "Full Name", controller: nameCtrl),
+              InputField(
+                hintText: "Full Name",
+                controller: nameCtrl,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter full name';
+                  }
+                  return null;
+                },
+              ),
               _label("CNIC"),
-              InputField(hintText: "e.g. 1234567890123", controller: cnicCtrl),
+              InputField(
+                hintText: "e.g. 1234567890123",
+                controller: cnicCtrl,
+                inputType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter CNIC';
+                  }
+                  if (value.length != 13) {
+                    return 'CNIC must be exactly 13 digits';
+                  }
+                  if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                    return 'CNIC must contain only numbers';
+                  }
+                  return null;
+                },
+              ),
               _label("RELATION TYPE"),
               DropDownWidget(child: Obx(() => DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
@@ -107,25 +156,84 @@ class PatientRegistrationForm extends StatelessWidget {
               )),),
               _label("CONTACT"),
               InputField(
-                  hintText: "+923001234567",
-                  controller: contactCtrl,
-                  inputType: TextInputType.phone),
+                hintText: "+923001234567",
+                controller: contactCtrl,
+                inputType: TextInputType.phone,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter contact number';
+                  }
+                  // Remove any non-digit characters for validation
+                  String digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
+
+                  // Check if it's a valid Pakistani mobile number
+                  if (digitsOnly.length < 11) {
+                    return 'Contact number must be at least 11 digits';
+                  }
+                  if (digitsOnly.length > 13) {
+                    return 'Contact number is too long';
+                  }
+                  // Check if it starts with valid Pakistani mobile prefixes
+                  if (!RegExp(r'^(03|923)').hasMatch(digitsOnly)) {
+                    return 'Please enter a valid Pakistani mobile number';
+                  }
+                  return null;
+                },
+              ),
               _label("ADDRESS"),
-              InputField(hintText: "Your address", controller: addressCtrl),
+              InputField(
+                hintText: "Your address",
+                controller: addressCtrl,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter address';
+                  }
+                  return null;
+                },
+              ),
               _label("GENDER"),
-              DropDownWidget(child: Obx(() => DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: gender.value == '' ? null : gender.value,
-                      hint: Text("Select Gender"),
-                      items: ['Male', 'Female', 'Transgender', 'Other']
-                          .map((e) =>
-                              DropdownMenuItem(value: e, child: Text(e)))
-                          .toList(),
-                      onChanged: (val) => gender.value = val!,
-                      dropdownColor: Colors.white,
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                  ))),
+              DropDownWidget(child: Obx(() {
+                // Create unique instances for this dropdown
+                final genderOptions = genders.map((gender) {
+                  return Map<String, dynamic>.from(gender);
+                }).toList();
+
+                // Find matching value
+                Map<String, dynamic>? selectedValue;
+                if (selectedGender.value != null) {
+                  final selectedId = selectedGender.value!['id'];
+                  for (var item in genderOptions) {
+                    if (item['id'] == selectedId) {
+                      selectedValue = item;
+                      break;
+                    }
+                  }
+                }
+
+                return DropdownButtonHideUnderline(
+                  child: DropdownButton<Map<String, dynamic>>(
+                    value: selectedValue,
+                    hint: Text("Select Gender"),
+                    items: genderOptions.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final gender = entry.value;
+                      return DropdownMenuItem<Map<String, dynamic>>(
+                        key: ValueKey("patient_gender_${gender['id']}_$index"),
+                        value: gender,
+                        child: Text(gender['name']),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        selectedGender.value = val;
+                        gender.value = val['name'];
+                      }
+                    },
+                    dropdownColor: Colors.white,
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                );
+              })),
               // _label("BLOOD GROUP"),
               // DropDownWidget(
               //   child: Obx(() => DropdownButtonHideUnderline(
@@ -215,6 +323,20 @@ class PatientRegistrationForm extends StatelessWidget {
                 icon: IconlyLight.addUser,
                 text: "Save Patient",
                 onPressed: () async {
+                  // Validate form before saving
+                  if (!_formKey.currentState!.validate()) {
+                    return;
+                  }
+
+                  // Check if required fields are selected
+                  if (gender.value.isEmpty) {
+                    Get.snackbar("Error", "Please select gender");
+                    return;
+                  }
+                  if (age.value <= 0) {
+                    Get.snackbar("Error", "Please select age");
+                    return;
+                  }
                   if (!_formKey.currentState!.validate()) {
                     return;
                   }
@@ -222,12 +344,13 @@ class PatientRegistrationForm extends StatelessWidget {
                   // Use CNIC as patient ID without concatenating relation type
                   String id = cnicCtrl.text.trim();
                   
-                  // Get blood group ID from selected blood group name
-                  int bloodGroupId = 1; // Default to A+ (ID: 1)
-                  final selectedBg = bloodGroups.firstWhere(
-                    (bg) => bg['name'] == bloodGroup.value,
-                    orElse: () => {'id': 1, 'name': 'A+'},
-                  );
+                  // Get blood group ID - use selected or default to A+ (ID: 1)
+                  final selectedBg = bloodGroup.value.isNotEmpty
+                    ? bloodGroups.firstWhere(
+                        (bg) => bg['name'] == bloodGroup.value,
+                        orElse: () => {'id': 1, 'name': 'A+'},
+                      )
+                    : {'id': 1, 'name': 'A+'}; // Default blood group
                   
                   // Map relation type to correct integer values
                   int relationTypeId;
@@ -239,14 +362,8 @@ class PatientRegistrationForm extends StatelessWidget {
                     default: relationTypeId = 5; // other
                   }
                   
-                  // Map gender to correct integer values
-                  int genderId;
-                  switch (gender.value) {
-                    case 'Male': genderId = 1; break;
-                    case 'Female': genderId = 2; break;
-                    case 'Transgender': genderId = 3; break;
-                    default: genderId = 4; // other
-                  }
+                  // Get gender ID from selected gender
+                  int genderId = selectedGender.value?['id'] ?? 1; // Default to Male (ID: 1)
                   
                   // Determine father/husband name based on relation type
                   String fatherName = '';

@@ -83,6 +83,7 @@ class LoginResponse {
   final List<PostPartumStatus> postPartumStatuses;
   final List<MedicineDosage> medicineDosages;
   final List<District> districts;
+  final List<RelationType> relationTypes;
   final List<ApiPatient> patients;
   final List<Disease> diseases;
   final List<SubDisease> subDiseases;
@@ -101,6 +102,7 @@ class LoginResponse {
     required this.postPartumStatuses,
     required this.medicineDosages,
     required this.districts,
+    required this.relationTypes,
     required this.patients,
     required this.diseases,
     required this.subDiseases,
@@ -121,6 +123,7 @@ class LoginResponse {
       postPartumStatuses: (json['postPartumStatuses'] as List?)?.map((x) => PostPartumStatus.fromJson(x)).toList() ?? [],
       medicineDosages: (json['medicineDosages'] as List?)?.map((x) => MedicineDosage.fromJson(x)).toList() ?? [],
       districts: (json['districts'] as List?)?.map((x) => District.fromJson(x)).toList() ?? [],
+      relationTypes: (json['relationTypes'] as List?)?.map((x) => RelationType.fromJson(x)).toList() ?? [],
       patients: (json['patients'] as List?)?.map((x) => ApiPatient.fromJson(x)).toList() ?? [],
       diseases: (json['diseases'] as List?)?.map((x) => Disease.fromJson(x)).toList() ?? [],
       subDiseases: (json['subDiseases'] as List?)?.map((x) => SubDisease.fromJson(x)).toList() ?? [],
@@ -173,6 +176,10 @@ class LoginResponse {
         id: d.id ?? 0,
         name: d.name ?? '',
         version: d.version ?? 0, // Use actual version
+      )).toList() ?? [],
+      relationTypes: appUserData.relationTypes?.map<RelationType>((rt) => RelationType(
+        id: rt.id ?? 0,
+        name: rt.name ?? '',
       )).toList() ?? [],
       patients: [], // Empty for now - add if available in appUserData
       diseases: appUserData.diseases?.map<Disease>((d) => Disease(
@@ -317,6 +324,20 @@ class MedicineDosage {
   MedicineDosage({required this.id, required this.name});
 
   factory MedicineDosage.fromJson(Map<String, dynamic> json) => MedicineDosage(
+    id: json['id'],
+    name: json['name'],
+  );
+
+  Map<String, dynamic> toJson() => {'id': id, 'name': name};
+}
+
+class RelationType {
+  final int id;
+  final String name;
+
+  RelationType({required this.id, required this.name});
+
+  factory RelationType.fromJson(Map<String, dynamic> json) => RelationType(
     id: json['id'],
     name: json['name'],
   );
@@ -570,7 +591,7 @@ class OpdFormData {
   final bool reasonForVisit; // if obgyn then 0 else 1
   final bool isFollowUp;
   final List<int> diagnosis;
-  final String prescriptions;
+  final List<Map<String, dynamic>> prescriptions;
   final List<int> labTests;
   final bool isReferred;
   final bool followUpAdvised;
