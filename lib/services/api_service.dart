@@ -146,12 +146,36 @@ class ApiService {
               try {
                 AppUserData appUserData;
 
-                // Check if the response is encrypted (string) or unencrypted (JSON object)
+                // Check if the response is encrypted (long string) or unencrypted JSON string
                 if (responseContent is String) {
-                  // Encrypted response - decrypt it
-                  debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ENCRYPTED RESPONSE DETECTED');
-                  appUserData = _encryptionService.decryptAndDecompressAndDeserialize(responseContent);
-                  debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DECRYPTED RESPONSE: $appUserData');
+                  // Check if it's a JSON string or encrypted data
+                  try {
+                    // Try to parse as JSON first
+                    final jsonData = json.decode(responseContent);
+                    debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> UNENCRYPTED JSON STRING DETECTED');
+                    debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> RAW JSON: $responseContent');
+
+                    // Log the JSON structure to see what fields are available
+                    debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> JSON DATA KEYS: ${jsonData.keys.toList()}');
+                    debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> HAS relationType: ${jsonData.containsKey('relationType')}');
+                    debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> HAS relationTypes: ${jsonData.containsKey('relationTypes')}');
+                    debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> HAS gender: ${jsonData.containsKey('gender')}');
+                    debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> HAS genders: ${jsonData.containsKey('genders')}');
+
+                    if (jsonData.containsKey('relationType')) {
+                      debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> relationType VALUE: ${jsonData['relationType']}');
+                    }
+                    if (jsonData.containsKey('gender')) {
+                      debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gender VALUE: ${jsonData['gender']}');
+                    }
+
+                    appUserData = AppUserData.fromJson(jsonData);
+                  } catch (e) {
+                    // If JSON parsing fails, it's probably encrypted
+                    debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ENCRYPTED RESPONSE DETECTED (JSON parse failed)');
+                    appUserData = _encryptionService.decryptAndDecompressAndDeserialize(responseContent);
+                    debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DECRYPTED RESPONSE: $appUserData');
+                  }
                 } else {
                   // Unencrypted response - parse directly
                   debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> UNENCRYPTED RESPONSE DETECTED');
@@ -165,16 +189,67 @@ class ApiService {
                     jsonData = responseContent as Map<String, dynamic>;
                   }
 
+                  // Log the JSON structure to see what fields are available
+                  debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> JSON DATA KEYS: ${jsonData.keys.toList()}');
+                  debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> HAS relationTypes: ${jsonData.containsKey('relationTypes')}');
+                  debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> HAS genders: ${jsonData.containsKey('genders')}');
+                  debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> HAS gender: ${jsonData.containsKey('gender')}');
+                  if (jsonData.containsKey('relationTypes')) {
+                    debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> relationTypes VALUE: ${jsonData['relationTypes']}');
+                  }
+                  if (jsonData.containsKey('genders')) {
+                    debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> genders VALUE: ${jsonData['genders']}');
+                  }
+                  if (jsonData.containsKey('gender')) {
+                    debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> gender VALUE: ${jsonData['gender']}');
+                  }
+
                   appUserData = AppUserData.fromJson(jsonData);
                 }
 
                 debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> PARSED APP USER DATA: ${appUserData.token}');
                 debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> RELATION TYPES COUNT: ${appUserData.relationTypes?.length ?? 0}');
                 debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> GENDERS COUNT: ${appUserData.genders?.length ?? 0}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DISTRICTS COUNT: ${appUserData.districts?.length ?? 0}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> BLOOD GROUPS COUNT: ${appUserData.bloodGroups?.length ?? 0}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DELIVERY MODES COUNT: ${appUserData.deliveryModes?.length ?? 0}');
+
+                // Log all available fields in appUserData
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> APP USER DATA FIELDS:');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - userInfo: ${appUserData.userInfo != null}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - token: ${appUserData.token != null}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - bloodGroups: ${appUserData.bloodGroups != null}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - deliveryModes: ${appUserData.deliveryModes != null}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - deliveryTypes: ${appUserData.deliveryTypes != null}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - antenatalVisits: ${appUserData.antenatalVisits != null}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - districts: ${appUserData.districts != null}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - diseases: ${appUserData.diseases != null}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - medicines: ${appUserData.medicines != null}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - tTAdvisedList: ${appUserData.tTAdvisedList != null}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - pregnancyIndicators: ${appUserData.pregnancyIndicators != null}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - postPartumStatuses: ${appUserData.postPartumStatuses != null}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - medicineDosages: ${appUserData.medicineDosages != null}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - familyPlanning: ${appUserData.familyPlanning != null}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - relationTypes: ${appUserData.relationTypes != null}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - genders: ${appUserData.genders != null}');
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - patients: ${appUserData.patients != null}');
+
                 if (appUserData.relationTypes != null) {
+                  debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> RELATION TYPES FROM API:');
                   for (var rt in appUserData.relationTypes!) {
                     debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> RELATION TYPE: ${rt.id} - ${rt.name}');
                   }
+                } else {
+                  debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> RELATION TYPES IS NULL IN API RESPONSE');
+                }
+
+                if (appUserData.genders != null) {
+                  debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> GENDERS FROM API:');
+                  for (var g in appUserData.genders!) {
+                    debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> GENDER: ${g.id} - ${g.name}');
+                  }
+                } else {
+                  debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> GENDERS IS NULL IN API RESPONSE');
                 }
 
                 // Store the decrypted/parsed data for later use

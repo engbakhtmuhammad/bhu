@@ -958,29 +958,30 @@ class DatabaseHelper {
       }
 
       // Store relation types
+      print('DEBUG: Checking relation types in API response...');
+      print('DEBUG: data.relationTypes is null: ${data.relationTypes == null}');
+      print('DEBUG: data.relationTypes length: ${data.relationTypes?.length ?? 0}');
+
       if (data.relationTypes != null && data.relationTypes!.isNotEmpty) {
-        print('Storing ${data.relationTypes!.length} relation types from API');
+        print('SUCCESS: Storing ${data.relationTypes!.length} relation types from API');
         for (final item in data.relationTypes!) {
-          print('Storing relation type: ${item.id} - ${item.name}');
+          print('SUCCESS: Storing relation type: ${item.id} - ${item.name}');
           batch.insert(
               'api_relation_types', {'id': item.id, 'name': item.name},
               conflictAlgorithm: ConflictAlgorithm.replace);
         }
       } else {
-        print('No relation types in API response, storing default relation types');
+        print('FALLBACK: No relation types in API response, storing default relation types');
+        print('FALLBACK: Reason - relationTypes is null: ${data.relationTypes == null}, isEmpty: ${data.relationTypes?.isEmpty ?? true}');
         final defaultRelationTypes = [
-          {'id': 1, 'name': 'Self'},
+          {'id': 1, 'name': 'Own'},
           {'id': 2, 'name': 'Father'},
           {'id': 3, 'name': 'Mother'},
           {'id': 4, 'name': 'Husband'},
-          {'id': 5, 'name': 'Wife'},
-          {'id': 6, 'name': 'Son'},
-          {'id': 7, 'name': 'Daughter'},
-          {'id': 8, 'name': 'Brother'},
-          {'id': 9, 'name': 'Sister'},
-          {'id': 10, 'name': 'Other'}
+          {'id': 5, 'name': 'Other'}
         ];
         for (final relationType in defaultRelationTypes) {
+          print('FALLBACK: Inserting default relation type: ${relationType['id']} - ${relationType['name']}');
           batch.insert('api_relation_types', relationType, conflictAlgorithm: ConflictAlgorithm.replace);
         }
       }
@@ -997,7 +998,9 @@ class DatabaseHelper {
         print('No genders in API response, storing default genders');
         final defaultGenders = [
           {'id': 1, 'name': 'Male'},
-          {'id': 2, 'name': 'Female'}
+          {'id': 2, 'name': 'Female'},
+          {'id': 3, 'name': 'TransGender'},
+          {'id': 4, 'name': 'OtherPerson'},
         ];
         for (final gender in defaultGenders) {
           batch.insert('api_genders', gender, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -1521,7 +1524,7 @@ class DatabaseHelper {
       if (relationTypes.isEmpty) {
         print('API relation types empty, using default relation types');
         final defaultRelationTypes = [
-          {'id': 1, 'name': 'Self'},
+          {'id': 1, 'name': 'Own'},
           {'id': 2, 'name': 'Father'},
           {'id': 3, 'name': 'Mother'},
           {'id': 4, 'name': 'Husband'},

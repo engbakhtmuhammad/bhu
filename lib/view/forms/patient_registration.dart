@@ -107,30 +107,30 @@ class PatientRegistrationForm extends StatelessWidget {
       final relationTypeList = await db.getRelationTypes();
       if (relationTypeList.isNotEmpty) {
         relationTypes.value = relationTypeList;
-        // Set default selection to first item (Self)
+        // Set default selection to first item (Own)
         selectedRelationType.value = relationTypeList.first;
         relationType.value = relationTypeList.first['name'].toString().toLowerCase();
       } else {
         // Fallback to default relation types
         relationTypes.value = [
-          {'id': 1, 'name': 'Self'},
+          {'id': 1, 'name': 'Own'},
           {'id': 2, 'name': 'Father'},
           {'id': 3, 'name': 'Mother'},
           {'id': 4, 'name': 'Husband'},
         ];
         selectedRelationType.value = relationTypes.first;
-        relationType.value = 'self';
+        relationType.value = 'Own';
       }
     } catch (e) {
       // Fallback to default relation types
       relationTypes.value = [
-        {'id': 1, 'name': 'Self'},
+        {'id': 1, 'name': 'Own'},
         {'id': 2, 'name': 'Father'},
         {'id': 3, 'name': 'Mother'},
         {'id': 4, 'name': 'Husband'},
       ];
       selectedRelationType.value = relationTypes.first;
-      relationType.value = 'self';
+      relationType.value = 'Own';
     }
   }
 
@@ -415,7 +415,7 @@ class PatientRegistrationForm extends StatelessWidget {
                     : {'id': 1, 'name': 'A+'}; // Default blood group
                   
                   // Get relation type ID from selected relation type
-                  int relationTypeId = selectedRelationType.value?['id'] ?? 1; // Default to Self (ID: 1)
+                  int relationTypeId = selectedRelationType.value?['id'] ?? 1; // Default to Own (ID: 1)
                   
                   // Get gender ID from selected gender
                   int genderId = selectedGender.value?['id'] ?? 1; // Default to Male (ID: 1)

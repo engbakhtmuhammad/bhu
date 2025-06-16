@@ -105,8 +105,14 @@ class AppUserData {
       relationTypes: json['relationTypes'] != null
           ? List<RelationType>.from(
               json['relationTypes'].map((x) => RelationType.fromJson(x)))
+          : json['relationType'] != null
+          ? List<RelationType>.from(
+              json['relationType'].map((x) => RelationType.fromJson(x)))
           : null,
-      genders: json['gender'] != null
+      genders: json['genders'] != null
+          ? List<Gender>.from(
+              json['genders'].map((x) => Gender.fromJson(x)))
+          : json['gender'] != null
           ? List<Gender>.from(
               json['gender'].map((x) => Gender.fromJson(x)))
           : null,
