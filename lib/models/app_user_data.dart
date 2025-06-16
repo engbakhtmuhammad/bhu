@@ -17,6 +17,7 @@ class AppUserData {
   final List<MedicineDosage>? medicineDosages;
   final List<FamilyPlanningService>? familyPlanning;
   final List<RelationType>? relationTypes; // Add relation types
+  final List<Gender>? genders; // Add genders field
   final List<dynamic>? patients; // Add this field for patients
 
   AppUserData({
@@ -37,6 +38,7 @@ class AppUserData {
     this.medicineDosages,
     this.familyPlanning,
     this.relationTypes, // Include relation types in constructor
+    this.genders, // Include genders in constructor
     this.patients, // Include in constructor
   });
 
@@ -104,7 +106,11 @@ class AppUserData {
           ? List<RelationType>.from(
               json['relationTypes'].map((x) => RelationType.fromJson(x)))
           : null,
-          patients: json['patients'] != null
+      genders: json['gender'] != null
+          ? List<Gender>.from(
+              json['gender'].map((x) => Gender.fromJson(x)))
+          : null,
+      patients: json['patients'] != null
           ? List<dynamic>.from(json['patients'])
           : null,
     );
@@ -408,6 +414,27 @@ class RelationType {
 
   factory RelationType.fromJson(Map<String, dynamic> json) {
     return RelationType(
+      id: json['id'],
+      name: json['name'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+    };
+  }
+}
+
+class Gender {
+  final int id;
+  final String name;
+
+  Gender({required this.id, required this.name});
+
+  factory Gender.fromJson(Map<String, dynamic> json) {
+    return Gender(
       id: json['id'],
       name: json['name'],
     );

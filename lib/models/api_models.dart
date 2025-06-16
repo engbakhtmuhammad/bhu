@@ -84,6 +84,7 @@ class LoginResponse {
   final List<MedicineDosage> medicineDosages;
   final List<District> districts;
   final List<RelationType> relationTypes;
+  final List<Gender> genders;
   final List<ApiPatient> patients;
   final List<Disease> diseases;
   final List<SubDisease> subDiseases;
@@ -103,6 +104,7 @@ class LoginResponse {
     required this.medicineDosages,
     required this.districts,
     required this.relationTypes,
+    required this.genders,
     required this.patients,
     required this.diseases,
     required this.subDiseases,
@@ -124,6 +126,7 @@ class LoginResponse {
       medicineDosages: (json['medicineDosages'] as List?)?.map((x) => MedicineDosage.fromJson(x)).toList() ?? [],
       districts: (json['districts'] as List?)?.map((x) => District.fromJson(x)).toList() ?? [],
       relationTypes: (json['relationTypes'] as List?)?.map((x) => RelationType.fromJson(x)).toList() ?? [],
+      genders: (json['genders'] as List?)?.map((x) => Gender.fromJson(x)).toList() ?? [],
       patients: (json['patients'] as List?)?.map((x) => ApiPatient.fromJson(x)).toList() ?? [],
       diseases: (json['diseases'] as List?)?.map((x) => Disease.fromJson(x)).toList() ?? [],
       subDiseases: (json['subDiseases'] as List?)?.map((x) => SubDisease.fromJson(x)).toList() ?? [],
@@ -180,6 +183,10 @@ class LoginResponse {
       relationTypes: appUserData.relationTypes?.map<RelationType>((rt) => RelationType(
         id: rt.id ?? 0,
         name: rt.name ?? '',
+      )).toList() ?? [],
+      genders: appUserData.genders?.map<Gender>((g) => Gender(
+        id: g.id ?? 0,
+        name: g.name ?? '',
       )).toList() ?? [],
       patients: [], // Empty for now - add if available in appUserData
       diseases: appUserData.diseases?.map<Disease>((d) => Disease(
@@ -338,6 +345,20 @@ class RelationType {
   RelationType({required this.id, required this.name});
 
   factory RelationType.fromJson(Map<String, dynamic> json) => RelationType(
+    id: json['id'],
+    name: json['name'],
+  );
+
+  Map<String, dynamic> toJson() => {'id': id, 'name': name};
+}
+
+class Gender {
+  final int id;
+  final String name;
+
+  Gender({required this.id, required this.name});
+
+  factory Gender.fromJson(Map<String, dynamic> json) => Gender(
     id: json['id'],
     name: json['name'],
   );

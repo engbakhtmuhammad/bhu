@@ -170,7 +170,7 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
                       items: ['OBGYN','General OPD']
                           .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                           .toList(),
-                      onChanged: (val) => controller.reasonForVisit.value = val!,
+                      onChanged: (val) => controller.setReasonForVisit(val!),
                       dropdownColor: Colors.white,
                       borderRadius: BorderRadius.circular(8.0),
                     ),
@@ -235,14 +235,22 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
                   ],
                 )),
 
-            _label("FAMILY PLANNING ADVISED"),
-            Obx(() => SwitchListTile(
-                  value: controller.fpAdvised.value,
-                  onChanged: (val) => controller.fpAdvised.value = val,
-                  title: Text("Family Planning advised?"),
-                )),
-
-            Obx(() => controller.fpAdvised.value ? _buildFpSection() : SizedBox()),
+            // Family Planning section - only show for OBGYN Post-Delivery visits
+            Obx(() => (controller.reasonForVisit.value == 'OBGYN' &&
+                       controller.obgynVisitType.value == 'Post-Delivery')
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _label("FAMILY PLANNING ADVISED"),
+                      SwitchListTile(
+                        value: controller.fpAdvised.value,
+                        onChanged: (val) => controller.fpAdvised.value = val,
+                        title: Text("Family Planning advised?"),
+                      ),
+                      controller.fpAdvised.value ? _buildFpSection() : SizedBox(),
+                    ],
+                  )
+                : SizedBox()),
 
             // Prescription Section
             _label("PRESCRIPTIONS"),
@@ -370,7 +378,7 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
                     items: ['Pre-Delivery', 'Delivery', 'Post-Delivery']
                         .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                         .toList(),
-                    onChanged: (val) => controller.obgynVisitType.value = val!,
+                    onChanged: (val) => controller.setObgynVisitType(val!),
                     dropdownColor: Colors.white,
                     borderRadius: BorderRadius.circular(8.0),
                   ),

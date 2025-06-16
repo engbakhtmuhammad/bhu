@@ -68,7 +68,7 @@ class PatientModel {
       fullName: map['name'] ?? '',
       fatherName: map['fatherName'] ?? '',
       husbandName: map['husbandName'],
-      age: map['age'] ?? '1'?? 18, 
+      age: map['age'] ?? 18,
       gender: map['gender'] ?? '',
       cnic: map['relationCnic'] ?? '',
       relationType: map['relationType'] ?? 1,
@@ -115,17 +115,17 @@ class PatientModel {
       fullName: apiModel.name,
       fatherName: apiModel.fatherName,
       husbandName: apiModel.husbandName,
-      age: apiModel.age,
-      relationType: apiModel.relationType, // Default relation type, adjust as needed
-      gender: apiModel.gender,
+      age: apiModel.ageGroup, // Use ageGroup from API
+      relationType: apiModel.relationType,
+      gender: apiModel.gender.toString(), // Convert int gender ID to string
       cnic: apiModel.cnic,
       version: apiModel.version,
       contact: apiModel.contact,
-      emergencyContact: apiModel.emergencyContact,
+      emergencyContact: apiModel.emergencyContact ?? apiModel.contact, // Use contact as fallback
       address: apiModel.address,
-      medicalHistory: apiModel.medicalHistory,
-      immunized: apiModel.immunization,
-      bloodGroup: apiModel.bloodGroup,
+      medicalHistory: apiModel.medicalHistory ?? '', // Use empty string as fallback
+      immunized: apiModel.immunization ?? false, // Use false as fallback
+      bloodGroup: apiModel.bloodGroup ?? 1, // Use 1 as fallback
       isSynced: true, // Coming from API, so it's synced
       createdAt: DateTime.now().toIso8601String(),
       updatedAt: DateTime.now().toIso8601String(),

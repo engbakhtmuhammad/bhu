@@ -6,17 +6,19 @@ class ApiPatientModel {
   final String name;
   final String fatherName;
   final String? husbandName;
-  final int age;
+  final int ageGroup; // Changed from age to ageGroup to match API
   final int relationType;
-  final String gender;
+  final int gender; // Changed to int to match API response
   final String cnic;
   final int version;
   final String contact;
-  final String emergencyContact;
+  final String? emergencyContact; // Make optional since not in API response
   final String address;
-  final String medicalHistory;
-  final bool immunization;
-  final int bloodGroup;
+  final String? medicalHistory; // Make optional since not in API response
+  final bool? immunization; // Make optional since not in API response
+  final int? bloodGroup; // Make optional since not in API response
+  final int? healthFacilityId; // Add field from API response
+  final String? healthFacility; // Add field from API response
 
   ApiPatientModel({
     required this.id,
@@ -24,17 +26,19 @@ class ApiPatientModel {
     required this.name,
     required this.fatherName,
     this.husbandName,
-    required this.age,
+    required this.ageGroup,
     required this.relationType,
     required this.gender,
     required this.cnic,
     required this.version,
     required this.contact,
-    required this.emergencyContact,
+    this.emergencyContact,
     required this.address,
-    required this.medicalHistory,
-    required this.immunization,
-    required this.bloodGroup,
+    this.medicalHistory,
+    this.immunization,
+    this.bloodGroup,
+    this.healthFacilityId,
+    this.healthFacility,
   });
 
   factory ApiPatientModel.fromJson(Map<String, dynamic> json) {
@@ -44,17 +48,19 @@ class ApiPatientModel {
       name: json['name'] ?? '',
       fatherName: json['fatherName'] ?? '',
       husbandName: json['husbandName'],
-      age: json['age'] ?? 18,
+      ageGroup: json['ageGroup'] ?? 3, // Default to age group 3 (12-59 months)
       relationType: json['relationType'] ?? 1,
-      gender: json['gender'] ?? '',
+      gender: json['gender'] ?? 1, // Default to 1 (Male) if not provided
       cnic: json['cnic'] ?? '',
       version: json['version'] ?? 1,
       contact: json['contact'] ?? '',
-      emergencyContact: json['emergencyContact'] ?? '',
+      emergencyContact: json['emergencyContact'],
       address: json['address'] ?? '',
-      medicalHistory: json['medicalHistory'] ?? '',
-      immunization: json['immunization'] ?? false,
-      bloodGroup: json['bloodGroup'] ?? 1,
+      medicalHistory: json['medicalHistory'],
+      immunization: json['immunization'],
+      bloodGroup: json['bloodGroup'],
+      healthFacilityId: json['healthFacilityId'],
+      healthFacility: json['healthFacility'],
     );
   }
 
@@ -65,7 +71,7 @@ class ApiPatientModel {
       'name': name,
       'fatherName': fatherName,
       'husbandName': husbandName,
-      'age': age,
+      'ageGroup': ageGroup,
       'gender': gender,
       'cnic': cnic,
       'relationType': relationType,
@@ -76,6 +82,8 @@ class ApiPatientModel {
       'medicalHistory': medicalHistory,
       'immunization': immunization,
       'bloodGroup': bloodGroup,
+      'healthFacilityId': healthFacilityId,
+      'healthFacility': healthFacility,
     };
   }
 }

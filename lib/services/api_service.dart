@@ -140,19 +140,37 @@ class ApiService {
           final message = responseData['message'] ?? 'Unknown error';
 
           if (success) {
-            // Get encrypted response data
-            final encryptedData = responseData['response'];
-            if (encryptedData != null) {
+            // Get response data (could be encrypted or unencrypted)
+            final responseContent = responseData['response'];
+            if (responseContent != null) {
               try {
-                // Decrypt, decompress and deserialize the response
-                final appUserData = _encryptionService.decryptAndDecompressAndDeserialize(encryptedData);
-                
-                // Print the decrypted data for debugging
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ENCRYPTED RESPONSE: $encryptedData');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DECRYPTED RESPONSE: $appUserData');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ${appUserData.token}');
+                AppUserData appUserData;
 
-                // Store the decrypted data for later use
+                // Check if the response is encrypted (string) or unencrypted (JSON object)
+                if (responseContent is String) {
+                  // Encrypted response - decrypt it
+                  debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ENCRYPTED RESPONSE DETECTED');
+                  appUserData = _encryptionService.decryptAndDecompressAndDeserialize(responseContent);
+                  debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DECRYPTED RESPONSE: $appUserData');
+                } else {
+                  // Unencrypted response - parse directly
+                  debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> UNENCRYPTED RESPONSE DETECTED');
+                  debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> RAW RESPONSE: $responseContent');
+
+                  // Parse the JSON string if it's a string, otherwise use directly
+                  Map<String, dynamic> jsonData;
+                  if (responseContent is String) {
+                    jsonData = json.decode(responseContent);
+                  } else {
+                    jsonData = responseContent as Map<String, dynamic>;
+                  }
+
+                  appUserData = AppUserData.fromJson(jsonData);
+                }
+
+                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> PARSED APP USER DATA: ${appUserData.token}');
+
+                // Store the decrypted/parsed data for later use
                 _lastDecryptedData = appUserData;
 
                 // Create a LoginResponse with the token and reference data
@@ -169,6 +187,7 @@ class ApiService {
                   medicineDosages: appUserData.medicineDosages?.map((md) => api_models.MedicineDosage(id: md.id, name: md.name)).toList() ?? [],
                   districts: appUserData.districts?.map((d) => api_models.District(id: d.id ?? 0, name: d.name ?? '', version: 1)).toList() ?? [],
                   relationTypes: appUserData.relationTypes?.map((rt) => api_models.RelationType(id: rt.id, name: rt.name)).toList() ?? [],
+                  genders: appUserData.genders?.map((g) => api_models.Gender(id: g.id, name: g.name)).toList() ?? [],
                   patients: appUserData.patients?.map((p) => api_models.ApiPatient.fromJson(p)).toList() ?? [], // Convert patients data
                   diseases: appUserData.diseases?.map((d) => api_models.Disease(
                     id: d.id ?? 0, 

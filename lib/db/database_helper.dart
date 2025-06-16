@@ -966,6 +966,25 @@ class DatabaseHelper {
         }
       }
 
+      // Store genders
+      if (data.genders != null && data.genders!.isNotEmpty) {
+        for (final item in data.genders!) {
+          batch.insert(
+              'api_genders', {'id': item.id, 'name': item.name},
+              conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      } else {
+        // If no genders in API response, store default genders
+        print('No genders in API response, storing default genders');
+        final defaultGenders = [
+          {'id': 1, 'name': 'Male'},
+          {'id': 2, 'name': 'Female'}
+        ];
+        for (final gender in defaultGenders) {
+          batch.insert('api_genders', gender, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      }
+
       // Store districts
       if (data.districts != null) {
         for (final item in data.districts!) {

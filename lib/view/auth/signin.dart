@@ -23,6 +23,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final AuthController authController = Get.put(AuthController());
   final AppController appController = Get.find<AppController>();
+  final _formKey = GlobalKey<FormState>(); // Add form key for validation
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool rememberMe = false;
@@ -54,14 +55,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Please enter both CNIC and password',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+    // Validate the form first
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
@@ -110,29 +105,50 @@ class _LoginScreenState extends State<LoginScreen> {
               borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(45), topRight: Radius.circular(45)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: defaultPadding),
-                Text(
-                  "CNIC",
-                  style: subTitleTextStyle(color: blackColor, size: 15),
-                ),
-                InputField(
-                  hintText: "Enter your CNIC (e.g., 3520112345678)",
-                  controller: emailController, // We'll keep using emailController for backend compatibility
-                  inputType: TextInputType.number,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  "PASSWORD",
-                  style: subTitleTextStyle(color: blackColor, size: 15),
-                ),
-                InputField(
-                  hintText: "Enter your password",
-                  isPassword: true,
-                  controller: passwordController,
-                ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: defaultPadding),
+                  Text(
+                    "CNIC",
+                    style: subTitleTextStyle(color: blackColor, size: 15),
+                  ),
+                  InputField(
+                    hintText: "Enter your CNIC (e.g., 3520112345678)",
+                    controller: emailController, // We'll keep using emailController for backend compatibility
+                    inputType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your CNIC';
+                      }
+                      if (value.length != 13) {
+                        return 'CNIC must be exactly 13 digits';
+                      }
+                      // Check if all characters are digits
+                      if (!RegExp(r'^\d+$').hasMatch(value)) {
+                        return 'CNIC must contain only digits';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    "PASSWORD",
+                    style: subTitleTextStyle(color: blackColor, size: 15),
+                  ),
+                  InputField(
+                    hintText: "Enter your password",
+                    isPassword: true,
+                    controller: passwordController,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your password';
+                      }
+                      return null;
+                    },
+                  ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -213,7 +229,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
             ),
-          )
+          ),
+        )
         ],
       ),
     );

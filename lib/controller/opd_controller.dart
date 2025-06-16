@@ -968,4 +968,27 @@ class OpdController extends GetxController {
   List<SubDiseaseModel> getSubdiseasesForDisease(int diseaseId) {
     return subdiseases.where((sd) => sd.disease_id == diseaseId).toList();
   }
+
+  // Method to clear Family Planning fields when visit type changes
+  void clearFamilyPlanningFields() {
+    fpAdvised.value = false;
+    selectedFpList.clear();
+    selectedFpIds.clear();
+  }
+
+  // Override the reasonForVisit setter to clear FP fields when changing from OBGYN
+  void setReasonForVisit(String value) {
+    if (reasonForVisit.value == 'OBGYN' && value != 'OBGYN') {
+      clearFamilyPlanningFields();
+    }
+    reasonForVisit.value = value;
+  }
+
+  // Override the obgynVisitType setter to clear FP fields when changing from Post-Delivery
+  void setObgynVisitType(String value) {
+    if (obgynVisitType.value == 'Post-Delivery' && value != 'Post-Delivery') {
+      clearFamilyPlanningFields();
+    }
+    obgynVisitType.value = value;
+  }
 }
