@@ -81,7 +81,7 @@ class _AllPatientsScreenState extends State<AllPatientsScreen> {
                       });
                     },
                     decoration: InputDecoration(
-                      hintText: "Search by name, CNIC, or contact...",
+                      hintText: "Search by uniqueId, name, CNIC, or contact...",
                       hintStyle: descriptionTextStyle(
                           size: 14, fontWeight: FontWeight.w500),
                       isDense: true,
@@ -125,12 +125,7 @@ class _AllPatientsScreenState extends State<AllPatientsScreen> {
                             icon: Icon(IconlyLight.filter, size: 20),
                             items: [
                               'All',
-                              'Male',
-                              'Female',
-                              'A+',
-                              'B+',
-                              'O+',
-                              'AB+'
+                              'Filter Data'
                             ]
                                 .map((filter) => DropdownMenuItem(
                                       value: filter,
@@ -163,7 +158,7 @@ class _AllPatientsScreenState extends State<AllPatientsScreen> {
                             dropdownColor: Colors.white,
                             borderRadius: BorderRadius.circular(8.0),
                             icon: Icon(IconlyLight.swap, size: 20),
-                            items: ['Name', 'Recent', 'Blood Group']
+                            items: ['Name', 'Recent', 'Cnic', 'UniqueId', 'Gender']
                                 .map((sort) => DropdownMenuItem(
                                       value: sort,
                                       child: Text(sort,
@@ -245,35 +240,46 @@ class _AllPatientsScreenState extends State<AllPatientsScreen> {
     // Apply search filter
     if (searchQuery.isNotEmpty) {
       patients = patients.where((patient) {
-        return patient.fullName.toLowerCase().contains(searchQuery) ||
+        return
+            patient.patientId.toLowerCase().contains(searchQuery) ||
+            patient.fullName.toLowerCase().contains(searchQuery) ||
             patient.contact.toLowerCase().contains(searchQuery) ||
             patient.cnic.toLowerCase().contains(searchQuery);
       }).toList();
     }
 
     // Apply category filter
-    if (selectedFilter != 'All') {
-      if (['Male', 'Female'].contains(selectedFilter)) {
-        patients = patients.where((p) => p.gender == selectedFilter).toList();
-      } else {
-        // Blood group filter
-        patients =
-            patients.where((p) => p.bloodGroup == selectedFilter).toList();
-      }
-    }
+    // if (selectedFilter != 'All') {
+    //   if (selectedFilter == 'Gender') {
+    //     patients = patients.where((p) => p.gender == selectedFilter).toList();
+    //   } else {
+    //     // Blood group filter
+    //     /*patients =
+    //         patients.where((p) => p.bloodGroup == selectedFilter).toList();*/
+    //   }
+    // }
 
     // Apply sorting
     switch (selectedSort) {
       case 'Name':
         patients.sort((a, b) => a.fullName.compareTo(b.fullName));
         break;
+      case 'Cnic':
+        patients.sort((a, b) => a.cnic.compareTo(b.cnic));
+        break;
+      case 'UniqueId':
+        patients.sort((a, b) => a.patientId.compareTo(b.patientId));
+        break;
+      case 'Gender':
+        patients.sort((a, b) => a.gender.compareTo(b.gender));
+        break;
       case 'Recent':
         // Assuming there's a createdAt field, otherwise reverse the list
         patients = patients.reversed.toList();
         break;
-      case 'Blood Group':
+      /*case 'Blood Group':
         patients.sort((a, b) => a.bloodGroup.compareTo(b.bloodGroup));
-        break;
+        break;*/
     }
 
     return patients;
@@ -360,14 +366,14 @@ class _AllPatientsScreenState extends State<AllPatientsScreen> {
                             color: Colors.red.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Text(
+                          /*child: Text(
                             getBloodGroupName(patient.bloodGroup),
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.red,
                               fontWeight: FontWeight.w600,
                             ),
-                          ),
+                          ),*/
                         ),
                       ],
                     ),
@@ -402,19 +408,31 @@ class _AllPatientsScreenState extends State<AllPatientsScreen> {
                     ),
                     SizedBox(height: 4),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(IconlyLight.document,
-                            size: 14, color: Colors.grey),
-                        SizedBox(width: 4),
+                        Icon(IconlyLight.document, size: 14, color: Colors.grey),
+                        const SizedBox(width: 6),
                         Expanded(
-                          child: Text(
-                            'CNIC: ${patient.cnic}',
-                            style: descriptionTextStyle(size: 12),
-                            overflow: TextOverflow.ellipsis,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'UNIQUE_ID: ${patient.patientId}',
+                                style: descriptionTextStyle(size: 12),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2), // spacing between lines
+                              Text(
+                                'CNIC: ${patient.cnic}',
+                                style: descriptionTextStyle(size: 12),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
+
                   ],
                 ),
               ),

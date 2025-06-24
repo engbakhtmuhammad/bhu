@@ -73,7 +73,6 @@ class ApiResponse<T> {
 
 class LoginResponse {
   final String token;
-  final List<BloodGroup> bloodGroups;
   final List<DeliveryType> deliveryTypes;
   final List<DeliveryMode> deliveryModes;
   final List<FamilyPlanningService> familyPlanningServices;
@@ -81,8 +80,6 @@ class LoginResponse {
   final List<TTAdvised> tTAdvisedList;
   final List<PregnancyIndicator> pregnancyIndicators;
   final List<PostPartumStatus> postPartumStatuses;
-  final List<MedicineDosage> medicineDosages;
-  final List<District> districts;
   final List<RelationType> relationTypes;
   final List<Gender> genders;
   final List<ApiPatient> patients;
@@ -93,7 +90,6 @@ class LoginResponse {
 
   LoginResponse({
     required this.token,
-    required this.bloodGroups,
     required this.deliveryTypes,
     required this.deliveryModes,
     required this.familyPlanningServices,
@@ -101,8 +97,6 @@ class LoginResponse {
     required this.tTAdvisedList,
     required this.pregnancyIndicators,
     required this.postPartumStatuses,
-    required this.medicineDosages,
-    required this.districts,
     required this.relationTypes,
     required this.genders,
     required this.patients,
@@ -115,7 +109,7 @@ class LoginResponse {
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
     return LoginResponse(
       token: json['Token'] ?? '',
-      bloodGroups: (json['bloodGroups'] as List?)?.map((x) => BloodGroup.fromJson(x)).toList() ?? [],
+
       deliveryTypes: (json['deliveryTypes'] as List?)?.map((x) => DeliveryType.fromJson(x)).toList() ?? [],
       deliveryModes: (json['deliveryModes'] as List?)?.map((x) => DeliveryMode.fromJson(x)).toList() ?? [],
       familyPlanningServices: (json['familyPlanningServices'] as List?)?.map((x) => FamilyPlanningService.fromJson(x)).toList() ?? [],
@@ -123,8 +117,8 @@ class LoginResponse {
       tTAdvisedList: (json['tTAdvisedList'] as List?)?.map((x) => TTAdvised.fromJson(x)).toList() ?? [],
       pregnancyIndicators: (json['pregnancyIndicators'] as List?)?.map((x) => PregnancyIndicator.fromJson(x)).toList() ?? [],
       postPartumStatuses: (json['postPartumStatuses'] as List?)?.map((x) => PostPartumStatus.fromJson(x)).toList() ?? [],
-      medicineDosages: (json['medicineDosages'] as List?)?.map((x) => MedicineDosage.fromJson(x)).toList() ?? [],
-      districts: (json['districts'] as List?)?.map((x) => District.fromJson(x)).toList() ?? [],
+
+
       relationTypes: (json['relationTypes'] as List?)?.map((x) => RelationType.fromJson(x)).toList() ?? [],
       genders: (json['genders'] as List?)?.map((x) => Gender.fromJson(x)).toList() ?? [],
       patients: (json['patients'] as List?)?.map((x) => ApiPatient.fromJson(x)).toList() ?? [],
@@ -139,10 +133,7 @@ class LoginResponse {
   factory LoginResponse.fromDecryptedData(dynamic appUserData) {
     return LoginResponse(
       token: appUserData.token ?? '',
-      bloodGroups: appUserData.bloodGroups?.map<BloodGroup>((bg) => BloodGroup(
-        id: bg.id ?? 0,
-        name: bg.name ?? '',
-      )).toList() ?? [],
+
       deliveryTypes: appUserData.deliveryTypes?.map<DeliveryType>((dt) => DeliveryType(
         id: dt.id ?? 0,
         name: dt.name ?? '',
@@ -171,15 +162,7 @@ class LoginResponse {
         id: pps.id ?? 0,
         name: pps.name ?? '',
       )).toList() ?? [],
-      medicineDosages: appUserData.medicineDosages?.map<MedicineDosage>((md) => MedicineDosage(
-        id: md.id ?? 0,
-        name: md.name ?? '',
-      )).toList() ?? [],
-      districts: appUserData.districts?.map<District>((d) => District(
-        id: d.id ?? 0,
-        name: d.name ?? '',
-        version: d.version ?? 0, // Use actual version
-      )).toList() ?? [],
+
       relationTypes: appUserData.relationTypes?.map<RelationType>((rt) => RelationType(
         id: rt.id ?? 0,
         name: rt.name ?? '',
@@ -192,6 +175,7 @@ class LoginResponse {
       diseases: appUserData.diseases?.map<Disease>((d) => Disease(
         id: d.id ?? 0,
         name: d.name ?? '',
+        color: d.color ?? '',
         version: d.version ?? 0, // Use actual version
       )).toList() ?? [],
       subDiseases: appUserData.subDiseases?.map<SubDisease>((sd) => SubDisease(
@@ -458,17 +442,19 @@ class ApiPatient {
 class Disease {
   final int id;
   final String name;
+  final String color;
   final int version;
 
-  Disease({required this.id, required this.name, required this.version});
+  Disease({required this.id, required this.name, required this.color, required this.version});
 
   factory Disease.fromJson(Map<String, dynamic> json) => Disease(
     id: json['id'],
     name: json['name'],
+    color: json['color'],
     version: json['version'],
   );
 
-  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'version': version};
+  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'color': color, 'version': version};
 }
 
 class SubDisease {
@@ -569,12 +555,13 @@ class PatientFormData {
   final String relationCnic;
   final String relationType;
   final String contact;
-  final String address;
-  final int gender;
-  final int bloodGroup;
   final int age;
+  final int gender;
+  /*
+  final int bloodGroup;
+  final String address;
   final String medicalHistory;
-  final bool immunized;
+  final bool immunized;*/
 
   PatientFormData({
     required this.patientId,
@@ -582,12 +569,12 @@ class PatientFormData {
     required this.relationCnic,
     required this.relationType,
     required this.contact,
-    required this.address,
     required this.gender,
-    required this.bloodGroup,
     required this.age,
+    /*required this.address,
+    required this.bloodGroup,
     required this.medicalHistory,
-    required this.immunized,
+    required this.immunized,*/
   });
 
   Map<String, dynamic> toJson() => {
@@ -596,12 +583,12 @@ class PatientFormData {
     'relationCnic': relationCnic,
     'relationType': relationType,
     'contact': contact,
-    'address': address,
-    'gender': gender,
-    'bloodGroup': bloodGroup,
     'age': age,
+    'gender': gender,
+    /*'bloodGroup': bloodGroup,
+    'address': address,
     'medicalHistory': medicalHistory,
-    'immunized': immunized,
+    'immunized': immunized,*/
   };
 }
 

@@ -106,15 +106,15 @@ void initState() {
           //   buildListTile(title: "User Reviews",icon:  Icons.reviews_outlined,color: Colors.lightGreen),
           //   buildListTile(title: "Settings",icon:  IconlyLight.setting,color: Colors.deepPurple),
           // ]),
-          buildSection([
-            buildListTile(title: "Settings",icon:  IconlyLight.setting,color: Colors.green),
-            buildListTile(
-              title: "Database Tables",
-              icon: IconlyLight.folder,
-              color: Colors.blue,
-              onTap: () => Get.to(() => DatabaseViewerScreen()),
-            ),
-          ]),
+          // buildSection([
+          //   buildListTile(title: "Settings",icon:  IconlyLight.setting,color: Colors.green),
+          //   buildListTile(
+          //     title: "Database Tables",
+          //     icon: IconlyLight.folder,
+          //     color: Colors.blue,
+          //     onTap: () => Get.to(() => DatabaseViewerScreen()),
+          //   ),
+          // ]),
           const SizedBox(height: 10),
           _buildLogoutButton(),
         ],

@@ -379,7 +379,7 @@ class SyncController extends GetxController {
       // 'bloodGroup': patient.bloodGroup.toString(), // Convert int to string for API
       'relationType': patient.relationType.toString(), // Convert int to string for API
       'contact': patient.contact,
-      'address': patient.address,
+      /*'address': patient.address,*/
       'gender': genderId,
       'age': patient.age,
       // 'medicalHistory': patient.medicalHistory,
@@ -420,11 +420,11 @@ class SyncController extends GetxController {
       for (var visit in opdVisits) {
         final result = await db.query(
           'opd_visits',
-          columns: ['is_synced', 'opdTicketNo', 'patient_id', 'visit_date'],
+          columns: ['isSynced', 'opdTicketNo', 'patient_id', 'visit_date'],
           where: 'patient_id = ? AND visit_date = ?',
           whereArgs: [visit.patientId, visit.visitDateTime.toIso8601String()],
         );
-        final syncStatus = result.isNotEmpty ? result.first['is_synced'] : 'NOT_FOUND';
+        final syncStatus = result.isNotEmpty ? result.first['isSynced'] : 'NOT_FOUND';
         final dbTicketNo = result.isNotEmpty ? result.first['opdTicketNo'] : 'NOT_FOUND';
         final dbPatientId = result.isNotEmpty ? result.first['patient_id'] : 'NOT_FOUND';
         final dbVisitDate = result.isNotEmpty ? result.first['visit_date'] : 'NOT_FOUND';
@@ -459,14 +459,13 @@ class SyncController extends GetxController {
           relationCnic: patient.cnic,
           relationType: patient.relationType.toString(), // Pass relationType ID as string
           contact: patient.contact,
-          address: patient.address,
-          gender: patient.gender == 'Male' ? 1 : 2,
-          bloodGroup: patient.bloodGroup,
-          age: patient.age, // Age is now properly included
+          gender: int.parse(patient.gender),
+          /*address: patient.address,
           medicalHistory: patient.medicalHistory,
           immunized: patient.immunized,
+          bloodGroup: patient.bloodGroup,*/
+          age: patient.age,
         );
-        
         patientFormData.add(patientData);
       }
       
@@ -531,7 +530,6 @@ class SyncController extends GetxController {
           fpList: visit.fpIds.isNotEmpty ? visit.fpIds : [0], // Send [0] instead of empty array
           obgynData: visit.obgynData ?? '',
         );
-        
         opdFormData.add(visitData);
       }
       
@@ -593,9 +591,10 @@ class SyncController extends GetxController {
         debugPrint('Form submission successful: ${result.message}');
         syncStatus.value = 'Form data submitted successfully';
         downloadedData.value = 1; // Mark as processed
-        
+        debugPrint('Prepared ${patientFormData.length} patient records for submission');
+        debugPrint('Prepared ${opdFormData.length} OPD visit records for submission');
         // Mark all data as synced in the database
-        await _markDataAsSynced(opdFormData);
+        await _markDataAsSynced();
         
         return true;
       } else {
@@ -611,41 +610,32 @@ class SyncController extends GetxController {
   }
 
   /// Mark only the synced data as synced in the database
-  Future<void> _markDataAsSynced(List<OpdFormData> opdFormData) async {
+  Future<void> _markDataAsSynced() async {
     try {
       // Ensure sync columns exist
       await _ensureSyncColumns();
 
       final db = await _dbHelper.database;
-
       // Mark only unsynced patients as synced (the ones that were just uploaded)
       await db.update(
         'patients',
-        {'is_synced': 1},
-        where: 'is_synced = ? OR is_synced IS NULL',
+        {'isSynced': 1},
+        where: 'isSynced = ? OR isSynced IS NULL',
         whereArgs: [0]
       );
       debugPrint('Marked unsynced patients as synced');
-
-      // Mark only the specific OPD visits that were just uploaded as synced
-      int opdUpdateCount = 0;
-      for (var visitData in opdFormData) {
-        final updateCount = await db.update(
-          'opd_visits',
-          {'is_synced': 1},
-          where: 'patient_id = ? AND visit_date = ?',
-          whereArgs: [visitData.patientId, visitData.visitDateTime]
-        );
-        opdUpdateCount += updateCount;
-        debugPrint('Marked OPD visit for patient ${visitData.patientId} on ${visitData.visitDateTime} as synced');
-      }
-      debugPrint('Marked $opdUpdateCount OPD visits as synced');
+      await db.update(
+        'opd_visits',
+        {'isSynced': 1},
+        where: 'isSynced = ? OR isSynced IS NULL',
+        whereArgs: [0],
+      );
 
       // Mark only unsynced prescriptions as synced
       await db.update(
         'prescriptions',
-        {'is_synced': 1},
-        where: 'is_synced = ? OR is_synced IS NULL',
+        {'isSynced': 1},
+        where: 'isSynced = ? OR isSynced IS NULL',
         whereArgs: [0]
       );
       debugPrint('Marked unsynced prescriptions as synced');

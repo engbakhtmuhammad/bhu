@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:bhu/utils/constants.dart';
 import 'package:bhu/utils/style.dart';
 
+import '../controller/auth_controller.dart';
+import '../view/auth/signin.dart';
 import '../view/navigation/navigation.dart';
 import '../view/onboarding/onboarding_content.dart';
 
@@ -59,7 +61,7 @@ class CustomBtn extends StatelessWidget {
 
 
 class CustomBtnOnBoarding extends StatelessWidget {
-  const CustomBtnOnBoarding({
+  CustomBtnOnBoarding({
     super.key,
     required this.currentIndex,
     required PageController controller,
@@ -67,6 +69,7 @@ class CustomBtnOnBoarding extends StatelessWidget {
   }) : _controller = controller;
 
   final int currentIndex;
+  final AuthController _authController = AuthController();
   final PageController _controller;
   final Future<void> Function() onComplete;
 
@@ -76,7 +79,13 @@ class CustomBtnOnBoarding extends StatelessWidget {
       onPressed: () async {
         if (currentIndex == contents.length - 1) {
           await onComplete();
-          Get.off(() => const NavigationScreen());
+          if (!_authController.isAuthenticated) {
+            await _authController.logout();
+            Get.offAll(() => const LoginScreen());
+          }
+          else {
+            Get.off(() => const NavigationScreen());
+          }
         } else {
           _controller.nextPage(
             duration: const Duration(milliseconds: 100),

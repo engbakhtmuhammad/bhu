@@ -12,11 +12,11 @@ class ApiPatientModel {
   final String cnic;
   final int version;
   final String contact;
-  final String? emergencyContact; // Make optional since not in API response
+  /*final String? emergencyContact; // Make optional since not in API response
   final String address;
   final String? medicalHistory; // Make optional since not in API response
   final bool? immunization; // Make optional since not in API response
-  final int? bloodGroup; // Make optional since not in API response
+  final int? bloodGroup; // Make optional since not in API response*/
   final int? healthFacilityId; // Add field from API response
   final String? healthFacility; // Add field from API response
 
@@ -32,11 +32,11 @@ class ApiPatientModel {
     required this.cnic,
     required this.version,
     required this.contact,
-    this.emergencyContact,
+    /*this.emergencyContact,
     required this.address,
     this.medicalHistory,
     this.immunization,
-    this.bloodGroup,
+    this.bloodGroup,*/
     this.healthFacilityId,
     this.healthFacility,
   });
@@ -54,11 +54,11 @@ class ApiPatientModel {
       cnic: json['cnic'] ?? '',
       version: json['version'] ?? 1,
       contact: json['contact'] ?? '',
-      emergencyContact: json['emergencyContact'],
+      /*emergencyContact: json['emergencyContact'],
       address: json['address'] ?? '',
       medicalHistory: json['medicalHistory'],
       immunization: json['immunization'],
-      bloodGroup: json['bloodGroup'],
+      bloodGroup: json['bloodGroup'],*/
       healthFacilityId: json['healthFacilityId'],
       healthFacility: json['healthFacility'],
     );
@@ -77,11 +77,11 @@ class ApiPatientModel {
       'relationType': relationType,
       'version': version,
       'contact': contact,
-      'emergencyContact': emergencyContact,
+      /*'emergencyContact': emergencyContact,
       'address': address,
       'medicalHistory': medicalHistory,
       'immunization': immunization,
-      'bloodGroup': bloodGroup,
+      'bloodGroup': bloodGroup,*/
       'healthFacilityId': healthFacilityId,
       'healthFacility': healthFacility,
     };

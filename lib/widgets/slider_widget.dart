@@ -60,16 +60,6 @@ class DashboardSlider extends StatelessWidget {
                   colors: [Color(0xFF74B9FF), Color(0xFF0984E3)],
                 ),
               ),
-              _buildDashBoardCard(
-                title: "Sync Data",
-                subtitle: "Now",
-                imagePath: "assets/icons/async.png",
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFFFD79A8), Color(0xFFE84393)],
-                ),
-              ),
             ],
           ),
         ),

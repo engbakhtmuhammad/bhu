@@ -1,3 +1,4 @@
+import 'package:bhu/view/forms/patient_registration.dart';
 import 'package:bhu/widgets/input_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -5,15 +6,19 @@ import 'package:flutter_iconly/flutter_iconly.dart';
 import '../../controller/opd_controller.dart';
 import '../../controller/prescription_controller.dart';
 import '../../db/database_helper.dart';
-import '../../models/disease_model.dart';
 import '../../models/patient_model.dart';
 import '../../models/prescription_model.dart';
 import '../../utils/constants.dart';
 import '../../utils/style.dart';
 import '../../widgets/input_field.dart';
 import '../../widgets/custom_btn.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:dropdown_search/dropdown_search.dart';
 
 class OpdVisitForm extends StatefulWidget {
+  const OpdVisitForm({super.key});
+
   @override
   _OpdVisitFormState createState() => _OpdVisitFormState();
 }
@@ -21,45 +26,35 @@ class OpdVisitForm extends StatefulWidget {
 class _OpdVisitFormState extends State<OpdVisitForm> {
   final controller = Get.put(OpdController());
   final prescriptionController = Get.put(PrescriptionController());
-  
+
   final drugNameCtrl = TextEditingController();
   final dosageCtrl = TextEditingController();
   final durationCtrl = TextEditingController();
   final quantityCtrl = TextEditingController(text: "1");
-  
+
   String? selectedDrug;
-  
+
   @override
   void initState() {
     super.initState();
     print('Initializing OpdVisitForm');
-    
+    prescriptionController.filterDrugs('');
     // Generate OPD ticket number at form initialization
     _generateOpdTicketNumber();
-    
+
     // Load prescription data immediately
     prescriptionController.loadMedicines().then((_) {
       // Force UI update after data is loaded
       if (mounted) setState(() {});
     });
-    
-    // Add debug logging
-    Future.delayed(Duration(seconds: 1), () {
-      print('Drug list size: ${prescriptionController.commonDrugs.length}');
-      print('Dosage list size: ${prescriptionController.medicineDosages.length}');
-      print('Lab test options size: ${controller.labTestOptions.length}');
-      print('FP options size: ${controller.fpOptions.length}');
-      print('Current OPD Ticket Number: ${controller.opdTicketNo.value}');
-    });
   }
-  
+
   // Add this method to generate the OPD ticket number
   Future<void> _generateOpdTicketNumber() async {
     if (controller.opdTicketNo.value.isEmpty) {
       final db = DatabaseHelper();
       final ticketNo = await db.generateOpdTicketNo();
       controller.opdTicketNo.value = ticketNo;
-      print('Generated OPD Ticket Number: ${controller.opdTicketNo.value}');
     }
   }
 
@@ -67,6 +62,27 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: whiteColor,
+      appBar: AppBar(
+        leading: IconButton.filledTonal(
+          style: IconButton.styleFrom(backgroundColor: greyColor),
+          onPressed: () => Get.back(),
+          icon: const Icon(IconlyLight.arrowLeft2),
+        ),
+        backgroundColor: whiteColor,
+        title: const Text("OPD/MCH Form"),
+        actions: [
+          IconButton.filledTonal(
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.black, // Set to black
+              foregroundColor: Colors.white, // Optional: to make the icon white for contrast
+            ),
+            onPressed: () => Get.to(PatientRegistrationForm()),
+            icon: const Icon(IconlyLight.addUser),
+          ),
+
+          const SizedBox(width: 10),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: ListView(
@@ -78,88 +94,120 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
                 borderRadius: BorderRadius.circular(containerRoundCorner),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Column(
-                  children: [
-                    // Search field inside the dropdown container
-                    TextField(
-                      controller: controller.patientSearchController,
-                      decoration: InputDecoration(
-                        hintText: "Search patient by name, CNIC, or contact...",
-                        hintStyle: descriptionTextStyle(),
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
+                child: Obx(() {
+                  return DropdownSearch<PatientModel>(
+                    items: controller.filteredPatients,
+                    itemAsString: (patient) => '${patient.fullName} ${patient.patientId} ',
+                    selectedItem: controller.selectedPatient.value,
+                    onChanged: (val) {
+                      controller.selectedPatient.value = val;
+                      if (val != null) {
+                        controller.patientSearchController.clear();
+                      }
+                    },
+                    dropdownDecoratorProps: DropDownDecoratorProps(
+                      dropdownSearchDecoration: InputDecoration(
+                        hintText: "Search patient by name, uniqueId, CNIC, or contact...",
                         border: InputBorder.none,
-                        prefixIcon: Icon(Icons.search, color: primaryColor),
-                        suffixIcon: Obx(() => controller.searchText.value.isNotEmpty
-                            ? IconButton(
-                                icon: Icon(Icons.clear, color: primaryColor),
-                                onPressed: () {
-                                  controller.patientSearchController.clear();
-                                  controller.filterPatients('');
-                                },
-                              )
-                            : SizedBox()),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                       ),
-                      onChanged: (value) => controller.filterPatients(value),
+                    ),
+                    popupProps: PopupProps.dialog(
+                      showSearchBox: true,
+                      searchDelay: const Duration(milliseconds: 200),
+                      dialogProps: DialogProps(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16), // Slightly rounded for a modern dialog
+                        ),
+                        backgroundColor: Colors.white, // Clean white background
+                      ),
+                      searchFieldProps: TextFieldProps(
+                        decoration: InputDecoration(
+                          hintText: "Search patients...",
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.clear, color: Colors.grey),
+                            onPressed: () {
+                              controller.patientSearchController.clear();
+                              controller.filterPatients('');
+                            },
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                        ),
+                        controller: controller.patientSearchController,
+                      ),
+                      itemBuilder: (context, patient, isSelected) => Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isSelected ? primaryColor.withOpacity(0.1) : Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isSelected ? primaryColor : Colors.grey.shade300,
+                            width: isSelected ? 1.5 : 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              patient.fullName,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected ? primaryColor : Colors.black,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "CNIC: ${patient.cnic}",
+                              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                            ),
+                            Text(
+                              "Contact: ${patient.contact}",
+                              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                            ),
+                            Text(
+                              "Unique ID: ${patient.patientId}",
+                              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                            ),
+                          ],
+                        ),
+                      ),
+                      emptyBuilder: (context, searchEntry) => const Padding(
+                        padding: EdgeInsets.all(20),
+                        child: Text(
+                          "No patients found",
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                     ),
 
-                    // Divider between search and dropdown
-                    Divider(color: Colors.grey[300], height: 1),
-
-                    // Patient dropdown
-                    Obx(() {
-                      // Find th matching patient in filtered list to avoid assertion error
-                      PatientModel? selectedValue;
-                      if (controller.selectedPatient.value != null) {
-                        for (var patient in controller.filteredPatients) {
-                          if (patient.patientId == controller.selectedPatient.value!.patientId) {
-                            selectedValue = patient;
-                            break;
-                          }
-                        }
-                      }
-
-                      return DropdownButtonHideUnderline(
-                        child: DropdownButton<PatientModel>(
-                          value: selectedValue,
-                          hint: Text(controller.filteredPatients.isEmpty
-                              ? "No patients found"
-                              : "Select Patient (${controller.filteredPatients.length} found)"),
-                          isExpanded: true,
-                          items: controller.filteredPatients
-                              .map((patient) => DropdownMenuItem<PatientModel>(
-                                    key: ValueKey("patient_${patient.patientId}"),
-                                    value: patient,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          patient.fullName,
-                                          style: TextStyle(fontWeight: FontWeight.bold),
-                                        ),
-                                        Text(
-                                          "CNIC: ${patient.cnic} | Contact: ${patient.contact}",
-                                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                                        ),
-                                      ],
-                                    ),
-                                  ))
-                              .toList(),
-                          onChanged: (PatientModel? val) {
-                            controller.selectedPatient.value = val;
-                            // Clear search when patient is selected
-                            controller.patientSearchController.clear();
-                            controller.filterPatients('');
-                          },
-                          dropdownColor: Colors.white,
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                      );
-                    }),
-                  ],
-                ),
+                    filterFn: (patient, filter) {
+                      final search = filter.toLowerCase();
+                      return patient.fullName.toLowerCase().contains(search) ||
+                          patient.cnic.toLowerCase().contains(search) ||
+                          patient.contact.toLowerCase().contains(search);
+                    },
+                  );
+                }),
               ),
             ),
+
 
             _label("REASON FOR VISIT"),
             DropDownWidget(
@@ -167,7 +215,7 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
                     child: DropdownButton<String>(
                       value: controller.reasonForVisit.value,
                       isExpanded: true,
-                      items: ['OBGYN','General OPD']
+                      items: ['MCH','General OPD']
                           .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                           .toList(),
                       onChanged: (val) => controller.setReasonForVisit(val!),
@@ -178,8 +226,8 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
             ),
 
             // OBGYN Section (shown only if OBGYN is selected) - moved up
-            Obx(() => controller.reasonForVisit.value == 'OBGYN' 
-                ? _buildObgynSection() 
+            Obx(() => controller.reasonForVisit.value == 'MCH'
+                ? _buildObgynSection()
                 : SizedBox()),
 
             _label("FOLLOW-UP"),
@@ -236,7 +284,7 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
                 )),
 
             // Family Planning section - only show for OBGYN Post-Delivery visits
-            Obx(() => (controller.reasonForVisit.value == 'OBGYN' &&
+            Obx(() => (controller.reasonForVisit.value == 'MCH' &&
                        controller.obgynVisitType.value == 'Post-Delivery')
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,62 +327,154 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
     );
   }
 
+  Color hexToColor(String hexColor, {double opacity = 1.0}) {
+    hexColor = hexColor.replaceAll('#', '');
+    if (hexColor.length == 6) hexColor = 'FF$hexColor'; // Add alpha if not provided
+    return Color(int.parse(hexColor, radix: 16)).withOpacity(opacity);
+  }
+
   Widget _buildDiagnosisSection() {
     return Container(
       decoration: BoxDecoration(
         color: greyColor,
         borderRadius: BorderRadius.circular(containerRoundCorner),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(15),
-        child: Obx(() {
-          final diseasesByCategory = controller.diseasesByCategory;
-          // Filter out any "Uncategorized" category
-          final filteredCategories = Map<String, List<SubDiseaseModel>>.from(diseasesByCategory)
-            ..removeWhere((key, value) => key.toLowerCase() == "uncategorized" || value.isEmpty);
-          
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: filteredCategories.entries.map((entry) {
-              return ExpansionTile(
-                title: Text(entry.key, style: TextStyle(fontWeight: FontWeight.bold)),
-                children: entry.value.map((subdisease) {
-                  return CheckboxListTile(
-                    title: Text(subdisease.name),
-                    value: controller.selectedDiseases.contains(subdisease.name),
-                    onChanged: (val) => controller.toggleDiseaseSelection(
-                      subdisease.name, 
-                      subdisease.id,
-                      isSubdisease: true,
-                      parentDiseaseId: subdisease.disease_id
+      padding: const EdgeInsets.all(16),
+      child: Obx(() {
+        final diseasesByCategory = controller.diseasesByCategory;
+        final entries = diseasesByCategory.entries.toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: List.generate(entries.length, (index) {
+            final entry = entries[index];
+            final diseaseColor = hexToColor(entry.key.color ?? '#999999', opacity: 0.12);
+            final textColor = hexToColor(entry.key.color ?? '#999999');
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: diseaseColor,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: textColor.withOpacity(0.1),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Theme(
+                data: ThemeData().copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  childrenPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  title: Text(
+                    entry.key.name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                      fontSize: 16,
                     ),
-                    dense: true,
-                  );
-                }).toList(),
-              );
-            }).toList(),
-          );
-        }),
-      ),
+                  ),
+                  iconColor: textColor,
+                  collapsedIconColor: textColor,
+                  children: entry.value.map((subdisease) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: CheckboxListTile(
+                        dense: true,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        contentPadding: EdgeInsets.zero,
+                        activeColor: textColor,
+                        value: controller.selectedDiseases.contains(subdisease.name),
+                        onChanged: (val) => controller.toggleDiseaseSelection(
+                          subdisease.name,
+                          subdisease.id,
+                          isSubdisease: true,
+                          parentDiseaseId: subdisease.disease_id,
+                        ),
+                        title: Text(
+                          subdisease.name,
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            );
+          }),
+        );
+      }),
     );
   }
 
+
+
   Widget _buildLabTestsSection() {
-    return DropDownWidget(
-      child: Obx(() => Column(
-            children: controller.labTestOptions.asMap().entries.map((entry) {
+    return Container(
+      decoration: BoxDecoration(
+        color: greyColor,
+        borderRadius: BorderRadius.circular(containerRoundCorner),
+      ),
+      padding: const EdgeInsets.all(15),
+      child: Obx(() {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            const SizedBox(height: 12),
+            ...controller.labTestOptions.asMap().entries.map((entry) {
               final index = entry.key;
               final test = entry.value;
-              return CheckboxListTile(
-                title: Text(test),
-                value: controller.selectedLabTests.contains(test),
-                onChanged: (val) => controller.toggleLabTestSelection(test, index + 1), // Use index+1 as ID
-                dense: true,
+              final isSelected = controller.selectedLabTests.contains(test);
+
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? primaryColor.withOpacity(0.1) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected ? primaryColor : Colors.grey.shade300,
+                    width: 1.2,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Checkbox(
+                      value: isSelected,
+                      onChanged: (val) => controller.toggleLabTestSelection(test, index + 1),
+                      activeColor: primaryColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        test,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: isSelected ? primaryColor : Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               );
             }).toList(),
-          )),
+          ],
+        );
+      }),
     );
   }
+
+
+
 
   Widget _buildFpSection() {
     return Column(
@@ -363,7 +503,7 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _label("OBGYN VISIT TYPE"),
+        _label("MCH VISIT TYPE"),
         Container(
           decoration: BoxDecoration(
             color: greyColor,
@@ -387,18 +527,18 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
         ),
 
         // Pre-Delivery Section
-        Obx(() => controller.obgynVisitType.value == 'Pre-Delivery' 
-            ? _buildPreDeliverySection() 
+        Obx(() => controller.obgynVisitType.value == 'Pre-Delivery'
+            ? _buildPreDeliverySection()
             : SizedBox()),
 
         // Delivery Section
-        Obx(() => controller.obgynVisitType.value == 'Delivery' 
-            ? _buildDeliverySection() 
+        Obx(() => controller.obgynVisitType.value == 'Delivery'
+            ? _buildDeliverySection()
             : SizedBox()),
 
         // Post-Delivery Section
-        Obx(() => controller.obgynVisitType.value == 'Post-Delivery' 
-            ? _buildPostDeliverySection() 
+        Obx(() => controller.obgynVisitType.value == 'Post-Delivery'
+            ? _buildPostDeliverySection()
             : SizedBox()),
       ],
     );
@@ -410,7 +550,7 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
     final fundalHeightCtrl = TextEditingController(text: controller.fundalHeight.value.toString());
     final parityCtrl = TextEditingController(text: controller.parity.value.toString());
     final gravidaCtrl = TextEditingController(text: controller.gravida.value.toString());
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -713,7 +853,7 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
                   child: Text(mode['name']),
                 );
               }).toList();
-              
+
               return DropdownButtonHideUnderline(
                 child: DropdownButton<Map<String, dynamic>>(
                   value: selectedValue,
@@ -734,10 +874,10 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
             }),
           ),
         ),
-        
+
         // Show baby details only for normal delivery or neonatal death
-        Obx(() => (controller.deliveryMode.value.contains('Normal Delivery') || 
-                   controller.deliveryMode.value.contains('Neonatal Death')) 
+        Obx(() => (controller.deliveryMode.value.contains('Normal Delivery') ||
+                   controller.deliveryMode.value.contains('Neonatal Death'))
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -777,7 +917,7 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
                             child: Text(gender['name'].toString()),
                           );
                         }).toList();
-                        
+
                         return DropdownButtonHideUnderline(
                           child: DropdownButton<Map<String, dynamic>>(
                             value: selectedValue,
@@ -798,13 +938,13 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
                       }),
                     ),
                   ),
-                  
+
                   _label("BABY WEIGHT (GRAMS)"),
                   InputField(
                     hintText: "Enter baby weight in grams",
                     inputType: TextInputType.number,
-                    controller: TextEditingController(text: controller.babyWeight.value > 0 
-                        ? controller.babyWeight.value.toString() 
+                    controller: TextEditingController(text: controller.babyWeight.value > 0
+                        ? controller.babyWeight.value.toString()
                         : ""),
                     onChanged: (val) {
                       int weight = int.tryParse(val) ?? 0;
@@ -898,7 +1038,6 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Drug selection
         _label("DRUG NAME"),
         Container(
           decoration: BoxDecoration(
@@ -906,89 +1045,85 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
             borderRadius: BorderRadius.circular(containerRoundCorner),
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<Map<String, dynamic>>(
-                value: controller.selectedDrug.value,
-                hint: Text("Select Drug"),
-                isExpanded: true,
-                items: prescriptionController.medicinesWithIds
-                    .map((drug) => DropdownMenuItem(
-                          value: drug,
-                          child: Text(drug['name']),
-                        ))
-                    .toList(),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
+            child: Obx(() {
+              // Ensure clean instance
+              final drugOptions = prescriptionController.filteredDrugs.map((drug) {
+                return Map<String, dynamic>.from(drug);
+              }).toList();
+
+              // Match selected item by id + name to prevent assertion error
+              Map<String, dynamic>? selectedDrug;
+              if (controller.selectedDrug.value != null) {
+                final selectedId = controller.selectedDrug.value!['id'];
+                final selectedName = controller.selectedDrug.value!['name'];
+
+                for (var item in drugOptions) {
+                  if (item['id'] == selectedId && item['name'] == selectedName) {
+                    selectedDrug = item;
+                    break;
+                  }
+                }
+              }
+
+              return DropdownSearch<Map<String, dynamic>>(
+                items: drugOptions,
+                itemAsString: (drug) => drug['name'] ?? '',
+                selectedItem: selectedDrug,
                 onChanged: (val) {
                   if (val != null) {
-                    setState(() {
-                      controller.selectedDrug.value = val;
-                      controller.drugId.value = val['id'];
-                      drugNameCtrl.text = val['name'];
-                    });
+                    controller.selectedDrug.value = val;
+                    controller.drugId.value = val['id'];
+                    drugNameCtrl.text = val['name'];
                   }
                 },
-                dropdownColor: Colors.white,
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-            ),
+                dropdownDecoratorProps: DropDownDecoratorProps(
+                  dropdownSearchDecoration: InputDecoration(
+                    hintText: "Search & select medicine",
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                ),
+                popupProps: PopupProps.dialog(
+                  showSearchBox: true,
+                  searchDelay: Duration(milliseconds: 200),
+                  searchFieldProps: TextFieldProps(
+                    decoration: InputDecoration(
+                      hintText: "Search medicine...",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                  ),
+                  dialogProps: DialogProps(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(containerRoundCorner),
+                    ),
+                  ),
+                  itemBuilder: (context, item, isSelected) => ListTile(
+                    title: Text(
+                      item['name'] ?? '',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: isSelected ? primaryColor : Colors.black,
+                      ),
+                    ),
+                    trailing: isSelected
+                        ? Icon(Icons.check, color: primaryColor)
+                        : null,
+                  ),
+                  emptyBuilder: (context, searchEntry) => Center(
+                    child: Text("No medicine found"),
+                  ),
+                ),
+              );
+            }),
           ),
         ),
-        
-        const SizedBox(height: 10),
-        InputField(
-          hintText: "Or enter custom drug name",
-          controller: drugNameCtrl,
-          onChanged: (val) {
-            setState(() {
-              controller.selectedDrug.value = null; // Clear dropdown selection when typing
-              controller.drugId.value = 0; // Reset drug ID when custom name is entered
-            });
-          },
-        ),
 
-        // _label("DOSAGE"),
-        // Container(
-        //   decoration: BoxDecoration(
-        //     color: greyColor,
-        //     borderRadius: BorderRadius.circular(containerRoundCorner),
-        //   ),
-        //   child: Padding(
-        //     padding: const EdgeInsets.symmetric(horizontal: 20.0),
-        //     child: DropdownButtonHideUnderline(
-        //       child: DropdownButton<String>(
-        //         value: dosageCtrl.text.isEmpty ? null : dosageCtrl.text,
-        //         hint: Text("Select Dosage"),
-        //         isExpanded: true,
-        //         items: prescriptionController.medicineDosages
-        //             .map((dosage) => DropdownMenuItem(
-        //                   value: dosage,
-        //                   child: Text(dosage),
-        //                 ))
-        //             .toList(),
-        //         onChanged: (val) {
-        //           setState(() {
-        //             dosageCtrl.text = val ?? '';
-        //           });
-        //         },
-        //         dropdownColor: Colors.white,
-        //         borderRadius: BorderRadius.circular(8.0),
-        //       ),
-        //     ),
-        //   ),
-        // ),
-
-        // const SizedBox(height: 10),
-        // InputField(
-        //   hintText: "Or enter custom dosage",
-        //   controller: dosageCtrl,
-        // ),
-
-        // _label("DURATION OF MEDICATION"),
-        // InputField(
-        //   hintText: "e.g., 7 days, 2 weeks",
-        //   controller: durationCtrl,
-        // ),
-        
+        // Rest of your existing widgets remain the same...
         _label("QUANTITY"),
         InputField(
           hintText: "Number of units",
@@ -999,47 +1134,34 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
         const SizedBox(height: 20),
         CustomBtn(
           icon: IconlyLight.plus,
-          text: "Add Prescription",
+          text: "Add Medicine",
           onPressed: () async {
             if (drugNameCtrl.text.trim().isEmpty) {
               Get.snackbar("Error", "Please enter drug name");
               return;
             }
 
-            // Ensure we have a valid OPD ticket number
             if (controller.opdTicketNo.value.isEmpty) {
               await _generateOpdTicketNumber();
             }
 
-            // Save to database
             final dbHelper = DatabaseHelper();
             final now = DateTime.now().toIso8601String();
-            
-            // Ensure the quantity column exists
+
             await dbHelper.addQuantityColumnToPrescriptions();
-            
-            // Create a map that matches the database schema
+
             final Map<String, dynamic> prescriptionMap = {
-              // Don't include id to let SQLite auto-generate it
+              'opdTicketNo': controller.opdTicketNo.value,
               'medicine': controller.drugId.value.toString(),
-              'dosage': dosageCtrl.text.trim(),
-              'duration': durationCtrl.text.trim(),
-              'opdTicketNo': controller.opdTicketNo.value, // Use the generated ticket number
               'quantity': int.tryParse(quantityCtrl.text) ?? 1,
-              'is_synced': 0,
+              'isSynced': 0,
               'created_at': now,
               'updated_at': now,
             };
-            
-            // Debug log
-            print('Adding prescription with OPD Ticket: ${controller.opdTicketNo.value}');
-            
-            // Insert into database
+
             final db = await dbHelper.database;
             final newId = await db.insert('prescriptions', prescriptionMap);
-            print('Inserted prescription with ID: $newId');
-            
-            // Create a new prescription with the ID from the database
+
             final newPrescription = PrescriptionModel(
               id: newId,
               drugName: drugNameCtrl.text.trim(),
@@ -1050,24 +1172,20 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
               createdAt: now,
               updatedAt: now,
             );
-            
-            // Add to the controller's list
+
             controller.prescriptions.add(newPrescription);
-            
-            // Clear form
-            setState(() {
-              controller.selectedDrug.value = null;
-              controller.drugId.value = 0;
-              drugNameCtrl.clear();
-              dosageCtrl.clear();
-              durationCtrl.clear();
-              quantityCtrl.text = "1";
-            });
+
+            controller.selectedDrug.value = null;
+            controller.drugId.value = 0;
+            drugNameCtrl.clear();
+            dosageCtrl.clear();
+            durationCtrl.clear();
+            quantityCtrl.text = "1";
           },
         ),
-        
+
         const SizedBox(height: 20),
-        _label("ADDED PRESCRIPTIONS"),
+        _label("ADDED MEDICINES"),
         Obx(() {
           final prescriptions = controller.prescriptions;
           if (prescriptions.isEmpty) {
@@ -1105,14 +1223,6 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
                             prescription.drugName,
                             style: titleTextStyle(size: 16),
                           ),
-                          // Text(
-                          //   "Dosage: ${prescription.dosage}",
-                          //   style: descriptionTextStyle(size: 14),
-                          // ),
-                          // Text(
-                          //   "Duration: ${prescription.duration}",
-                          //   style: descriptionTextStyle(size: 14),
-                          // ),
                           Text(
                             "Quantity: ${prescription.quantity}",
                             style: descriptionTextStyle(size: 14),
@@ -1133,6 +1243,7 @@ class _OpdVisitFormState extends State<OpdVisitForm> {
       ],
     );
   }
+
 
   bool _mapEquals(Map<String, dynamic>? map1, Map<String, dynamic>? map2) {
     if (map1 == null || map2 == null) return map1 == map2;

@@ -78,45 +78,45 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
                         style: titleTextStyle(size: 22),
                       ),
                       SizedBox(height: 5),
-                      Row(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: widget.patient.gender == '1' 
-                                ? Colors.blue.withOpacity(0.1) 
-                                : Colors.pink.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              widget.patient.gender== '1'?'Male':'Female',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: widget.patient.gender == '1' 
-                                  ? Colors.blue 
-                                  : Colors.pink,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 10),
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: Colors.red.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              getBloodGroupName(widget.patient.bloodGroup),
-                              style: TextStyle(
+                              'Unique Id: ${widget.patient.patientId}',
+                              style: const TextStyle(
                                 fontSize: 14,
                                 color: Colors.red,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: widget.patient.gender == '1'
+                                  ? Colors.blue.withOpacity(0.1)
+                                  : Colors.pink.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              widget.patient.gender == '1' ? 'Male' : 'Female',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: widget.patient.gender == '1' ? Colors.blue : Colors.pink,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
+
                     ],
                   ),
                 ),
@@ -166,8 +166,8 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
             icon: IconlyBold.calling,
             children: [
               _buildInfoRow("Phone", widget.patient.contact, IconlyLight.call),
-              _buildInfoRow("Emergency Contact", widget.patient.contact, IconlyLight.call),
-              _buildInfoRow("Address", widget.patient.address, IconlyLight.location),
+              /*_buildInfoRow("Emergency Contact", widget.patient.contact, IconlyLight.call),
+              _buildInfoRow("Address", widget.patient.address, IconlyLight.location),*/
             ],
           ),
 
@@ -192,7 +192,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
             title: "Medical Information",
             icon: IconlyBold.heart,
             children: [
-              _buildInfoRow("Blood Group", getBloodGroupName(widget.patient.bloodGroup), Icons.water_drop_outlined),
+              /*_buildInfoRow("Blood Group", getBloodGroupName(widget.patient.bloodGroup), Icons.water_drop_outlined),*/
               _buildInfoRow("Allergies", "None reported", IconlyLight.dangerCircle),
               _buildInfoRow("Chronic Conditions", "None reported", IconlyLight.activity),
               _buildInfoRow("Current Medications", "None", IconlyLight.category),

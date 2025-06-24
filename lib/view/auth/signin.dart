@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:bhu/utils/constants.dart';
 import 'package:bhu/utils/style.dart';
@@ -73,7 +74,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: blackColor,
       appBar: AppBar(
@@ -84,154 +84,159 @@ class _LoginScreenState extends State<LoginScreen> {
           icon: Icon(IconlyLight.arrowLeft2),
         ),
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            "Log In",
-            style: titleTextStyle(size: 24, color: whiteColor),
-          ),
-          Text(
-            "Please sign in to your account",
-            style: subTitleTextStyle(color: greyColor),
-          ),
-          SizedBox(height: defaultPadding * 2),
-          Container(
-            padding: EdgeInsets.all(defaultPadding),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: whiteColor,
-              borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(45), topRight: Radius.circular(45)),
+      body: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              "Log In",
+              style: titleTextStyle(size: 24, color: whiteColor),
             ),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: defaultPadding),
-                  Text(
-                    "CNIC",
-                    style: subTitleTextStyle(color: blackColor, size: 15),
-                  ),
-                  InputField(
-                    hintText: "Enter your CNIC (e.g., 3520112345678)",
-                    controller: emailController, // We'll keep using emailController for backend compatibility
-                    inputType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your CNIC';
-                      }
-                      if (value.length != 13) {
-                        return 'CNIC must be exactly 13 digits';
-                      }
-                      // Check if all characters are digits
-                      if (!RegExp(r'^\d+$').hasMatch(value)) {
-                        return 'CNIC must contain only digits';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    "PASSWORD",
-                    style: subTitleTextStyle(color: blackColor, size: 15),
-                  ),
-                  InputField(
-                    hintText: "Enter your password",
-                    isPassword: true,
-                    controller: passwordController,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your password';
-                      }
-                      return null;
-                    },
-                  ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Text(
+              "Please sign in to your account",
+              style: subTitleTextStyle(color: greyColor),
+            ),
+            SizedBox(height: defaultPadding * 2),
+            Container(
+              padding: EdgeInsets.all(defaultPadding),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: whiteColor,
+                borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(45), topRight: Radius.circular(45)),
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CheckerBox(
-                      value: rememberMe,
-                      onChecked: (bool? value) {
-                        setState(() {
-                          rememberMe = value ?? false;
-                        });
+                    SizedBox(height: defaultPadding),
+                    Text(
+                      "CNIC",
+                      style: subTitleTextStyle(color: blackColor, size: 15),
+                    ),
+                    InputField(
+                      hintText: "Enter your CNIC (e.g., 3520112345678)",
+                      controller: emailController, // Keeping the same controller for backend compatibility
+                      inputType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your CNIC';
+                        }
+                        if (value.length != 13) {
+                          return 'CNIC must be exactly 13 digits';
+                        }
+                        if (!RegExp(r'^\d+$').hasMatch(value)) {
+                          return 'CNIC must contain only digits';
+                        }
+                        return null;
+                      },
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(13), // Set max length to 13
+                        FilteringTextInputFormatter.digitsOnly, // Only allow numeric input
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      "PASSWORD",
+                      style: subTitleTextStyle(color: blackColor, size: 15),
+                    ),
+                    InputField(
+                      hintText: "Enter your password",
+                      isPassword: true,
+                      controller: passwordController,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your password';
+                        }
+                        return null;
                       },
                     ),
-                    Container(
-                      margin: const EdgeInsets.only(right: 20),
-                      child: InkWell(
-                        onTap: () => Get.to(() => const ForgotPwdScreen()),
-                        child: Text(
-                          "Forgot Password?",
-                          style: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withOpacity(0.7),
-                            fontWeight: FontWeight.w500,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        CheckerBox(
+                          value: rememberMe,
+                          onChecked: (bool? value) {
+                            setState(() {
+                              rememberMe = value ?? false;
+                            });
+                          },
+                        ),
+                        Container(
+                          margin: const EdgeInsets.only(right: 20),
+                          child: InkWell(
+                            onTap: () => Get.to(() => const ForgotPwdScreen()),
+                            child: Text(
+                              "Forgot Password?",
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withOpacity(0.7),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Obx(() {
+                      if (authController.isLoading.value) {
+                        return Container(
+                          height: 50,
+                          child: Center(
+                            child: SpinKitThreeInOut(
+                              color: primaryColor,
+                              size: 30,
+                            ),
+                          ),
+                        );
+                      }
+                      return CustomBtn(
+                        text: 'Login',
+                        onPressed: _handleLogin,
+                      );
+                    }),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 30),
+                      child: Center(
+                        child: Text.rich(
+                          TextSpan(
+                            text: "Don't have an account? ",
+                            style: TextStyle(
+                              color: Colors.grey.withOpacity(0.8),
+                              fontSize: 16,
+                            ),
+                            children: [
+                              TextSpan(
+                                text: "Sign Up",
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontSize: 16,
+                                ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () {
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const SignupScreen(),
+                                      ),
+                                    );
+                                  },
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
                   ],
                 ),
-                Obx(() {
-                  if (authController.isLoading.value) {
-                    return Container(
-                      height: 50,
-                      child: Center(
-                        child: SpinKitThreeInOut(
-                          color: primaryColor,
-                          size: 30,
-                        ),
-                      ),
-                    );
-                  }
-                  return CustomBtn(
-                    text: 'Login',
-                    onPressed: _handleLogin,
-                  );
-                }),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 30),
-                  child: Center(
-                    child: Text.rich(
-                      TextSpan(
-                        text: "Don't have an account? ",
-                        style: TextStyle(
-                          color: Colors.grey.withOpacity(0.8),
-                          fontSize: 16,
-                        ),
-                        children: [
-                          TextSpan(
-                            text: "Sign Up",
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontSize: 16,
-                            ),
-                            recognizer: TapGestureRecognizer()
-                              ..onTap = () {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const SignupScreen(),
-                                  ),
-                                );
-                              },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        )
-        ],
+              ),
+            )
+          ],
+        ),
       ),
     );
   }

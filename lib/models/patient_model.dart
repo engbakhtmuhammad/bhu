@@ -11,11 +11,11 @@ class PatientModel {
   final String cnic;
   final int version;
   final String contact;
-  final String emergencyContact;
+  /*final String emergencyContact;
   final String address;
   final String medicalHistory;
   final bool immunized;    // This corresponds to immunization in ApiPatientModel
-  final int bloodGroup;    // Changed from string to int to match API model
+  final int bloodGroup; */   // Changed from string to int to match API model
   final int? districtId;
   final bool isSynced;
   final String? createdAt;
@@ -32,11 +32,11 @@ class PatientModel {
     required this.cnic,
     this.version = 1,
     required this.contact,
-    required this.emergencyContact,
+    /*required this.emergencyContact,
     required this.address,
     required this.medicalHistory,
     required this.immunized,
-    required this.bloodGroup,
+    required this.bloodGroup,*/
     this.districtId,
     this.isSynced = false,
     this.createdAt,
@@ -52,8 +52,6 @@ class PatientModel {
       'relationCnic': cnic,
       'relationType': relationType,
       'phoneNumber': contact,
-      'address': address,
-      'bloodGroup': bloodGroup.toString(), // Convert int to string for storage
       'isPregnant': 0,
       'isLactating': 0,
       'isSynced': isSynced ? 1 : 0,
@@ -74,11 +72,11 @@ class PatientModel {
       relationType: map['relationType'] ?? 1,
       version: map['version'] ?? 1,
       contact: map['phoneNumber'] ?? '',
-      emergencyContact: map['emergencyContact'] ?? map['phoneNumber'] ?? '',
+      /*emergencyContact: map['emergencyContact'] ?? map['phoneNumber'] ?? '',
       address: map['address'] ?? '',
       medicalHistory: map['medicalHistory'] ?? '',
       immunized: map['immunized'] == 1,
-      bloodGroup: int.tryParse(map['bloodGroup'] ?? '1') ?? 1, // Convert string to int
+      bloodGroup: int.tryParse(map['bloodGroup'] ?? '1') ?? 1,*/
       districtId: map['district_id'],
       isSynced: map['isSynced'] == 1,
       createdAt: map['createdAt'],
@@ -100,17 +98,17 @@ class PatientModel {
       'cnic': cnic,
       'version': version,
       'contact': contact,
-      'emergencyContact': emergencyContact,
+      /*'emergencyContact': emergencyContact,
       'address': address,
       'medicalHistory': medicalHistory,
       'immunization': immunized,
-      'bloodGroup': bloodGroup,
+      'bloodGroup': bloodGroup,*/
     };
   }
 
   // Create PatientModel from ApiPatientModel
   factory PatientModel.fromApiModel(ApiPatientModel apiModel) {
-    return PatientModel(
+    var returnData = PatientModel(
       patientId: apiModel.uniqueId,
       fullName: apiModel.name,
       fatherName: apiModel.fatherName,
@@ -121,14 +119,10 @@ class PatientModel {
       cnic: apiModel.cnic,
       version: apiModel.version,
       contact: apiModel.contact,
-      emergencyContact: apiModel.emergencyContact ?? apiModel.contact, // Use contact as fallback
-      address: apiModel.address,
-      medicalHistory: apiModel.medicalHistory ?? '', // Use empty string as fallback
-      immunized: apiModel.immunization ?? false, // Use false as fallback
-      bloodGroup: apiModel.bloodGroup ?? 1, // Use 1 as fallback
       isSynced: true, // Coming from API, so it's synced
       createdAt: DateTime.now().toIso8601String(),
       updatedAt: DateTime.now().toIso8601String(),
     );
+    return returnData;
   }
 }

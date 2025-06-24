@@ -108,7 +108,7 @@ class DatabaseHelper {
         fp_advised INTEGER DEFAULT 0,
         fp_list TEXT,
         obgyn_data TEXT,
-        is_synced INTEGER DEFAULT 0,
+        isSynced INTEGER DEFAULT 0,
         created_at TEXT,
         updated_at TEXT,
         FOREIGN KEY (patient_id) REFERENCES patients (id) ON DELETE CASCADE
@@ -121,88 +121,14 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         opdTicketNo TEXT NOT NULL,
         medicine TEXT NOT NULL,
-        dosage TEXT,
-        duration TEXT,
-        instructions TEXT,
-        is_synced INTEGER DEFAULT 0,
+        quantity TEXT,
+        isSynced INTEGER DEFAULT 0,
         created_at TEXT,
         updated_at TEXT
       )
     ''');
-
-    // Create diseases table
-    await db.execute('''
-      CREATE TABLE diseases (
-        id INTEGER PRIMARY KEY,
-        name TEXT NOT NULL,
-        category TEXT,
-        categoryId INTEGER
-      )
-    ''');
-
-    // Create medicines table
-    await db.execute('''
-      CREATE TABLE medicines (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE,
-        code TEXT,
-        version INTEGER DEFAULT 1
-      )
-    ''');
-
     // Create all reference data tables
     await createReferenceTables(db);
-  }
-
-  Future<void> _initializeDefaultData(Database db) async {
-    // Insert default medicines
-    final defaultMedicines = [
-      'Paracetamol',
-      'Ibuprofen',
-      'Aspirin',
-      'Amoxicillin',
-      'Ciprofloxacin',
-      'Metronidazole',
-      'Omeprazole',
-      'Diazepam',
-      'Atenolol',
-      'Metformin',
-      'Salbutamol',
-      'Hydrocortisone',
-      'Chlorpheniramine',
-      'Albendazole',
-      'Artemether/Lumefantrine'
-    ];
-
-    for (var medicine in defaultMedicines) {
-      await db.insert('medicines', {'name': medicine},
-          conflictAlgorithm: ConflictAlgorithm.ignore);
-    }
-
-    // Insert default dosages
-    final defaultDosages = [
-      '1 tablet twice daily',
-      '1 tablet three times daily',
-      '2 tablets twice daily',
-      '1 tablet once daily',
-      '1 tablet at bedtime',
-      '1 capsule three times daily',
-      '2 capsules twice daily',
-      '5ml three times daily',
-      '10ml twice daily',
-      '1 injection daily',
-      '1 injection weekly',
-      'Apply topically twice daily',
-      'Apply topically three times daily',
-      'Use as directed'
-    ];
-
-    for (var dosage in defaultDosages) {
-      await db.insert('medicine_dosages', {'name': dosage},
-          conflictAlgorithm: ConflictAlgorithm.ignore);
-    }
-
-    // ... other default data initialization ...
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -211,332 +137,6 @@ class DatabaseHelper {
     if (oldVersion < 2) {
       // Create any missing reference tables
       await createReferenceTables(db);
-    }
-  }
-
-  Future<void> _insertDefaultDiseases(Database db) async {
-    final diseases = [
-      // Respiratory diseases (1)
-      {
-        'id': 1,
-        'name': 'Common Cold',
-        'category': 'Respiratory diseases',
-        'categoryId': 1
-      },
-      {
-        'id': 2,
-        'name': 'Pneumonia',
-        'category': 'Respiratory diseases',
-        'categoryId': 1
-      },
-      {
-        'id': 3,
-        'name': 'Asthma',
-        'category': 'Respiratory diseases',
-        'categoryId': 1
-      },
-      {
-        'id': 4,
-        'name': 'Bronchitis',
-        'category': 'Respiratory diseases',
-        'categoryId': 1
-      },
-      {
-        'id': 5,
-        'name': 'Tuberculosis',
-        'category': 'Respiratory diseases',
-        'categoryId': 1
-      },
-
-      // Gastrointestinal disease (2)
-      {
-        'id': 6,
-        'name': 'Diarrhea',
-        'category': 'Gastrointestinal disease',
-        'categoryId': 2
-      },
-      {
-        'id': 7,
-        'name': 'Gastroenteritis',
-        'category': 'Gastrointestinal disease',
-        'categoryId': 2
-      },
-      {
-        'id': 8,
-        'name': 'Constipation',
-        'category': 'Gastrointestinal disease',
-        'categoryId': 2
-      },
-      {
-        'id': 9,
-        'name': 'Peptic Ulcer',
-        'category': 'Gastrointestinal disease',
-        'categoryId': 2
-      },
-
-      // Urinary tract infection (3)
-      {
-        'id': 10,
-        'name': 'Cystitis',
-        'category': 'Urinary tract infection',
-        'categoryId': 3
-      },
-      {
-        'id': 11,
-        'name': 'Pyelonephritis',
-        'category': 'Urinary tract infection',
-        'categoryId': 3
-      },
-      {
-        'id': 12,
-        'name': 'Urethritis',
-        'category': 'Urinary tract infection',
-        'categoryId': 3
-      },
-
-      // Other communicable diseases (4)
-      {
-        'id': 13,
-        'name': 'Malaria',
-        'category': 'Other communicable diseases',
-        'categoryId': 4
-      },
-      {
-        'id': 14,
-        'name': 'Dengue Fever',
-        'category': 'Other communicable diseases',
-        'categoryId': 4
-      },
-      {
-        'id': 15,
-        'name': 'Typhoid',
-        'category': 'Other communicable diseases',
-        'categoryId': 4
-      },
-      {
-        'id': 16,
-        'name': 'Hepatitis',
-        'category': 'Other communicable diseases',
-        'categoryId': 4
-      },
-
-      // Blood disorder (5)
-      {
-        'id': 17,
-        'name': 'Anemia',
-        'category': 'Blood disorder',
-        'categoryId': 5
-      },
-      {
-        'id': 18,
-        'name': 'Thrombocytopenia',
-        'category': 'Blood disorder',
-        'categoryId': 5
-      },
-
-      // Vaccine preventable diseases (6)
-      {
-        'id': 19,
-        'name': 'Measles',
-        'category': 'Vaccine preventable diseases',
-        'categoryId': 6
-      },
-      {
-        'id': 20,
-        'name': 'Polio',
-        'category': 'Vaccine preventable diseases',
-        'categoryId': 6
-      },
-      {
-        'id': 21,
-        'name': 'Tetanus',
-        'category': 'Vaccine preventable diseases',
-        'categoryId': 6
-      },
-
-      // Cardiovascular diseases (7)
-      {
-        'id': 22,
-        'name': 'Hypertension',
-        'category': 'Cardiovascular diseases',
-        'categoryId': 7
-      },
-      {
-        'id': 23,
-        'name': 'Heart Disease',
-        'category': 'Cardiovascular diseases',
-        'categoryId': 7
-      },
-      {
-        'id': 24,
-        'name': 'Stroke',
-        'category': 'Cardiovascular diseases',
-        'categoryId': 7
-      },
-
-      // Bone disorder, skin diseases (8)
-      {
-        'id': 25,
-        'name': 'Arthritis',
-        'category': 'Bone disorder, skin diseases',
-        'categoryId': 8
-      },
-      {
-        'id': 26,
-        'name': 'Eczema',
-        'category': 'Bone disorder, skin diseases',
-        'categoryId': 8
-      },
-      {
-        'id': 27,
-        'name': 'Psoriasis',
-        'category': 'Bone disorder, skin diseases',
-        'categoryId': 8
-      },
-      {
-        'id': 28,
-        'name': 'Osteoporosis',
-        'category': 'Bone disorder, skin diseases',
-        'categoryId': 8
-      },
-
-      // Endocrine disorder (9)
-      {
-        'id': 29,
-        'name': 'Diabetes',
-        'category': 'Endocrine disorder',
-        'categoryId': 9
-      },
-      {
-        'id': 30,
-        'name': 'Thyroid Disorder',
-        'category': 'Endocrine disorder',
-        'categoryId': 9
-      },
-
-      // Neuro-psychiatric disorder (10)
-      {
-        'id': 31,
-        'name': 'Depression',
-        'category': 'Neuro-psychiatric disorder',
-        'categoryId': 10
-      },
-      {
-        'id': 32,
-        'name': 'Anxiety',
-        'category': 'Neuro-psychiatric disorder',
-        'categoryId': 10
-      },
-      {
-        'id': 33,
-        'name': 'Epilepsy',
-        'category': 'Neuro-psychiatric disorder',
-        'categoryId': 10
-      },
-
-      // Eye diseases (11)
-      {
-        'id': 34,
-        'name': 'Conjunctivitis',
-        'category': 'Eye diseases',
-        'categoryId': 11
-      },
-      {
-        'id': 35,
-        'name': 'Cataract',
-        'category': 'Eye diseases',
-        'categoryId': 11
-      },
-      {
-        'id': 36,
-        'name': 'Glaucoma',
-        'category': 'Eye diseases',
-        'categoryId': 11
-      },
-
-      // ENT diseases (12)
-      {
-        'id': 37,
-        'name': 'Otitis Media',
-        'category': 'ENT diseases',
-        'categoryId': 12
-      },
-      {
-        'id': 38,
-        'name': 'Sinusitis',
-        'category': 'ENT diseases',
-        'categoryId': 12
-      },
-      {
-        'id': 39,
-        'name': 'Tonsillitis',
-        'category': 'ENT diseases',
-        'categoryId': 12
-      },
-
-      // Oral/dental diseases (13)
-      {
-        'id': 40,
-        'name': 'Dental Caries',
-        'category': 'Oral/dental diseases',
-        'categoryId': 13
-      },
-      {
-        'id': 41,
-        'name': 'Gingivitis',
-        'category': 'Oral/dental diseases',
-        'categoryId': 13
-      },
-      {
-        'id': 42,
-        'name': 'Periodontal Disease',
-        'category': 'Oral/dental diseases',
-        'categoryId': 13
-      },
-
-      // Injuries/poisoning (14)
-      {
-        'id': 43,
-        'name': 'Fracture',
-        'category': 'Injuries/poisoning',
-        'categoryId': 14
-      },
-      {
-        'id': 44,
-        'name': 'Burns',
-        'category': 'Injuries/poisoning',
-        'categoryId': 14
-      },
-      {
-        'id': 45,
-        'name': 'Cuts/Wounds',
-        'category': 'Injuries/poisoning',
-        'categoryId': 14
-      },
-
-      // Other diseases (15)
-      {
-        'id': 46,
-        'name': 'Fever',
-        'category': 'Other diseases',
-        'categoryId': 15
-      },
-      {
-        'id': 47,
-        'name': 'Headache',
-        'category': 'Other diseases',
-        'categoryId': 15
-      },
-      {
-        'id': 48,
-        'name': 'General Pain',
-        'category': 'Other diseases',
-        'categoryId': 15
-      },
-    ];
-
-    for (var disease in diseases) {
-      await db.insert('diseases', disease);
     }
   }
 
@@ -568,7 +168,7 @@ class DatabaseHelper {
 
     final result = await db.query(
       'patients',
-      where: 'is_synced = ? OR is_synced IS NULL',
+      where: 'isSynced = ? OR isSynced IS NULL',
       whereArgs: [0]
     );
     return result.map((e) => PatientModel.fromMap(e)).toList();
@@ -597,7 +197,7 @@ class DatabaseHelper {
       'fp_list': visit.fpIds.isNotEmpty ? visit.fpIds.join(',') : '',
       'obgyn_data': visit.obgynData,
       'opdTicketNo': visit.opdTicketNo, // Store the ticket number
-      'is_synced': 0,
+      'isSynced': 0,
       'created_at': DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     };
@@ -743,7 +343,7 @@ class DatabaseHelper {
 
       final List<Map<String, dynamic>> maps = await db.query(
         'opd_visits',
-        where: 'is_synced = ? OR is_synced IS NULL',
+        where: 'isSynced = ? OR isSynced IS NULL',
         whereArgs: [0],
         orderBy: 'visit_date DESC'
       );
@@ -827,7 +427,7 @@ class DatabaseHelper {
   // Disease methods
   Future<List<DiseaseModel>> getAllDiseases() async {
     final db = await database;
-    final result = await db.query('diseases', orderBy: 'category, name');
+    final result = await db.query('api_diseases', orderBy: 'category, name');
     return result.map((e) => DiseaseModel.fromMap(e)).toList();
   }
 
@@ -848,12 +448,10 @@ class DatabaseHelper {
     // Create a map that matches the database schema
     final Map<String, dynamic> prescriptionMap = {
       // Don't include id to let SQLite auto-generate it
-      'medicine': prescription.drugName,  // Use 'medicine' field as in the schema
-      'dosage': prescription.dosage,
-      'duration': prescription.duration,
+      'medicine': prescription.drugName,
       'opdTicketNo': prescription.opdTicketNo,
       'quantity': prescription.quantity,
-      'is_synced': 0,
+      'isSynced': 0,
       'created_at': prescription.createdAt ?? DateTime.now().toIso8601String(),
       'updated_at': prescription.updatedAt ?? DateTime.now().toIso8601String(),
     };
@@ -880,14 +478,6 @@ class DatabaseHelper {
     final batch = db.batch();
 
     try {
-      // Store blood groups
-      if (data.bloodGroups != null) {
-        for (final item in data.bloodGroups!) {
-          batch.insert('api_blood_groups', {'id': item.id, 'name': item.name},
-              conflictAlgorithm: ConflictAlgorithm.replace);
-        }
-      }
-
       // Store delivery types
       if (data.deliveryTypes != null) {
         for (final item in data.deliveryTypes!) {
@@ -948,41 +538,11 @@ class DatabaseHelper {
         }
       }
 
-      // Store medicine dosages
-      if (data.medicineDosages != null) {
-        for (final item in data.medicineDosages!) {
-          batch.insert(
-              'api_medicine_dosages', {'id': item.id, 'name': item.name},
-              conflictAlgorithm: ConflictAlgorithm.replace);
-        }
-      }
-
-      // Store relation types
-      print('DEBUG: Checking relation types in API response...');
-      print('DEBUG: data.relationTypes is null: ${data.relationTypes == null}');
-      print('DEBUG: data.relationTypes length: ${data.relationTypes?.length ?? 0}');
-
-      if (data.relationTypes != null && data.relationTypes!.isNotEmpty) {
-        print('SUCCESS: Storing ${data.relationTypes!.length} relation types from API');
+      if(data.relationTypes != null && data.relationTypes!.isNotEmpty){
         for (final item in data.relationTypes!) {
-          print('SUCCESS: Storing relation type: ${item.id} - ${item.name}');
           batch.insert(
               'api_relation_types', {'id': item.id, 'name': item.name},
               conflictAlgorithm: ConflictAlgorithm.replace);
-        }
-      } else {
-        print('FALLBACK: No relation types in API response, storing default relation types');
-        print('FALLBACK: Reason - relationTypes is null: ${data.relationTypes == null}, isEmpty: ${data.relationTypes?.isEmpty ?? true}');
-        final defaultRelationTypes = [
-          {'id': 1, 'name': 'Own'},
-          {'id': 2, 'name': 'Father'},
-          {'id': 3, 'name': 'Mother'},
-          {'id': 4, 'name': 'Husband'},
-          {'id': 5, 'name': 'Other'}
-        ];
-        for (final relationType in defaultRelationTypes) {
-          print('FALLBACK: Inserting default relation type: ${relationType['id']} - ${relationType['name']}');
-          batch.insert('api_relation_types', relationType, conflictAlgorithm: ConflictAlgorithm.replace);
         }
       }
 
@@ -991,26 +551,6 @@ class DatabaseHelper {
         for (final item in data.genders!) {
           batch.insert(
               'api_genders', {'id': item.id, 'name': item.name},
-              conflictAlgorithm: ConflictAlgorithm.replace);
-        }
-      } else {
-        // If no genders in API response, store default genders
-        print('No genders in API response, storing default genders');
-        final defaultGenders = [
-          {'id': 1, 'name': 'Male'},
-          {'id': 2, 'name': 'Female'},
-          {'id': 3, 'name': 'TransGender'},
-          {'id': 4, 'name': 'OtherPerson'},
-        ];
-        for (final gender in defaultGenders) {
-          batch.insert('api_genders', gender, conflictAlgorithm: ConflictAlgorithm.replace);
-        }
-      }
-
-      // Store districts
-      if (data.districts != null) {
-        for (final item in data.districts!) {
-          batch.insert('api_districts', {'id': item.id, 'name': item.name},
               conflictAlgorithm: ConflictAlgorithm.replace);
         }
       }
@@ -1023,6 +563,7 @@ class DatabaseHelper {
               {
                 'id': item.id,
                 'name': item.name,
+                'color': item.color,
                 'category': item.category,
                 'category_id': item.category != null ? item.id : null,
                 'version': 1
@@ -1059,22 +600,6 @@ class DatabaseHelper {
               },
               conflictAlgorithm: ConflictAlgorithm.replace);
         }
-      }
-
-      // Store health facilities
-      if (data.healthFacilities != null) {
-        for (final item in data.healthFacilities!) {
-          batch.insert(
-              'api_health_facilities', {'id': item.id, 'name': item.name},
-              conflictAlgorithm: ConflictAlgorithm.replace);
-        }
-      }
-
-      // Store user roles
-      if (data.userInfo?.userRoleId != null) {
-        batch.insert('api_user_roles',
-            {'id': data.userInfo!.userRoleId, 'name': data.userInfo!.userName},
-            conflictAlgorithm: ConflictAlgorithm.replace);
       }
 
       // Store patients if available
@@ -1158,7 +683,6 @@ class DatabaseHelper {
     print('Creating reference data tables');
     
     // Create all API reference tables
-    await db.execute('CREATE TABLE IF NOT EXISTS api_blood_groups (id INTEGER PRIMARY KEY, name TEXT NOT NULL)');
     await db.execute('CREATE TABLE IF NOT EXISTS api_delivery_types (id INTEGER PRIMARY KEY, name TEXT NOT NULL)');
     await db.execute('CREATE TABLE IF NOT EXISTS api_delivery_modes (id INTEGER PRIMARY KEY, name TEXT NOT NULL)');
     await db.execute('CREATE TABLE IF NOT EXISTS api_family_planning (id INTEGER PRIMARY KEY, name TEXT NOT NULL)');
@@ -1166,15 +690,11 @@ class DatabaseHelper {
     await db.execute('CREATE TABLE IF NOT EXISTS api_tt_advised (id INTEGER PRIMARY KEY, name TEXT NOT NULL)');
     await db.execute('CREATE TABLE IF NOT EXISTS api_pregnancy_indicators (id INTEGER PRIMARY KEY, name TEXT NOT NULL)');
     await db.execute('CREATE TABLE IF NOT EXISTS api_postpartum_statuses (id INTEGER PRIMARY KEY, name TEXT NOT NULL)');
-    await db.execute('CREATE TABLE IF NOT EXISTS api_medicine_dosages (id INTEGER PRIMARY KEY, name TEXT NOT NULL)');
-    await db.execute('CREATE TABLE IF NOT EXISTS api_districts (id INTEGER PRIMARY KEY, name TEXT, version INTEGER DEFAULT 0)');
-    await db.execute('CREATE TABLE IF NOT EXISTS api_diseases (id INTEGER PRIMARY KEY, name TEXT, category TEXT, category_id INTEGER, version INTEGER DEFAULT 0)');
+    await db.execute('CREATE TABLE IF NOT EXISTS api_diseases (id INTEGER PRIMARY KEY, name TEXT, color TEXT, category TEXT, category_id INTEGER, version INTEGER DEFAULT 0)');
     await db.execute('CREATE TABLE IF NOT EXISTS api_sub_diseases (id INTEGER PRIMARY KEY, name TEXT, disease_id INTEGER, version INTEGER DEFAULT 0)');
     await db.execute('CREATE TABLE IF NOT EXISTS api_lab_tests (id INTEGER PRIMARY KEY, name TEXT)');
     await db.execute('CREATE TABLE IF NOT EXISTS api_medicines (id INTEGER PRIMARY KEY, name TEXT, code TEXT, version INTEGER DEFAULT 0)');
-    await db.execute('CREATE TABLE IF NOT EXISTS api_health_facilities (id INTEGER PRIMARY KEY, name TEXT)');
-    await db.execute('CREATE TABLE IF NOT EXISTS api_user_roles (id INTEGER PRIMARY KEY, name TEXT)');
-    await db.execute('CREATE TABLE IF NOT EXISTS api_patients (id INTEGER PRIMARY KEY, name TEXT, address TEXT, version INTEGER DEFAULT 0, age INTEGER DEFAULT 0, bloodGroup INTEGER DEFAULT 1, cnic TEXT, contact TEXT, emergencyContact TEXT, fatherName TEXT, gender INTEGER DEFAULT 1, husbandName TEXT, immunization INTEGER DEFAULT 0, medicalHistory TEXT, uniqueId TEXT)');
+
     await db.execute('CREATE TABLE IF NOT EXISTS api_relation_types (id INTEGER PRIMARY KEY, name TEXT NOT NULL)');
     await db.execute('CREATE TABLE IF NOT EXISTS api_genders (id INTEGER PRIMARY KEY, name TEXT NOT NULL)');
   }
@@ -1200,12 +720,6 @@ class DatabaseHelper {
   }
 
   // Methods to retrieve reference data
-
-  Future<List<Map<String, dynamic>>> getBloodGroups() async {
-    final db = await database;
-    return await db.query('api_blood_groups');
-  }
-
   Future<List<Map<String, dynamic>>> getDeliveryTypes() async {
     final db = await database;
     return await db.query('api_delivery_types');
@@ -1234,11 +748,6 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> getPregnancyIndicators() async {
     final db = await database;
     return await db.query('api_pregnancy_indicators');
-  }
-  
-  Future<List<Map<String, dynamic>>> getPostpartumStatuses() async {
-    final db = await database;
-    return await db.query('api_postpartum_statuses');
   }
 
   Future<List<Map<String, dynamic>>> getLocalMedicineDosages() async {
@@ -1286,7 +795,6 @@ class DatabaseHelper {
     final batch = db.batch();
 
     final tables = [
-      'api_blood_groups',
       'api_delivery_types',
       'api_delivery_modes',
       'api_family_planning',
@@ -1294,14 +802,11 @@ class DatabaseHelper {
       'api_tt_advised',
       'api_pregnancy_indicators',
       'api_postpartum_statuses',
-      'api_medicine_dosages',
-      'api_districts',
       'api_diseases',
       'api_sub_diseases',
       'api_lab_tests',
       'api_medicines',
       'api_health_facilities',
-      'api_user_roles',
       'api_relation_types',
       'api_genders'
     ];
@@ -1351,60 +856,11 @@ class DatabaseHelper {
     }
   }
 
-  // Methods for API medicine dosages
-  Future<List<Map<String, dynamic>>> getApiMedicineDosages() async {
-    final db = await database;
-    try {
-      // Try to query the API medicine dosages table
-      return await db.query('api_medicine_dosages');
-    } catch (e) {
-      print('Error getting API medicine dosages: $e');
-      // If table doesn't exist or other error, return empty list
-      return [];
-    }
-  }
-
-  // Methods for local medicines
-  Future<List<Map<String, dynamic>>> getMedicines() async {
-    final db = await database;
-    try {
-      return await db.query('medicines');
-    } catch (e) {
-      print('Error getting medicines: $e');
-      // If table doesn't exist, create it
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS medicines (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT UNIQUE
-        )
-      ''');
-      return [];
-    }
-  }
-
-  // Methods for local medicine dosages
-  Future<List<Map<String, dynamic>>> getMedicineDosages() async {
-    final db = await database;
-    try {
-      return await db.query('medicine_dosages');
-    } catch (e) {
-      print('Error getting medicine dosages: $e');
-      // If table doesn't exist, create it
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS medicine_dosages (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT UNIQUE
-        )
-      ''');
-      return [];
-    }
-  }
-
   // API table query methods
   Future<List<Map<String, dynamic>>> getApiFamilyPlanningServices() async {
     final db = await database;
     try {
-      return await db.query('api_family_planning_services');
+      return await db.query('api_family_planning');
     } catch (e) {
       print('Error getting API family planning services: $e');
       return [];
@@ -1481,69 +937,12 @@ class DatabaseHelper {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getGenders() async {
-    final db = await database;
-    try {
-      // First try to get from API table
-      var genders = await getApiGenders();
-
-      // If empty, provide fallback default values
-      if (genders.isEmpty) {
-        print('API genders empty, using default genders');
-        final defaultGenders = [
-          {'id': 1, 'name': 'Male'},
-          {'id': 2, 'name': 'Female'}
-        ];
-
-        // Insert default values
-        for (var gender in defaultGenders) {
-          await db.insert('api_genders', gender, conflictAlgorithm: ConflictAlgorithm.ignore);
-        }
-
-        return defaultGenders;
-      }
-
-      return genders;
-    } catch (e) {
-      print('Error getting genders: $e');
-      return [
-        {'id': 1, 'name': 'Male'},
-        {'id': 2, 'name': 'Female'}
-      ];
-    }
-  }
-
   /// Get relation type options from the database (fetched from API)
   Future<List<Map<String, dynamic>>> getRelationTypes() async {
     final db = await database;
     try {
       // First try to get from API table
       var relationTypes = await db.query('api_relation_types');
-
-      // If empty, provide fallback default values
-      if (relationTypes.isEmpty) {
-        print('API relation types empty, using default relation types');
-        final defaultRelationTypes = [
-          {'id': 1, 'name': 'Own'},
-          {'id': 2, 'name': 'Father'},
-          {'id': 3, 'name': 'Mother'},
-          {'id': 4, 'name': 'Husband'},
-          {'id': 5, 'name': 'Wife'},
-          {'id': 6, 'name': 'Son'},
-          {'id': 7, 'name': 'Daughter'},
-          {'id': 8, 'name': 'Brother'},
-          {'id': 9, 'name': 'Sister'},
-          {'id': 10, 'name': 'Other'}
-        ];
-
-        // Insert default values
-        for (var relationType in defaultRelationTypes) {
-          await db.insert('api_relation_types', relationType, conflictAlgorithm: ConflictAlgorithm.ignore);
-        }
-
-        return defaultRelationTypes;
-      }
-
       return relationTypes;
     } catch (e) {
       print('Error getting relation types: $e');
@@ -1580,8 +979,6 @@ class DatabaseHelper {
         Map<String, dynamic> normalizedMap = {
           'id': maps[i]['id'],
           'drugName': maps[i][drugColumn],
-          'dosage': maps[i]['dosage'],
-          'duration': maps[i]['duration'],
           'opdTicketNo': maps[i][ticketColumn],
           'quantity': maps[i]['quantity'] ?? 1,
           'created_at': maps[i]['created_at'],
@@ -1610,16 +1007,16 @@ class DatabaseHelper {
       List<String> opdVisitColumns = opdVisitsInfo.map((col) => col['name'].toString()).toList();
       List<String> prescriptionColumns = prescriptionsInfo.map((col) => col['name'].toString()).toList();
 
-      // Add is_synced column to patients if it doesn't exist
-      if (!patientColumns.contains('is_synced')) {
-        await db.execute('ALTER TABLE patients ADD COLUMN is_synced INTEGER DEFAULT 0');
-        print('Added is_synced column to patients table');
+      // Add isSynced column to patients if it doesn't exist
+      if (!patientColumns.contains('isSynced')) {
+        await db.execute('ALTER TABLE patients ADD COLUMN isSynced INTEGER DEFAULT 0');
+        print('Added isSynced column to patients table');
       }
 
-      // Add is_synced column to opd_visits if it doesn't exist
-      if (!opdVisitColumns.contains('is_synced')) {
-        await db.execute('ALTER TABLE opd_visits ADD COLUMN is_synced INTEGER DEFAULT 0');
-        print('Added is_synced column to opd_visits table');
+      // Add isSynced column to opd_visits if it doesn't exist
+      if (!opdVisitColumns.contains('isSynced')) {
+        await db.execute('ALTER TABLE opd_visits ADD COLUMN isSynced INTEGER DEFAULT 0');
+        print('Added isSynced column to opd_visits table');
       }
 
       // Add opdTicketNo column to opd_visits if it doesn't exist
@@ -1631,10 +1028,10 @@ class DatabaseHelper {
         await _populateOpdTicketNumbers(db);
       }
 
-      // Add is_synced column to prescriptions if it doesn't exist
-      if (!prescriptionColumns.contains('is_synced')) {
-        await db.execute('ALTER TABLE prescriptions ADD COLUMN is_synced INTEGER DEFAULT 0');
-        print('Added is_synced column to prescriptions table');
+      // Add isSynced column to prescriptions if it doesn't exist
+      if (!prescriptionColumns.contains('isSynced')) {
+        await db.execute('ALTER TABLE prescriptions ADD COLUMN isSynced INTEGER DEFAULT 0');
+        print('Added isSynced column to prescriptions table');
       }
     } catch (e) {
       print('Error adding sync columns: $e');

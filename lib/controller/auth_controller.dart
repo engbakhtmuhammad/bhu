@@ -275,7 +275,6 @@ class AuthController extends GetxController {
       final dbHelper = DatabaseHelper();
       final db = await dbHelper.database;
       int storedCount = 0;
-
       // Begin transaction for better performance
       await db.transaction((txn) async {
         for (var patient in patients) {

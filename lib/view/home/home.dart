@@ -296,11 +296,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    SizedBox(height: 4),
+                    /*SizedBox(height: 4),
                     Text(
                       'Blood Group: ${getBloodGroupName(patient.bloodGroup)}',
                       style: descriptionTextStyle(size: 12),
-                    ),
+                    ),*/
                   ],
                 ),
               ),

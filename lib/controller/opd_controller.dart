@@ -20,7 +20,7 @@ class OpdController extends GetxController {
   var subdiseases = <SubDiseaseModel>[].obs;
   
   // Reference data from SQLite
-  var diseasesByCategory = <String, List<SubDiseaseModel>>{}.obs;
+  var diseasesByCategory = <DiseaseModel, List<SubDiseaseModel>>{}.obs;
   var labTestOptions = <String>[].obs;
   var fpOptions = <String>[].obs;
   var antenatalVisitOptions = <String>[].obs;
@@ -213,351 +213,63 @@ class OpdController extends GetxController {
       
       // Load antenatal visits
       var antenatalVisits = await db.getApiAntenatalVisits();
-      if (antenatalVisits.isEmpty) {
-        antenatalVisits = await db.getAntenatalVisits();
-        print('API antenatal visits empty, loaded ${antenatalVisits.length} from local table');
-      } else {
-        print('Loaded ${antenatalVisits.length} antenatal visits from API table');
-      }
-      
-      if (antenatalVisits.isNotEmpty) {
-        antenatalVisitOptions.value = antenatalVisits.map((e) => e['name'] as String).toList();
-      } else {
-        // Fallback data for antenatal visits
-        print('Using default antenatal visits');
-        antenatalVisitOptions.value = [
-          'ANC 1-4',
-          'ANC 5-8',
-          'ANC 9+',
-          'No ANC'
-        ];
-        
-        // Save default values to local table
-        for (var option in antenatalVisitOptions) {
-          await db.database.then((dbClient) => dbClient.insert(
-            'api_antenatal_visits', 
-            {'name': option},
-            conflictAlgorithm: ConflictAlgorithm.ignore
-          ));
-        }
-      }
+      antenatalVisitOptions.value = antenatalVisits.isNotEmpty ? antenatalVisits.map((e) => e['name'] as String).toList() : [];
       
       // Load delivery modes
       var deliveryModes = await db.getApiDeliveryModes();
-      if (deliveryModes.isEmpty) {
-        deliveryModes = await db.getDeliveryModes();
-        print('API delivery modes empty, loaded ${deliveryModes.length} from local table');
-      } else {
-        print('Loaded ${deliveryModes.length} delivery modes from API table');
-      }
-      
-      if (deliveryModes.isNotEmpty) {
-        deliveryModeOptions.value = deliveryModes.map((e) => e['name'] as String).toList();
-        
-        // Create list with IDs for dropdown
-        deliveryModeOptionsWithIds.value = deliveryModes.map((e) => {
-          'id': e['id'] as int,
-          'name': e['name'] as String
-        }).toList();
-      } else {
-        // Fallback data for delivery modes
-        print('Using default delivery modes');
-        final defaultModes = [
-          {'id': 1, 'name': 'Normal Delivery (Live Birth)'},
-          {'id': 2, 'name': 'C-Section (Live Birth)'},
-          {'id': 3, 'name': 'Normal Delivery (Stillbirth)'},
-          {'id': 4, 'name': 'C-Section (Stillbirth)'},
-          {'id': 5, 'name': 'Assisted Delivery'}
-        ];
-        
-        deliveryModeOptions.value = defaultModes.map((e) => e['name'] as String).toList();
-        deliveryModeOptionsWithIds.value = defaultModes;
-        
-        // Save default values to local table
-        for (var option in defaultModes) {
-          await db.database.then((dbClient) => dbClient.insert(
-            'api_delivery_modes', 
-            {'id': option['id'], 'name': option['name']},
-            conflictAlgorithm: ConflictAlgorithm.ignore
-          ));
-        }
-      }
+      deliveryModeOptions.value = deliveryModes.isNotEmpty ? deliveryModes.map((e) => e['name'] as String).toList() : [];
+
+      // Create list with IDs for dropdown
+      deliveryModeOptionsWithIds.value = deliveryModes.isNotEmpty ? deliveryModes.map((e) => {
+        'id': e['id'] as int,
+        'name': e['name'] as String
+      }).toList() : [];
       
       // Load pregnancy indicators
       var pregnancyIndicators = await db.getApiPregnancyIndicators();
-      if (pregnancyIndicators.isEmpty) {
-        pregnancyIndicators = await db.getPregnancyIndicators();
-        print('API pregnancy indicators empty, loaded ${pregnancyIndicators.length} from local table');
-      } else {
-        print('Loaded ${pregnancyIndicators.length} pregnancy indicators from API table');
-      }
-      
-      if (pregnancyIndicators.isNotEmpty) {
-        this.pregnancyIndicators.value = pregnancyIndicators.map((e) => e['name'] as String).toList();
-      } else {
-        // Fallback data for pregnancy indicators
-        print('Using default pregnancy indicators');
-        this.pregnancyIndicators.value = [
-          'Hypertension',
-          'Diabetes',
-          'Anemia',
-          'Previous C-Section',
-          'Multiple Pregnancy',
-          'Teenage Pregnancy',
-          'Advanced Maternal Age'
-        ];
-        
-        // Save default values to local table
-        for (var option in pregnancyIndicators) {
-          await db.database.then((dbClient) => dbClient.insert(
-            'api_pregnancy_indicators', 
-            {'name': option},
-            conflictAlgorithm: ConflictAlgorithm.ignore
-          ));
-        }
-      }
+      this.pregnancyIndicators.value = pregnancyIndicators.isNotEmpty ? pregnancyIndicators.map((e) => e['name'] as String).toList() : [];
       
       // Load TT advised options
       var ttAdvisedOptions = await db.getApiTTAdvised();
-      if (ttAdvisedOptions.isEmpty) {
-        ttAdvisedOptions = await db.getTTAdvised();
-        print('API TT advised options empty, loaded ${ttAdvisedOptions.length} from local table');
-      } else {
-        print('Loaded ${ttAdvisedOptions.length} TT advised options from API table');
-      }
-      
-      if (ttAdvisedOptions.isNotEmpty) {
-        this.ttAdvisedOptions.value = ttAdvisedOptions.map((e) => e['name'] as String).toList();
-        ttAdvisedOptionsWithIds.value = ttAdvisedOptions;
-      } else {
-        // Fallback data for TT advised
-        print('Using default TT advised options');
-        final defaultTTOptions = [
-          {'id': 1, 'name': 'TT1'},
-          {'id': 2, 'name': 'TT2'},
-          {'id': 3, 'name': 'TT Booster'},
-          {'id': 4, 'name': 'Not Advised'}
-        ];
-
-        this.ttAdvisedOptions.value = defaultTTOptions.map((e) => e['name'] as String).toList();
-        ttAdvisedOptionsWithIds.value = defaultTTOptions;
-
-        // Save default values to local table
-        for (var option in defaultTTOptions) {
-          await db.database.then((dbClient) => dbClient.insert(
-            'api_tt_advised',
-            {'id': option['id'], 'name': option['name']},
-            conflictAlgorithm: ConflictAlgorithm.ignore
-          ));
-        }
-      }
+      this.ttAdvisedOptions.value = ttAdvisedOptions.isNotEmpty ?
+          ttAdvisedOptions.map((e) => e['name'] as String).toList() : [];
+      ttAdvisedOptionsWithIds.value = ttAdvisedOptions.isNotEmpty ? ttAdvisedOptions : [];
       
       // Load postpartum statuses
       var postpartumStatuses = await db.getApiPostpartumStatuses();
-      if (postpartumStatuses.isEmpty) {
-        postpartumStatuses = await db.getPostpartumStatuses();
-        print('API postpartum statuses empty, loaded ${postpartumStatuses.length} from local table');
-      } else {
-        print('Loaded ${postpartumStatuses.length} postpartum statuses from API table');
-      }
-      
-      if (postpartumStatuses.isNotEmpty) {
-        postPartumStatusOptions.value = postpartumStatuses.map((e) => e['name'] as String).toList();
-      } else {
-        // Fallback data for postpartum statuses
-        print('Using default postpartum statuses');
-        postPartumStatusOptions.value = [
-          'Normal Recovery',
-          'Complications Present',
-          'Referred for Higher Care',
-          'Follow-up Required'
-        ];
-        
-        // Save default values to local table
-        for (var option in postPartumStatusOptions) {
-          await db.database.then((dbClient) => dbClient.insert(
-            'api_postpartum_statuses', 
-            {'name': option},
-            conflictAlgorithm: ConflictAlgorithm.ignore
-          ));
-        }
-      }
+      postPartumStatusOptions.value = postpartumStatuses.isNotEmpty ?
+          postpartumStatuses.map((e) => e['name'] as String).toList() : [];
       
       // Load subdiseases
       final subDiseasesList = await db.getAllSubDiseases();
-      if (subDiseasesList.isNotEmpty) {
-        subdiseases.value = subDiseasesList;
-      }
+      subdiseases.value = subDiseasesList.isNotEmpty ? subDiseasesList : [];
       
       // Load antenatal visits with IDs
       final antenatalVisitsWithIds = await db.getAntenatalVisits();
-      if (antenatalVisitsWithIds.isNotEmpty) {
-        antenatalVisitOptionsWithIds.value = antenatalVisitsWithIds.map((e) => {
-          'id': e['id'] as int,
-          'name': e['name'] as String
-        }).toList();
-      } else {
-        // Fallback data for antenatal visits
-        print('Using default antenatal visits');
-        final defaultVisits = [
-          {'id': 1, 'name': 'ANC 1-4'},
-          {'id': 2, 'name': 'ANC 5-8'},
-          {'id': 3, 'name': 'ANC 9+'},
-          {'id': 4, 'name': 'No ANC'}
-        ];
-        
-        antenatalVisitOptionsWithIds.value = defaultVisits;
-        
-        // Save default values to local table
-        for (var option in defaultVisits) {
-          await db.database.then((dbClient) => dbClient.insert(
-            'api_antenatal_visits', 
-            {'id': option['id'], 'name': option['name']},
-            conflictAlgorithm: ConflictAlgorithm.ignore
-          ));
-        }
-      }
+      antenatalVisitOptionsWithIds.value = antenatalVisitsWithIds.isNotEmpty ? antenatalVisitsWithIds.map((e) => {
+        'id': e['id'] as int,
+        'name': e['name'] as String
+      }).toList() : [];
       
       // Load pregnancy indicators with IDs
       final pregnancyIndicatorsWithIdsData = await db.getPregnancyIndicators();
-      if (pregnancyIndicatorsWithIdsData.isNotEmpty) {
-        pregnancyIndicatorsWithIds.value = pregnancyIndicatorsWithIdsData.map((e) => {
-          'id': e['id'] as int,
-          'name': e['name'] as String
-        }).toList();
-      } else {
-        // Fallback data for pregnancy indicators
-        print('Using default pregnancy indicators');
-        final defaultIndicators = [
-          {'id': 1, 'name': 'High'},
-          {'id': 2, 'name': 'Medium'},
-          {'id': 3, 'name': 'Low'},
-        ];
-        
-        pregnancyIndicatorsWithIds.value = defaultIndicators;
-        
-        // Save default values to local table
-        for (var option in defaultIndicators) {
-          await db.database.then((dbClient) => dbClient.insert(
-            'api_pregnancy_indicators', 
-            {'id': option['id'], 'name': option['name']},
-            conflictAlgorithm: ConflictAlgorithm.ignore
-          ));
-        }
-      }
+      pregnancyIndicatorsWithIds.value = pregnancyIndicatorsWithIdsData.isNotEmpty ? pregnancyIndicatorsWithIdsData.map((e) => {
+        'id': e['id'] as int,
+        'name': e['name'] as String
+      }).toList() : [];
       
       // Load postpartum statuses with IDs
-      final postpartumStatusesWithIdsData = await db.getPostpartumStatuses();
-      if (postpartumStatusesWithIdsData.isNotEmpty) {
-        postpartumStatusOptionsWithIds.value = postpartumStatusesWithIdsData.map((e) => {
-          'id': e['id'] as int,
-          'name': e['name'] as String
-        }).toList();
-      } else {
-        // Fallback data for postpartum statuses
-        print('Using default postpartum statuses');
-        final defaultStatuses = [
-          {'id': 1, 'name': 'Hight'},
-          {'id': 2, 'name': 'Medium'},
-          {'id': 3, 'name': 'Low'},
-        ];
-        
-        postpartumStatusOptionsWithIds.value = defaultStatuses;
-        
-        // Save default values to local table
-        for (var option in defaultStatuses) {
-          await db.database.then((dbClient) => dbClient.insert(
-            'api_postpartum_statuses', 
-            {'id': option['id'], 'name': option['name']},
-            conflictAlgorithm: ConflictAlgorithm.ignore
-          ));
-        }
-      }
+      final postpartumStatusesWithIdsData = await db.getApiPostpartumStatuses();
+      postpartumStatusOptionsWithIds.value = postpartumStatusesWithIdsData.isNotEmpty ? postpartumStatusesWithIdsData.map((e) => {
+        'id': e['id'] as int,
+        'name': e['name'] as String
+      }).toList() : [];
       
       // Load genders
-      var genders = await db.getGenders();
-      if (genders.isNotEmpty) {
-        genderOptions.value = genders;
-      } else {
-        // Fallback data for genders
-        print('Using default genders');
-        genderOptions.value = [
-          {'id': 1, 'name': 'Male'},
-          {'id': 2, 'name': 'Female'}
-        ];
-      }
-
-      print('Reference data loading completed');
+      var genders = await db.getApiGenders();
+      genderOptions.value = genders.isNotEmpty ? genders : [];
     } catch (e) {
       print('Error loading reference data: $e');
-      // Set fallback values if there's an error
-      fpOptions.value = [
-        'Pills',
-        'Injections',
-        'Condoms',
-        'IUCD/Implants',
-        'FP Counseling',
-      ];
-      
-      labTestOptions.value = [
-        'Complete Blood Count',
-        'Blood Glucose',
-        'Lipid Profile',
-        'Liver Function Test',
-        'Kidney Function Test',
-        'Urine Analysis',
-        'Stool Examination',
-        'X-Ray',
-        'Ultrasound'
-      ];
-      
-      antenatalVisitOptions.value = [
-        'ANC 1',
-        'ANC 2',
-        'ANC 3',
-        'ANC 4',
-        'ANC 5+',
-        'Additional Checkup',
-      ];
-      
-      deliveryModeOptions.value = [
-        'Normal Delivery (Live Birth)',
-        'Maternal Death',
-        'Still Birth',
-        'Neonatal Death (within 28 days)',
-        'Intra Uterine Death',
-        'Abortion'
-      ];
-      
-      pregnancyIndicators.value = [
-        'High',
-        'Medium',
-        'Low'
-      ];
-      
-      ttAdvisedOptions.value = [
-        'TT1 Advised',
-        'TT1 Given',
-        'TT2 Advised',
-        'TT2 Given',
-      ];
-      
-      postPartumStatusOptions.value = [
-        'Normal Recovery',
-        'Complications Present',
-        'Referred for Higher Care',
-        'Follow-up Required'
-      ];
-      
-      // Add fallback for delivery modes with IDs
-      deliveryModeOptionsWithIds.value = [
-        {'id': 1, 'name': 'Normal Delivery (Live Birth)'},
-        {'id': 2, 'name': 'Maternal Death'},
-        {'id': 3, 'name': 'Still Birth'},
-        {'id': 4, 'name': 'Neonatal Death (within 28 days)'},
-        {'id': 5, 'name': 'Intra Uterine Death'},
-        {'id': 6, 'name': 'Abortion'}
-      ];
     }
   }
 
@@ -603,27 +315,14 @@ class OpdController extends GetxController {
       if (diseases.isEmpty) {
         // Check if api_diseases table exists and has data
         final apiDiseases = await db.getApiDiseases();
-        if (apiDiseases.isNotEmpty) {
-          // Convert API diseases to local format
-          diseases.value = apiDiseases.map((d) => 
+        diseases.value = apiDiseases.map((d) =>
             DiseaseModel(
-              id: d['id'], 
-              name: d['name'], 
-              version: d['version'] ?? 1
+                id: d['id'],
+                name: d['name'],
+                color: d['color'],
+                version: d['version'] ?? 1
             )
-          ).toList();
-        } else {
-          // Fallback data
-          diseases.value = [
-            DiseaseModel(id: 1, name: 'Common Cold', version: 1),
-            DiseaseModel(id: 2, name: 'Pneumonia', version: 1),
-            DiseaseModel(id: 3, name: 'Asthma', version: 1),
-            DiseaseModel(id: 4, name: 'Hypertension', version: 1),
-            DiseaseModel(id: 5, name: 'Diabetes', version: 1),
-            DiseaseModel(id: 6, name: 'Malaria', version: 1),
-            DiseaseModel(id: 7, name: 'Typhoid', version: 1),
-          ];
-        }
+        ).toList();
       }
       
       // Load subdiseases
@@ -633,66 +332,18 @@ class OpdController extends GetxController {
       }
       
       // Group subdiseases by their parent disease
-      Map<String, List<SubDiseaseModel>> grouped = {};
+      Map<DiseaseModel, List<SubDiseaseModel>> grouped = {};
       for (var disease in diseases) {
         // Create an entry for each disease with its subdiseases
-        grouped[disease.name] = subdiseases
+        grouped[disease] = subdiseases
             .where((sd) => sd.disease_id == disease.id)
             .toList();
-      }
-      
-      // If there are any orphaned subdiseases, add them to "Other Diseases"
-      var orphanedSubdiseases = subdiseases
-          .where((sd) => !diseases.any((d) => d.id == sd.disease_id))
-          .toList();
-      
-      if (orphanedSubdiseases.isNotEmpty) {
-        grouped["Other Diseases"] = orphanedSubdiseases;
-      }
-      
-      // If we have no categories with subdiseases, create a default structure
-      if (grouped.isEmpty) {
-        grouped = {
-          "Respiratory Diseases": [
-            SubDiseaseModel(id: 1, name: 'Common Cold', disease_id: 1, version: 1),
-            SubDiseaseModel(id: 2, name: 'Pneumonia', disease_id: 1, version: 1),
-            SubDiseaseModel(id: 3, name: 'Asthma', disease_id: 1, version: 1),
-          ],
-          "Cardiovascular Diseases": [
-            SubDiseaseModel(id: 4, name: 'Hypertension', disease_id: 2, version: 1),
-          ],
-          "Endocrine Diseases": [
-            SubDiseaseModel(id: 5, name: 'Diabetes', disease_id: 3, version: 1),
-          ],
-          "Infectious Diseases": [
-            SubDiseaseModel(id: 6, name: 'Malaria', disease_id: 4, version: 1),
-            SubDiseaseModel(id: 7, name: 'Typhoid', disease_id: 4, version: 1),
-          ],
-        };
       }
       
       // Assign the grouped map directly without casting
       diseasesByCategory.value = grouped;
     } catch (e) {
       print('Error loading diseases: $e');
-      // Provide fallback structure if there's an error
-      diseasesByCategory.value = {
-        "Respiratory Diseases": [
-          SubDiseaseModel(id: 1, name: 'Common Cold', disease_id: 1, version: 1),
-          SubDiseaseModel(id: 2, name: 'Pneumonia', disease_id: 1, version: 1),
-          SubDiseaseModel(id: 3, name: 'Asthma', disease_id: 1, version: 1),
-        ],
-        "Cardiovascular Diseases": [
-          SubDiseaseModel(id: 4, name: 'Hypertension', disease_id: 2, version: 1),
-        ],
-        "Endocrine Diseases": [
-          SubDiseaseModel(id: 5, name: 'Diabetes', disease_id: 3, version: 1),
-        ],
-        "Infectious Diseases": [
-          SubDiseaseModel(id: 6, name: 'Malaria', disease_id: 4, version: 1),
-          SubDiseaseModel(id: 7, name: 'Typhoid', disease_id: 4, version: 1),
-        ],
-      };
     }
   }
 

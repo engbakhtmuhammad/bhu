@@ -19,6 +19,7 @@ class ApiService {
   AppUserData? _lastDecryptedData; // Store the last decrypted data
 
   // Replace with your actual API base URL
+  //static const String baseUrl = 'http://192.168.100.27:5004/';
   static const String baseUrl = 'http://68.178.169.119:7899/';
 
   void initialize() {
@@ -207,32 +208,7 @@ class ApiService {
                   appUserData = AppUserData.fromJson(jsonData);
                 }
 
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> PARSED APP USER DATA: ${appUserData.token}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> RELATION TYPES COUNT: ${appUserData.relationTypes?.length ?? 0}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> GENDERS COUNT: ${appUserData.genders?.length ?? 0}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DISTRICTS COUNT: ${appUserData.districts?.length ?? 0}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> BLOOD GROUPS COUNT: ${appUserData.bloodGroups?.length ?? 0}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DELIVERY MODES COUNT: ${appUserData.deliveryModes?.length ?? 0}');
 
-                // Log all available fields in appUserData
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> APP USER DATA FIELDS:');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - userInfo: ${appUserData.userInfo != null}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - token: ${appUserData.token != null}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - bloodGroups: ${appUserData.bloodGroups != null}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - deliveryModes: ${appUserData.deliveryModes != null}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - deliveryTypes: ${appUserData.deliveryTypes != null}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - antenatalVisits: ${appUserData.antenatalVisits != null}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - districts: ${appUserData.districts != null}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - diseases: ${appUserData.diseases != null}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - medicines: ${appUserData.medicines != null}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - tTAdvisedList: ${appUserData.tTAdvisedList != null}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - pregnancyIndicators: ${appUserData.pregnancyIndicators != null}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - postPartumStatuses: ${appUserData.postPartumStatuses != null}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - medicineDosages: ${appUserData.medicineDosages != null}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - familyPlanning: ${appUserData.familyPlanning != null}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - relationTypes: ${appUserData.relationTypes != null}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - genders: ${appUserData.genders != null}');
-                debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> - patients: ${appUserData.patients != null}');
 
                 if (appUserData.relationTypes != null) {
                   debugPrint('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> RELATION TYPES FROM API:');
@@ -258,7 +234,7 @@ class ApiService {
                 // Create a LoginResponse with the token and reference data
                 final loginResponse = LoginResponse(
                   token: appUserData.token ?? '',
-                  bloodGroups: appUserData.bloodGroups?.map((bg) => api_models.BloodGroup(id: bg.id, name: bg.name)).toList() ?? [],
+                  // bloodGroups: appUserData.bloodGroups?.map((bg) => api_models.BloodGroup(id: bg.id, name: bg.name)).toList() ?? [],
                   deliveryTypes: appUserData.deliveryTypes?.map((dt) => api_models.DeliveryType(id: dt.id, name: dt.name)).toList() ?? [],
                   deliveryModes: appUserData.deliveryModes?.map((dm) => api_models.DeliveryMode(id: dm.id, name: dm.name)).toList() ?? [],
                   familyPlanningServices: appUserData.familyPlanning?.map((fp) => api_models.FamilyPlanningService(id: fp.id, name: fp.name)).toList() ?? [],
@@ -266,14 +242,15 @@ class ApiService {
                   tTAdvisedList: appUserData.tTAdvisedList?.map((tt) => api_models.TTAdvised(id: tt.id, name: tt.name)).toList() ?? [],
                   pregnancyIndicators: appUserData.pregnancyIndicators?.map((pi) => api_models.PregnancyIndicator(id: pi.id, name: pi.name)).toList() ?? [],
                   postPartumStatuses: appUserData.postPartumStatuses?.map((pps) => api_models.PostPartumStatus(id: pps.id, name: pps.name)).toList() ?? [],
-                  medicineDosages: appUserData.medicineDosages?.map((md) => api_models.MedicineDosage(id: md.id, name: md.name)).toList() ?? [],
-                  districts: appUserData.districts?.map((d) => api_models.District(id: d.id ?? 0, name: d.name ?? '', version: 1)).toList() ?? [],
+                  // medicineDosages: appUserData.medicineDosages?.map((md) => api_models.MedicineDosage(id: md.id, name: md.name)).toList() ?? [],
+                  // districts: appUserData.districts?.map((d) => api_models.District(id: d.id ?? 0, name: d.name ?? '', version: 1)).toList() ?? [],
                   relationTypes: appUserData.relationTypes?.map((rt) => api_models.RelationType(id: rt.id, name: rt.name)).toList() ?? [],
                   genders: appUserData.genders?.map((g) => api_models.Gender(id: g.id, name: g.name)).toList() ?? [],
                   patients: appUserData.patients?.map((p) => api_models.ApiPatient.fromJson(p)).toList() ?? [], // Convert patients data
                   diseases: appUserData.diseases?.map((d) => api_models.Disease(
                     id: d.id ?? 0, 
-                    name: d.name ?? '', 
+                    name: d.name ?? '',
+                    color: d.color ?? '',
                     version: d.category != null ? 1 : 0
                   )).toList() ?? [],
                   subDiseases: appUserData.subDiseases?.map((sd) => api_models.SubDisease(

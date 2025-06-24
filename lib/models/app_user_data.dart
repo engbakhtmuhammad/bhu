@@ -2,19 +2,15 @@
 class AppUserData {
   final UserInfo? userInfo;
   final String? token;
-  final List<District>? districts;
-  final List<HealthFacility>? healthFacilities;
   final List<Disease>? diseases;
   final List<SubDisease>? subDiseases;
   final List<Medicine>? medicines;
-  final List<BloodGroup>? bloodGroups;
   final List<DeliveryType>? deliveryTypes;
   final List<DeliveryMode>? deliveryModes;
   final List<AntenatalVisit>? antenatalVisits;
   final List<TTAdvised>? tTAdvisedList;
   final List<PregnancyIndicator>? pregnancyIndicators;
   final List<PostPartumStatus>? postPartumStatuses;
-  final List<MedicineDosage>? medicineDosages;
   final List<FamilyPlanningService>? familyPlanning;
   final List<RelationType>? relationTypes; // Add relation types
   final List<Gender>? genders; // Add genders field
@@ -23,19 +19,15 @@ class AppUserData {
   AppUserData({
     this.userInfo,
     this.token,
-    this.districts,
-    this.healthFacilities,
     this.diseases,
     this.subDiseases,
     this.medicines,
-    this.bloodGroups,
     this.deliveryTypes,
     this.deliveryModes,
     this.antenatalVisits,
     this.tTAdvisedList,
     this.pregnancyIndicators,
     this.postPartumStatuses,
-    this.medicineDosages,
     this.familyPlanning,
     this.relationTypes, // Include relation types in constructor
     this.genders, // Include genders in constructor
@@ -43,83 +35,62 @@ class AppUserData {
   });
 
   factory AppUserData.fromJson(Map<String, dynamic> json) {
-    return AppUserData(
+    var returnData = AppUserData(
       userInfo:
-          json['userInfo'] != null ? UserInfo.fromJson(json['userInfo']) : null,
+      json['userInfo'] != null ? UserInfo.fromJson(json['userInfo']) : null,
       token: json['token'],
-      districts: json['districts'] != null
-          ? List<District>.from(
-              json['districts'].map((x) => District.fromJson(x)))
-          : null,
-      healthFacilities: json['healthFacilities'] != null
-          ? List<HealthFacility>.from(
-              json['healthFacilities'].map((x) => HealthFacility.fromJson(x)))
-          : null,
       diseases: json['diseases'] != null
           ? List<Disease>.from(json['diseases'].map((x) => Disease.fromJson(x)))
           : null,
       subDiseases: json['subDiseases'] != null
           ? List<SubDisease>.from(
-              json['subDiseases'].map((x) => SubDisease.fromJson(x)))
+          json['subDiseases'].map((x) => SubDisease.fromJson(x)))
           : null,
       medicines: json['medicines'] != null
           ? List<Medicine>.from(
-              json['medicines'].map((x) => Medicine.fromJson(x)))
-          : null,
-      bloodGroups: json['bloodGroups'] != null
-          ? List<BloodGroup>.from(
-              json['bloodGroups'].map((x) => BloodGroup.fromJson(x)))
+          json['medicines'].map((x) => Medicine.fromJson(x)))
           : null,
       deliveryTypes: json['deliveryTypes'] != null
           ? List<DeliveryType>.from(
-              json['deliveryTypes'].map((x) => DeliveryType.fromJson(x)))
+          json['deliveryTypes'].map((x) => DeliveryType.fromJson(x)))
           : null,
       deliveryModes: json['deliveryModes'] != null
           ? List<DeliveryMode>.from(
-              json['deliveryModes'].map((x) => DeliveryMode.fromJson(x)))
+          json['deliveryModes'].map((x) => DeliveryMode.fromJson(x)))
           : null,
       antenatalVisits: json['antenatalVisits'] != null
           ? List<AntenatalVisit>.from(
-              json['antenatalVisits'].map((x) => AntenatalVisit.fromJson(x)))
+          json['antenatalVisits'].map((x) => AntenatalVisit.fromJson(x)))
           : null,
       tTAdvisedList: json['tTAdvisedList'] != null
           ? List<TTAdvised>.from(
-              json['tTAdvisedList'].map((x) => TTAdvised.fromJson(x)))
+          json['tTAdvisedList'].map((x) => TTAdvised.fromJson(x)))
           : null,
       pregnancyIndicators: json['pregnancyIndicators'] != null
           ? List<PregnancyIndicator>.from(json['pregnancyIndicators']
-              .map((x) => PregnancyIndicator.fromJson(x)))
+          .map((x) => PregnancyIndicator.fromJson(x)))
           : null,
       postPartumStatuses: json['postPartumStatuses'] != null
           ? List<PostPartumStatus>.from(json['postPartumStatuses']
-              .map((x) => PostPartumStatus.fromJson(x)))
-          : null,
-      medicineDosages: json['medicineDosages'] != null
-          ? List<MedicineDosage>.from(
-              json['medicineDosages'].map((x) => MedicineDosage.fromJson(x)))
+          .map((x) => PostPartumStatus.fromJson(x)))
           : null,
       familyPlanning: json['familyPlanning'] != null
           ? List<FamilyPlanningService>.from(json['familyPlanning']
-              .map((x) => FamilyPlanningService.fromJson(x)))
+          .map((x) => FamilyPlanningService.fromJson(x)))
           : null,
-      relationTypes: json['relationTypes'] != null
+      relationTypes: json['relationType'] != null
           ? List<RelationType>.from(
-              json['relationTypes'].map((x) => RelationType.fromJson(x)))
-          : json['relationType'] != null
-          ? List<RelationType>.from(
-              json['relationType'].map((x) => RelationType.fromJson(x)))
+          json['relationType'].map((x) => RelationType.fromJson(x)))
           : null,
-      genders: json['genders'] != null
+      genders: json['gender'] != null
           ? List<Gender>.from(
-              json['genders'].map((x) => Gender.fromJson(x)))
-          : json['gender'] != null
-          ? List<Gender>.from(
-              json['gender'].map((x) => Gender.fromJson(x)))
+          json['gender'].map((x) => Gender.fromJson(x)))
           : null,
       patients: json['patients'] != null
           ? List<dynamic>.from(json['patients'])
           : null,
     );
+    return returnData;
   }
 }
 
@@ -195,14 +166,16 @@ class District {
 class Disease {
   final int? id;
   final String? name;
+  final String? color;
   final String? category;
 
-  Disease({this.id, this.name, this.category});
+  Disease({this.id, this.name, this.color, this.category});
 
   factory Disease.fromJson(Map<String, dynamic> json) {
     return Disease(
       id: json['id'],
       name: json['name'],
+      color: json['color'],
       category: json['category'],
     );
   }
@@ -211,6 +184,7 @@ class Disease {
     return {
       'id': id,
       'name': name,
+      'color': color,
       'category': category,
     };
   }

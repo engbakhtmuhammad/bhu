@@ -9,10 +9,11 @@ import '../../widgets/custom_btn.dart';
 
 class PrescriptionForm extends StatefulWidget {
   final String? opdTicketNo;
-  
-  PrescriptionForm({this.opdTicketNo});
+
+  const PrescriptionForm({super.key, this.opdTicketNo});
 
   @override
+  // ignore: library_private_types_in_public_api
   _PrescriptionFormState createState() => _PrescriptionFormState();
 }
 
@@ -21,7 +22,7 @@ class _PrescriptionFormState extends State<PrescriptionForm> {
   final drugNameCtrl = TextEditingController();
   final dosageCtrl = TextEditingController();
   final durationCtrl = TextEditingController();
-  
+
   String? selectedDrug;
 
   @override
@@ -51,15 +52,16 @@ class _PrescriptionFormState extends State<PrescriptionForm> {
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Obx(() => DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        value: controller.selectedOpdTicket.value.isEmpty 
-                            ? null 
+                        value: controller.selectedOpdTicket.value.isEmpty
+                            ? null
                             : controller.selectedOpdTicket.value,
                         hint: Text("Select OPD Visit"),
                         isExpanded: true,
                         items: controller.opdVisits
                             .map((visit) => DropdownMenuItem(
                                   value: visit.opdTicketNo,
-                                  child: Text("${visit.opdTicketNo} - ${visit.patientId}"),
+                                  child: Text(
+                                      "${visit.opdTicketNo} - ${visit.patientId}"),
                                 ))
                             .toList(),
                         onChanged: (val) {
@@ -72,7 +74,6 @@ class _PrescriptionFormState extends State<PrescriptionForm> {
                     )),
               ),
             ),
-
             _label("DRUG NAME"),
             Container(
               decoration: BoxDecoration(
@@ -104,7 +105,6 @@ class _PrescriptionFormState extends State<PrescriptionForm> {
                 ),
               ),
             ),
-            
             const SizedBox(height: 10),
             InputField(
               hintText: "Or enter custom drug name",
@@ -115,60 +115,26 @@ class _PrescriptionFormState extends State<PrescriptionForm> {
                 });
               },
             ),
-
-            _label("DOSAGE/NO. OF ITEMS PROVIDED"),
-            Container(
-              decoration: BoxDecoration(
-                color: greyColor,
-                borderRadius: BorderRadius.circular(containerRoundCorner),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: dosageCtrl.text.isEmpty ? null : dosageCtrl.text,
-                    hint: Text("Select Dosage"),
-                    isExpanded: true,
-                    items: controller.medicineDosages
-                        .map((dosage) => DropdownMenuItem(
-                              value: dosage,
-                              child: Text(dosage),
-                            ))
-                        .toList(),
-                    onChanged: (val) {
-                      setState(() {
-                        dosageCtrl.text = val ?? '';
-                      });
-                    },
-                    dropdownColor: Colors.white,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                ),
-              ),
-            ),
-
             const SizedBox(height: 10),
             InputField(
               hintText: "Or enter custom dosage",
               controller: dosageCtrl,
             ),
-
             _label("DURATION OF MEDICATION"),
             InputField(
               hintText: "e.g., 7 days, 2 weeks",
               controller: durationCtrl,
             ),
-
             const SizedBox(height: 20),
             CustomBtn(
               icon: IconlyLight.plus,
-              text: "Add Prescription",
+              text: "Add Medicine",
               onPressed: () async {
                 if (controller.selectedOpdTicket.value.isEmpty) {
                   Get.snackbar("Error", "Please select an OPD visit");
                   return;
                 }
-                
+
                 if (drugNameCtrl.text.trim().isEmpty) {
                   Get.snackbar("Error", "Please enter drug name");
                   return;
@@ -189,7 +155,6 @@ class _PrescriptionFormState extends State<PrescriptionForm> {
                 });
               },
             ),
-
             const SizedBox(height: 30),
             _label("PRESCRIPTIONS FOR SELECTED VISIT"),
             Obx(() {
@@ -241,8 +206,9 @@ class _PrescriptionFormState extends State<PrescriptionForm> {
                           ),
                         ),
                         IconButton(
-                          onPressed: prescription.id != null 
-                              ? () => controller.deletePrescription(prescription.id!) 
+                          onPressed: prescription.id != null
+                              ? () => controller
+                                  .deletePrescription(prescription.id!)
                               : null,
                           icon: Icon(Icons.delete, color: Colors.red),
                         ),

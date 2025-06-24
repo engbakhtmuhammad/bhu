@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter_iconly/flutter_iconly.dart';
 import '../../controller/patient_controller.dart';
@@ -25,119 +27,134 @@ class PatientRegistrationForm extends StatelessWidget {
   final gender = ''.obs;
   final selectedGender = Rx<Map<String, dynamic>?>(null);
   final genders = <Map<String, dynamic>>[].obs;
-  final bloodGroup = ''.obs;
+
   final age = 0.obs;
-  final bloodGroups = <Map<String, dynamic>>[].obs;
-  final ages = <Map<String, dynamic>>[].obs;
-  final immunized = false.obs;
   final relationType = 'own'.obs;
   final selectedRelationType = Rx<Map<String, dynamic>?>(null);
   final relationTypes = <Map<String, dynamic>>[].obs;
   final yearOfBirth = Rx<int?>(null);
-  
-  PatientRegistrationForm() {
-    _loadBloodGroups();
+
+  final ageCtrl = TextEditingController();
+
+  // Error messages observable
+  final relationTypeError = RxString('');
+  final genderError = RxString('');
+  final nameError = RxString('');
+  final cnicError = RxString('');
+  final contactError = RxString('');
+
+  PatientRegistrationForm({super.key}) {
     _loadGenders();
     _loadRelationTypes();
-  }
-  
-  Future<void> _loadBloodGroups() async {
-    try {
-      final groups = await db.getBloodGroups();
-      if (groups.isNotEmpty) {
-        bloodGroups.value = groups;
-      } else {
-        // Fallback to default blood groups
-        bloodGroups.value = [
-          {'id': 1, 'name': 'A+'},
-          {'id': 2, 'name': 'A-'},
-          {'id': 3, 'name': 'B+'},
-          {'id': 4, 'name': 'B-'},
-          {'id': 5, 'name': 'AB+'},
-          {'id': 6, 'name': 'AB-'},
-          {'id': 7, 'name': 'O+'},
-          {'id': 8, 'name': 'O-'},
-        ];
-      }
-    } catch (e) {
-      // Fallback to default blood groups
-      bloodGroups.value = [
-        {'id': 1, 'name': 'A+'},
-        {'id': 2, 'name': 'A-'},
-        {'id': 3, 'name': 'B+'},
-        {'id': 4, 'name': 'B-'},
-        {'id': 5, 'name': 'AB+'},
-        {'id': 6, 'name': 'AB-'},
-        {'id': 7, 'name': 'O+'},
-        {'id': 8, 'name': 'O-'},
-      ];
-    }
-   ages.value = [
-  {'id': 1, 'name': 'Child (0-12)'},
-  {'id': 2, 'name': 'Teenager (13-19)'},
-  {'id': 3, 'name': 'Adult (20-59)'},
-  {'id': 4, 'name': 'Senior (60+)'},
-];
-
   }
 
   Future<void> _loadGenders() async {
     try {
-      final genderList = await db.getGenders();
-      if (genderList.isNotEmpty) {
-        genders.value = genderList;
-      } else {
-        // Fallback to default genders
-        genders.value = [
-          {'id': 1, 'name': 'Male'},
-          {'id': 2, 'name': 'Female'}
-        ];
-      }
+      final genderList = await db.getApiGenders();
+      genders.value = genderList.isNotEmpty
+          ? genderList
+          : [];
+      final relationTypeList = await db.getRelationTypes();
+      relationTypes.value = relationTypeList.isNotEmpty
+          ? relationTypeList
+          : [];
     } catch (e) {
-      // Fallback to default genders
-      genders.value = [
-        {'id': 1, 'name': 'Male'},
-        {'id': 2, 'name': 'Female'}
-      ];
+      if (kDebugMode) {
+        print(e);
+      }
     }
   }
 
   Future<void> _loadRelationTypes() async {
     try {
-      final relationTypeList = await db.getRelationTypes();
-      if (relationTypeList.isNotEmpty) {
-        relationTypes.value = relationTypeList;
-        // Set default selection to first item (Own)
-        selectedRelationType.value = relationTypeList.first;
-        relationType.value = relationTypeList.first['name'].toString().toLowerCase();
-      } else {
-        // Fallback to default relation types
-        relationTypes.value = [
-          {'id': 1, 'name': 'Own'},
-          {'id': 2, 'name': 'Father'},
-          {'id': 3, 'name': 'Mother'},
-          {'id': 4, 'name': 'Husband'},
-        ];
-        selectedRelationType.value = relationTypes.first;
-        relationType.value = 'Own';
-      }
+
     } catch (e) {
-      // Fallback to default relation types
       relationTypes.value = [
         {'id': 1, 'name': 'Own'},
         {'id': 2, 'name': 'Father'},
         {'id': 3, 'name': 'Mother'},
         {'id': 4, 'name': 'Husband'},
       ];
-      selectedRelationType.value = relationTypes.first;
-      relationType.value = 'Own';
     }
+    selectedRelationType.value = relationTypes.first;
+    relationType.value = relationTypes.first['name'].toString().toLowerCase();
+  }
+
+  void _validateName(String value) {
+    if (value.isEmpty) {
+      nameError.value = 'Please enter full name';
+    } else {
+      nameError.value = '';
+    }
+  }
+
+  void _validateCNIC(String value) {
+    if (value.isEmpty) {
+      cnicError.value = 'Please enter your CNIC';
+    } else if (value.length != 13) {
+      cnicError.value = 'CNIC must be exactly 13 digits';
+    } else if (!RegExp(r'^\d{13}$').hasMatch(value)) {
+      cnicError.value = 'CNIC must contain only digits';
+    } else {
+      cnicError.value = '';
+    }
+  }
+
+  void _validateContact(String value) {
+    String digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
+    if (value.isEmpty) {
+      contactError.value = 'Please enter contact number';
+    } else if (digitsOnly.length < 11) {
+      contactError.value = 'Contact number must be at least 11 digits';
+    } else if (digitsOnly.length > 13) {
+      contactError.value = 'Contact number is too long';
+    } else if (!RegExp(r'^(03|923)').hasMatch(digitsOnly)) {
+      contactError.value = 'Please enter a valid Pakistani mobile number';
+    } else {
+      contactError.value = '';
+    }
+  }
+
+  bool _validateForm() {
+    _validateName(nameCtrl.text);
+    _validateCNIC(cnicCtrl.text);
+    _validateContact(contactCtrl.text);
+
+    // Validate relation type
+    if (selectedRelationType.value == null) {
+      relationTypeError.value = 'Please select relation type';
+    } else {
+      relationTypeError.value = '';
+    }
+
+    // Validate gender
+    if (selectedGender.value == null) {
+      genderError.value = 'Please select gender';
+    } else {
+      genderError.value = '';
+    }
+
+    return nameError.value.isEmpty &&
+        cnicError.value.isEmpty &&
+        contactError.value.isEmpty &&
+        relationTypeError.value.isEmpty &&
+        genderError.value.isEmpty;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: whiteColor,
+      appBar: AppBar(
+        leading: IconButton.filledTonal(
+          style: IconButton.styleFrom(backgroundColor: greyColor),
+          onPressed: () => Get.back(),
+          icon: const Icon(IconlyLight.arrowLeft2),
+        ),
+        backgroundColor: whiteColor,
+        title: const Text("Register Patient"),
+        actions: [],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Form(
@@ -148,328 +165,256 @@ class PatientRegistrationForm extends StatelessWidget {
               InputField(
                 hintText: "Full Name",
                 controller: nameCtrl,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter full name';
-                  }
-                  return null;
-                },
+                onChanged: _validateName,
               ),
+              Obx(() => nameError.value.isNotEmpty
+                  ? _errorText(nameError.value)
+                  : const SizedBox.shrink()),
+              const SizedBox(height: 15),
+
               _label("CNIC"),
               InputField(
-                hintText: "e.g. 1234567890123",
+                hintText: "Enter your CNIC (e.g., 3520112345678)",
                 controller: cnicCtrl,
                 inputType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter CNIC';
-                  }
-                  if (value.length != 13) {
-                    return 'CNIC must be exactly 13 digits';
-                  }
-                  if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                    return 'CNIC must contain only numbers';
-                  }
-                  return null;
-                },
+                onChanged: _validateCNIC,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(13),
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
               ),
+              Obx(() => cnicError.value.isNotEmpty
+                  ? _errorText(cnicError.value)
+                  : const SizedBox.shrink()),
+              const SizedBox(height: 15),
+
               _label("RELATION TYPE"),
               DropDownWidget(child: Obx(() {
-                // Create unique instances for this dropdown
-                final relationTypeOptions = relationTypes.map((relationType) {
-                  return Map<String, dynamic>.from(relationType);
-                }).toList();
+                final relationTypeOptions =
+                relationTypes.map((e) => Map<String, dynamic>.from(e)).toList();
 
-                // Find matching value
                 Map<String, dynamic>? selectedValue;
                 if (selectedRelationType.value != null) {
-                  final selectedId = selectedRelationType.value!['id'];
-                  for (var item in relationTypeOptions) {
-                    if (item['id'] == selectedId) {
-                      selectedValue = item;
-                      break;
-                    }
+                  try {
+                    selectedValue = relationTypeOptions.firstWhere(
+                            (element) => element['id'] == selectedRelationType.value!['id']);
+                  } catch (_) {
+                    selectedValue = null;
                   }
                 }
 
-                return DropdownButtonHideUnderline(
-                  child: DropdownButton<Map<String, dynamic>>(
-                    value: selectedValue,
-                    hint: Text("Select Relation Type"),
-                    items: relationTypeOptions.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final relationType = entry.value;
-                      return DropdownMenuItem<Map<String, dynamic>>(
-                        key: ValueKey("patient_relation_${relationType['id']}_$index"),
-                        value: relationType,
-                        child: Text(relationType['name']),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        selectedRelationType.value = val;
-                        relationType.value = val['name'].toString().toLowerCase();
-                      }
-                    },
-                    dropdownColor: Colors.white,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<Map<String, dynamic>>(
+                        value: selectedValue,
+                        hint: const Text("Select Relation Type"),
+                        isExpanded: true,
+                        items: relationTypeOptions.map((relationType) {
+                          return DropdownMenuItem<Map<String, dynamic>>(
+                            value: relationType,
+                            child: Text(relationType['name']),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            selectedRelationType.value = val;
+                            relationType.value = val['name'].toString().toLowerCase();
+                            relationTypeError.value = '';
+                          }
+                        },
+                      ),
+                    ),
+                    Obx(() => relationTypeError.value.isNotEmpty
+                        ? _errorText(relationTypeError.value)
+                        : const SizedBox.shrink()),
+                  ],
                 );
               })),
+              const SizedBox(height: 15),
+
               _label("CONTACT"),
               InputField(
                 hintText: "+923001234567",
                 controller: contactCtrl,
                 inputType: TextInputType.phone,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter contact number';
-                  }
-                  // Remove any non-digit characters for validation
-                  String digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
+                onChanged: _validateContact,
+              ),
+              Obx(() => contactError.value.isNotEmpty
+                  ? _errorText(contactError.value)
+                  : const SizedBox.shrink()),
+              const SizedBox(height: 15),
 
-                  // Check if it's a valid Pakistani mobile number
-                  if (digitsOnly.length < 11) {
-                    return 'Contact number must be at least 11 digits';
-                  }
-                  if (digitsOnly.length > 13) {
-                    return 'Contact number is too long';
-                  }
-                  // Check if it starts with valid Pakistani mobile prefixes
-                  if (!RegExp(r'^(03|923)').hasMatch(digitsOnly)) {
-                    return 'Please enter a valid Pakistani mobile number';
-                  }
-                  return null;
-                },
-              ),
-              _label("ADDRESS"),
-              InputField(
-                hintText: "Your address",
-                controller: addressCtrl,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter address';
-                  }
-                  return null;
-                },
-              ),
               _label("GENDER"),
               DropDownWidget(child: Obx(() {
-                // Create unique instances for this dropdown
-                final genderOptions = genders.map((gender) {
-                  return Map<String, dynamic>.from(gender);
-                }).toList();
-
-                // Find matching value
+                final genderOptions = genders.map((e) => Map<String, dynamic>.from(e)).toList();
                 Map<String, dynamic>? selectedValue;
                 if (selectedGender.value != null) {
-                  final selectedId = selectedGender.value!['id'];
-                  for (var item in genderOptions) {
-                    if (item['id'] == selectedId) {
-                      selectedValue = item;
-                      break;
-                    }
+                  try {
+                    selectedValue = genderOptions.firstWhere(
+                            (element) => element['id'] == selectedGender.value!['id']);
+                  } catch (_) {
+                    selectedValue = null;
                   }
                 }
 
-                return DropdownButtonHideUnderline(
-                  child: DropdownButton<Map<String, dynamic>>(
-                    value: selectedValue,
-                    hint: Text("Select Gender"),
-                    items: genderOptions.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final gender = entry.value;
-                      return DropdownMenuItem<Map<String, dynamic>>(
-                        key: ValueKey("patient_gender_${gender['id']}_$index"),
-                        value: gender,
-                        child: Text(gender['name']),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        selectedGender.value = val;
-                        gender.value = val['name'];
-                      }
-                    },
-                    dropdownColor: Colors.white,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<Map<String, dynamic>>(
+                        value: selectedValue,
+                        hint: const Text("Select Gender"),
+                        isExpanded: true,
+                        items: genderOptions.map((gender) {
+                          return DropdownMenuItem<Map<String, dynamic>>(
+                            value: gender,
+                            child: Text(gender['name']),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            selectedGender.value = val;
+                            gender.value = val['name'];
+                            genderError.value = '';
+                          }
+                        },
+                      ),
+                    ),
+                    Obx(() => genderError.value.isNotEmpty
+                        ? _errorText(genderError.value)
+                        : const SizedBox.shrink()),
+                  ],
                 );
               })),
-              // _label("BLOOD GROUP"),
-              // DropDownWidget(
-              //   child: Obx(() => DropdownButtonHideUnderline(
-              //         child: DropdownButton<String>(
-              //           value:
-              //               bloodGroup.value == '' ? null : bloodGroup.value,
-              //           hint: Text("Select Blood Group"),
-              //           items: bloodGroups
-              //               .map((e) =>
-              //                   DropdownMenuItem<String>(value: e['name'] as String, child: Text(e['name'] as String)))
-              //               .toList(),
-              //           onChanged: (val) => bloodGroup.value = val!,
-              //           dropdownColor: Colors.white,
-              //           borderRadius: BorderRadius.circular(8.0),
-              //         ),
-              //       )),
-              // ),
-               _label("YEAR OF BIRTH"),
-              GestureDetector(
-                onTap: () async {
-                  final DateTime? picked = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime(DateTime.now().year - 20),
-                    firstDate: DateTime(1900),
-                    lastDate: DateTime.now(),
-                    initialDatePickerMode: DatePickerMode.year,
-                    builder: (context, child) {
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: ColorScheme.light(
-                            primary: primaryColor,
-                            onPrimary: whiteColor,
-                            surface: whiteColor,
-                          ),
-                        ),
-                        child: child!,
-                      );
-                    },
-                  );
-                  if (picked != null) {
-                    yearOfBirth.value = picked.year;
-                    // Calculate age from year of birth
-                    age.value = DateTime.now().year - picked.year;
-                    // Set age group based on calculated age
-                    // if (age <= 12) {
-                    //   age.value = 'Child (0-12)';
-                    // } else if (age <= 19) {
-                    //   age.value = 'Teenager (13-19)';
-                    // } else if (age <= 59) {
-                    //   age.value = 'Adult (20-59)';
-                    // } else {
-                    //   age.value = 'Senior (60+)';
-                    // }
+              const SizedBox(height: 15),
+
+              _label("AGE"),
+              InputField(
+                hintText: "Enter Age (Optional if Year selected)",
+                controller: ageCtrl,
+                inputType: TextInputType.number,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(3),
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
+                onChanged: (value) {
+                  int? enteredAge = int.tryParse(value);
+                  if (enteredAge != null && enteredAge > 0 && enteredAge < 150) {
+                    age.value = enteredAge;
+                    yearOfBirth.value = DateTime.now().year - enteredAge;
+                  } else {
+                    age.value = 0;
                   }
                 },
-                child: Container(
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: greyColor,
-                    borderRadius: BorderRadius.circular(containerRoundCorner),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(IconlyLight.calendar),
-                      SizedBox(width: 10),
-                      Obx(() => Text(
-                        yearOfBirth.value != null
-                            ? "${yearOfBirth.value}"
-                            : "Select Year of Birth",
-                      )),
-                    ],
-                  ),
-                ),
               ),
-              // _label("IMMUNIZED"),
-              // Obx(() => SwitchListTile(
-              //       value: immunized.value,
-              //       onChanged: (val) => immunized.value = val,
-              //       title: Text("Immunized?"),
-              //     )),
-              // _label("MEDICAL HISTORY"),
-              // InputField(
-              //     hintText: "Chronic illnesses, allergies",
-              //     controller: historyCtrl),
-              const SizedBox(height: 20),
+              const SizedBox(height: 15),
+
+              _label("YEAR OF BIRTH"),
+              Obx(() {
+                List<int> years = List.generate(150, (index) => DateTime.now().year - index);
+                return DropDownWidget(
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: yearOfBirth.value,
+                      isExpanded: true,
+                      hint: const Text("Select Year"),
+                      items: years.map((year) {
+                        return DropdownMenuItem<int>(
+                          value: year,
+                          child: Text(year.toString()),
+                        );
+                      }).toList(),
+                      onChanged: (selectedYear) {
+                        if (selectedYear != null) {
+                          yearOfBirth.value = selectedYear;
+                          int calculatedAge = DateTime.now().year - selectedYear;
+                          age.value = calculatedAge;
+                          ageCtrl.text = calculatedAge.toString();
+                        }
+                      },
+                    ),
+                  ),
+                );
+              }),
+              const SizedBox(height: 25),
+
               CustomBtn(
                 icon: IconlyLight.addUser,
                 text: "Save Patient",
                 onPressed: () async {
-                  // Validate form before saving
-                  if (!_formKey.currentState!.validate()) {
+                  if (!_validateForm()) {
                     return;
                   }
 
-                  // Check if required fields are selected
-                  if (gender.value.isEmpty) {
-                    Get.snackbar("Error", "Please select gender");
-                    return;
-                  }
-                  if (age.value <= 0) {
-                    Get.snackbar("Error", "Please select age");
-                    return;
-                  }
-                  if (!_formKey.currentState!.validate()) {
-                    return;
-                  }
-                  
-                  // Use CNIC as patient ID without concatenating relation type
-                  String id = cnicCtrl.text.trim();
-                  
-                  // Get blood group ID - use selected or default to A+ (ID: 1)
-                  final selectedBg = bloodGroup.value.isNotEmpty
-                    ? bloodGroups.firstWhere(
-                        (bg) => bg['name'] == bloodGroup.value,
-                        orElse: () => {'id': 1, 'name': 'A+'},
-                      )
-                    : {'id': 1, 'name': 'A+'}; // Default blood group
-                  
-                  // Get relation type ID from selected relation type
-                  int relationTypeId = selectedRelationType.value?['id'] ?? 1; // Default to Own (ID: 1)
-                  
-                  // Get gender ID from selected gender
-                  int genderId = selectedGender.value?['id'] ?? 1; // Default to Male (ID: 1)
-                  
-                  // Determine father/husband name based on relation type
-                  String fatherName = '';
-                  String? husbandName;
-                  
-                  if (relationType.value == 'father') {
-                    fatherName = nameCtrl.text.trim();
-                  } else if (relationType.value == 'husband') {
-                    husbandName = nameCtrl.text.trim();
-                  }
-                  
+                  int relationTypeId = selectedRelationType.value?['id'] ?? 1;
+                  int genderId = selectedGender.value?['id'] ?? 1;
+
                   final patient = PatientModel(
-                    patientId: id,
+                    patientId: cnicCtrl.text.trim(),
                     fullName: nameCtrl.text.trim(),
-                    fatherName: fatherName,
-                    husbandName: husbandName,
-                    age: age.value,
                     relationType: relationTypeId,
-                    gender: genderId.toString(), // Pass the gender ID
+                    gender: genderId.toString(),
                     cnic: cnicCtrl.text.trim(),
                     contact: contactCtrl.text.trim(),
-                    emergencyContact: contactCtrl.text.trim(),
-                    address: addressCtrl.text.trim(),
-                    bloodGroup: selectedBg['id'],
-                    medicalHistory: historyCtrl.text.trim(),
-                    immunized: immunized.value,
+                    age: age.value,
+                    fatherName: '',
                   );
-                  await controller.savePatient(patient);
-                  
-                  // Refresh OPD controller's patient list
-                  if (Get.isRegistered<OpdController>()) {
-                    final opdController = Get.find<OpdController>();
-                    await opdController.refreshPatients();
+
+                  try {
+                    await controller.savePatient(patient);
+                    if (Get.isRegistered<OpdController>()) {
+                      await Get.find<OpdController>().refreshPatients();
+                    }
+                    Get.snackbar("Success", "Patient saved successfully");
+                    _resetForm();
+                  } catch (e) {
+                    Get.snackbar("Error", "Failed to save patient: ${e.toString()}");
                   }
-                  
-                  Get.snackbar("Success", "Patient saved with ID: $id");
                 },
               )
             ],
           ),
-    )));
-  }
-
-  Widget _label(String text) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(text, style: subTitleTextStyle(color: Colors.black, size: 15)),
-        const SizedBox(height: 5),
-      ],
+        ),
+      ),
     );
   }
-}
 
+  void _resetForm() {
+    nameCtrl.clear();
+    cnicCtrl.clear();
+    contactCtrl.clear();
+    addressCtrl.clear();
+    historyCtrl.clear();
+    ageCtrl.clear();
+    gender.value = '';
+    selectedGender.value = null;
+    age.value = 0;
+    yearOfBirth.value = null;
+    relationType.value = 'own';
+    relationTypeError.value = '';
+    genderError.value = '';
+    nameError.value = '';
+    cnicError.value = '';
+    contactError.value = '';
+    if (relationTypes.isNotEmpty) selectedRelationType.value = relationTypes.first;
+    _formKey.currentState?.reset();
+  }
+
+  Widget _label(String text) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(text, style: subTitleTextStyle(color: Colors.black, size: 15)),
+      const SizedBox(height: 5),
+    ],
+  );
+
+  Widget _errorText(String text) => Padding(
+    padding: const EdgeInsets.only(top: 4.0),
+    child: Text(
+      text,
+      style: const TextStyle(color: Colors.red, fontSize: 12),
+    ),
+  );
+}

@@ -1,0 +1,2 @@
+C:/Users/moham/Videos/Projects/PPHI SOFTWARE/App_Front_End/bhu/android/app/.cxx/RelWithDebInfo/1f164g4g/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/moham/Videos/Projects/PPHI SOFTWARE/App_Front_End/bhu/android/app/.cxx/RelWithDebInfo/1f164g4g/armeabi-v7a/CMakeFiles/rebuild_cache.dir

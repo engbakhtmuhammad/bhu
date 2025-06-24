@@ -4,6 +4,7 @@ import 'package:bhu/view/auth/signin.dart';
 import 'package:bhu/widgets/custom_btn.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_iconly/flutter_iconly.dart';
 
 import 'package:get/get.dart';
@@ -194,17 +195,25 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                       InputField(
                         hintText: "Enter your CNIC (e.g., 3520112345678)",
-                        controller: cnicController, // We'll keep using emailController for backend compatibility
+                        controller: cnicController, // Keeping the same controller for backend compatibility
                         inputType: TextInputType.number,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your CNIC';
                           }
                           if (value.length != 13) {
-                            return 'CNIC must be 13 digits';
+                            return 'CNIC must be exactly 13 digits';
+                          }
+                          if (!RegExp(r'^\d+$').hasMatch(value)) {
+                            return 'CNIC must contain only digits';
                           }
                           return null;
                         },
+                        // 👇 Add this inside your InputField widget (modify your InputField to support it)
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(13), // Set max length to 13
+                          FilteringTextInputFormatter.digitsOnly, // Only allow numeric input
+                        ],
                       ),
                       const SizedBox(height: 15),
                       Text(
@@ -234,7 +243,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         style: subTitleTextStyle(color: blackColor, size: 15),
                       ),
                       InputField(
-                        hintText: "03123456789",
+                        hintText: "03000000000",
                         controller: phoneController,
                         inputType: TextInputType.phone,
                         validator: (value) {

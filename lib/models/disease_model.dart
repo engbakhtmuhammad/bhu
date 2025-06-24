@@ -1,11 +1,13 @@
 class DiseaseModel {
   final int id;
   final String name;
+  final String color;
   final int version;
 
   DiseaseModel({
     required this.id,
     required this.name,
+    required this.color,
     required this.version,
   });
 
@@ -13,6 +15,7 @@ class DiseaseModel {
     return {
       'id': id,
       'name': name,
+      'color': color,
       'version': version,
     };
   }
@@ -21,6 +24,7 @@ class DiseaseModel {
     return DiseaseModel(
       id: map['id'],
       name: map['name'],
+      color: map['color'],
       version: map['version'],
     );
   }
